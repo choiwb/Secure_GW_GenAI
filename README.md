@@ -1,7 +1,7 @@
 # NCP_HCX_GenAI
 NCP (Naver Cloud Platform) HCX (Hyper Clova X) Generative AI Application
 
-<Generative AI app>
+[Generative AI app]
 - auto review generation: Streamlit & LangChain
 - Cloud LLM Bot: LangServe & LangChain
 -----
