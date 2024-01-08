@@ -26,7 +26,6 @@ API_KEY_PRIMARY_VAL='YOUR API KEY PRIMARY VAL !!!!!!!!!!!!!!!!!!!!!!!'
 REQUEST_ID='YOUR REQUEST ID !!!!!!!!!!!!!!!!!!!!!!!'
 
 # (개인) 유료 API 키!!!!!!!!
-# ahnlab_llm_bot    
 os.environ['OPENAI_API_KEY'] = "YOUR OPENAI API KEY !!!!!!!!!!!!!!!!!!!!!!!"
 
 # 임베딩 벡터 DB 저장 & 호출
