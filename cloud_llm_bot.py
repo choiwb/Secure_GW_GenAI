@@ -283,7 +283,8 @@ with st.form('form', clear_on_submit=True):
                 # total_content += '=================================================='
                 # total_content += '\n%d번 째 참조 문서: %s' %(i+1, context)
                 total_content.loc[i] = [i+1, context]
-                                
+                token_total_content += context
+
             single_turn_text_json = {
             "messages": [
             {
