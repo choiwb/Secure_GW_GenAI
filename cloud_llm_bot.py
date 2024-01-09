@@ -325,7 +325,7 @@ with st.form('form', clear_on_submit=True):
                 message(f"답변: {response['generated']}", is_user=False, key=str(i) + '_generated')
                 # message(f"참조 문서: {response['source_documents']}", is_user=False, key=str(i) + '_source_documents')
                 message(f"총 토큰 수: {response['token_count']}", is_user=False, key=str(i) + '_token_count')
-                st.table(data = total_content)
+            st.table(data = total_content)
 
 
 ################### Streamlit ###################
