@@ -43,14 +43,13 @@ template = """You are a Cloud (MSP) Engineer or Cloud Sales administrator, or Cl
     You mast answer after understanding previous conversation.
     If you don't know the answer, just say that you don't know, don't try to make up an answer.
     Respond don't know to questions not related to Cloud Computing.
-    Use three sentences maximum and keep the answer as concise as possible.
+    Use 3 sentences maximum and keep the answer as concise as possible.
     context for answer: {context}
-    chat conversation: {chat_history}
     question: {question}
     answer: """
+
     
-    
-QA_CHAIN_PROMPT = PromptTemplate(input_variables=["context", "chat_history", "question"],template=template)
+QA_CHAIN_PROMPT = PromptTemplate(input_variables=["context", "question"],template=template)
 
 scenario_1 =  PyPDFLoader('contents/cloud_computing.pdf')
 s1_documents = scenario_1.load_and_split()
@@ -186,8 +185,8 @@ class CompletionExecutor(LLM):
             'Content-Type': 'application/json; charset=utf-8'
         }
 
-        # preset_text = [{"role": "system", "content": ""}, {"role": "user", "content": prompt}]
-        preset_text = [{"role": "system", "content": prompt}, {"role": "user", "content": ""}]
+        preset_text = [{"role": "system", "content": ""}, {"role": "user", "content": prompt}]
+        # preset_text = [{"role": "system", "content": prompt}, {"role": "user", "content": ""}]
 
         payload = {
             'messages': preset_text,
@@ -270,7 +269,7 @@ with st.form('form', clear_on_submit=True):
  
     if submitted and user_input:
         with st.spinner("Waiting for HyperCLOVA..."): 
-            response_text_json = retrieval_qa_chain({'question': user_input})
+            response_text_json = retrieval_qa_chain({'question': user_input, 'chat_history': memory})            
             response_text = response_text_json['answer']
             
             # 참조 문서 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -323,7 +322,6 @@ with st.form('form', clear_on_submit=True):
 
                 message(f"질문: {user_input['question']}", is_user=True, key=str(i) + '_question')
                 message(f"답변: {response['generated']}", is_user=False, key=str(i) + '_generated')
-                # message(f"참조 문서: {response['source_documents']}", is_user=False, key=str(i) + '_source_documents')
                 message(f"총 토큰 수: {response['token_count']}", is_user=False, key=str(i) + '_token_count')
             st.table(data = total_content)
 
