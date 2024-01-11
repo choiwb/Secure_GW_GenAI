@@ -11,8 +11,6 @@ from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.vectorstores import FAISS, Chroma
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.memory import ConversationBufferMemory
-from fastapi import FastAPI
-from langserve import add_routes
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.llms.base import LLM
 import streamlit as st
@@ -212,7 +210,15 @@ class CompletionExecutor(LLM):
 
 hcx_llm = CompletionExecutor(api_key = API_KEY, api_key_primary_val=API_KEY_PRIMARY_VAL, request_id=REQUEST_ID)
 
-memory = ConversationBufferMemory(memory_key='chat_history', return_messages=True, input_key = "question", output_key='answer')
+@st.cache_resource
+def init_memory():
+    return ConversationBufferMemory(
+        input_key='question',
+        output_key='answer',
+        memory_key='chat_history',
+        return_messages=True)
+memory = init_memory()
+
 retrieval_qa_chain = ConversationalRetrievalChain.from_llm(llm = hcx_llm,
                                 retriever = retriever, 
                                 memory = memory,
@@ -269,8 +275,12 @@ with st.form('form', clear_on_submit=True):
  
     if submitted and user_input:
         with st.spinner("Waiting for HyperCLOVA..."): 
-            response_text_json = retrieval_qa_chain({'question': user_input, 'chat_history': memory})            
+            response_text_json = retrieval_qa_chain({'question': user_input, 'chat_history': memory.chat_memory})     
             response_text = response_text_json['answer']
+
+            print('************************************************')
+            print(memory.chat_memory)
+            print('************************************************')
             
             # 참조 문서 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             total_content = pd.DataFrame(columns=['순번', '참조 문서'])
