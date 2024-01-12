@@ -321,9 +321,23 @@ with st.form('form', clear_on_submit=True):
             # single_turn_token_count = single_turn_text_token[0]['count'] + single_turn_text_token[1]['count'] + single_turn_text_token[2]['count'] + single_turn_text_token[3]['count']
             single_turn_token_count = sum(token['count'] for token in single_turn_text_token[:4])
 
+            # 할인 후 가격
+            discount_token_price = single_turn_token_count * 0.005
+            # 할인 후 가격 VAT 포함
+            discount_token_price_vat = discount_token_price * 1.1
+            # 정가
+            regular_token_price = single_turn_token_count * 0.02
+            # 정가 VAT 포함
+            regular_token_price_vat = regular_token_price * 1.1
+
             st.session_state.past.append({'question': user_input})
             # st.session_state.generated.append({'generated': response_text, 'token_count': single_turn_token_count, 'source_documents': total_content})
-            st.session_state.generated.append({'generated': response_text, 'token_count': single_turn_token_count})
+            st.session_state.generated.append({'generated': response_text, 'token_count': single_turn_token_count,
+                                              'discount_token_price': discount_token_price,
+                                              'discount_token_price_vat': discount_token_price_vat,
+                                              'regular_token_price': regular_token_price,
+                                              'regular_token_price_vat': regular_token_price_vat}
+                                              )
             
         if st.session_state['generated']:
             for i in range(len(st.session_state['generated']) - 1, -1, -1):
