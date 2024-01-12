@@ -332,7 +332,14 @@ with st.form('form', clear_on_submit=True):
 
                 message(f"질문: {user_input['question']}", is_user=True, key=str(i) + '_question')
                 message(f"답변: {response['generated']}", is_user=False, key=str(i) + '_generated')
-                message(f"총 토큰 수: {response['token_count']}", is_user=False, key=str(i) + '_token_count')
+                
+                # message(f"총 토큰 수: {response['token_count']}", is_user=False, key=str(i) + '_token_count')
+                # message(f"할인 후 가격: {round(response['discount_token_price'], 2)} (원)", is_user=False, key=str(i) + '_discount_token_price')
+                # message(f"할인 후 가격(VAT 포함): {round(response['discount_token_price_vat'], 2)} (원)", is_user=False, key=str(i) + '_discount_token_price_vat')
+                # message(f"정가: {round(response['regular_token_price'], 2)} (원)", is_user=False, key=str(i) + '_regular_token_price')
+                # message(f"정가(VAT 포함): {round(response['regular_token_price_vat'], 2)} (원)", is_user=False, key=str(i) + '_regular_token_price_vat')
+                message(f"총 토큰 수: {response['token_count']}\n할인 후 가격: {round(response['discount_token_price'], 2)} (원)\n할인 후 가격(VAT 포함): {round(response['discount_token_price_vat'], 2)} (원)\n정가: {round(response['regular_token_price'], 2)} (원)\n정가(VAT 포함): {round(response['regular_token_price_vat'], 2)} (원)", is_user=False, key=str(i) + '_cost')
+                
             st.table(data = total_content)
 
 
