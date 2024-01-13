@@ -17,10 +17,13 @@ import streamlit as st
 from streamlit_chat import message
 from langchain.callbacks.manager import CallbackManagerForLLMRun
 import pandas as pd
+from langchain_core.runnables import RunnablePassthrough, RunnableParallel
+from langchain_core.output_parsers import StrOutputParser
+
+
 
 # HCX 토큰 계산기 API 호출
 from hcx_token_cal import token_completion_executor
-
 
 ##################################################################################
 # HCX API 키
@@ -45,7 +48,7 @@ template = """You are a Cloud (MSP) Engineer or Cloud Sales administrator, or Cl
     context for answer: {context}
     question: {question}
     answer: """
-
+    
     
 QA_CHAIN_PROMPT = PromptTemplate(input_variables=["context", "question"],template=template)
 
@@ -121,7 +124,7 @@ new_docsearch = Chroma(persist_directory=os.path.join(db_save_path, "cloud_bot_2
                         embedding_function=embeddings)
 retriever = new_docsearch.as_retriever(
                                         search_type="mmr",
-                                        search_kwargs={'k': 2, 'fetch_k': 10}
+                                        search_kwargs={'k': 2, 'fetch_k': 5}
                                         # search_type="similarity_score_threshold",
                                         # search_kwargs={'score_threshold': 0.8}
                                        )
@@ -137,8 +140,6 @@ retriever = new_docsearch.as_retriever(
 ##################################################################################
 # offline_faiss_save 또는 offline_chroma_save 와 같이 pinecone 함수 생성 !!!!!!!!!!!!!!!!!
 
-
-
 try:
     _create_unverified_https_context = ssl._create_unverified_context
 except AttributeError:
@@ -152,7 +153,11 @@ class CompletionExecutor(LLM):
     api_key: str = Field(...)
     api_key_primary_val: str = Field(...)
     request_id: str = Field(...)
-   
+    
+    # RAG 과정 시 2번 씩 프린트 되는 flow 여서, init, totlal 별도 선언 해줘야 함.
+    total_input_token_count: int = 0
+    
+        
     class Config:
         extra = Extra.forbid
  
@@ -185,12 +190,28 @@ class CompletionExecutor(LLM):
 
         preset_text = [{"role": "system", "content": ""}, {"role": "user", "content": prompt}]
         # preset_text = [{"role": "system", "content": prompt}, {"role": "user", "content": ""}]
+        
+        output_token_json = {
+            "messages": preset_text
+            }
+        
+        
+        total_input_token_json = token_completion_executor.execute(output_token_json)
+        init_input_token_count = sum(token['count'] for token in total_input_token_json[:])
+        
+        # print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
+        # print(init_input_token_count)        
+        # print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
 
+        # RAG 과정 시 2번 씩 프린트 되는 flow 여서, init 을 total 에 합침
+        self.total_input_token_count += init_input_token_count
+
+        
         payload = {
             'messages': preset_text,
             'topP': 0.8,
             'topK': 0,
-            'maxTokens': 256,
+            'maxTokens': 128,
             'temperature': 0.1,
             'repeatPenalty': 5.0,
             'stopBefore': [],
@@ -219,43 +240,19 @@ def init_memory():
         return_messages=True)
 memory = init_memory()
 
-retrieval_qa_chain = ConversationalRetrievalChain.from_llm(llm = hcx_llm,
-                                retriever = retriever, 
-                                memory = memory,
-                                return_source_documents = True,
-                                combine_docs_chain_kwargs={"prompt": QA_CHAIN_PROMPT}
-                                )
-
-# class SimpleJsonOutputParser:
-#     def __call__(self, result):
-#         return result["answer"]
-
-# retrieval_qa_chain_pipe = retrieval_qa_chain | SimpleJsonOutputParser()
-
-# app = FastAPI(title="Cloud Bot",
-#         version="1.0",
-#         description="A simple API server using LangChain's Runnable interfaces")
-
-# # Add the LangServe routes to the FastAPI app
-# # 3. Adding chain route
-# add_routes(
-#     app,
-#     retrieval_qa_chain_pipe, 
-#     path="/retrieval_qa_chain",
-#     )
-
-
-# if __name__ == "__main__":
-#     import uvicorn
-
-#     uvicorn.run(app, host="0.0.0.0", port=8000)
-
-
-################### LangSerce ###################
-# /docs: langserve API 문서
-# uvicorn langserve_hcx_cloud_bot:app --host 223.130.140.95 --port 8080
-# Playground UI
-# http://0.0.0.0:8000/retrieval_qa_chain/playground/
+# retrieval_qa_chain = ConversationalRetrievalChain.from_llm(llm = hcx_llm,
+#                                 retriever = retriever, 
+#                                 memory = memory,
+#                                 return_source_documents = True,
+#                                 combine_docs_chain_kwargs={"prompt": QA_CHAIN_PROMPT}
+#                                 )
+# ConversationalRetrievalChain to LCEL !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+retrieval_qa_chain = (
+                RunnableParallel({"context": retriever, "question": RunnablePassthrough()})
+                | QA_CHAIN_PROMPT
+                | hcx_llm
+                | StrOutputParser()
+            )
 
 
 
@@ -272,15 +269,18 @@ with st.form('form', clear_on_submit=True):
     user_input = st.text_input('질문', '', key='ques')
 
     submitted = st.form_submit_button('답변')
- 
+        
     if submitted and user_input:
         with st.spinner("Waiting for HyperCLOVA..."): 
+            
             response_text_json = retrieval_qa_chain({'question': user_input, 'chat_history': memory.chat_memory})     
             response_text = response_text_json['answer']
-
-            print('************************************************')
-            print(memory.chat_memory)
-            print('************************************************')
+            
+            # print('************************************')
+            # print(memory.chat_memory)
+            # chat_memory = memory.chat_memory
+            # chat_memory = str(chat_memory)
+            # print('************************************')
             
             # 참조 문서 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             total_content = pd.DataFrame(columns=['순번', '참조 문서'])
@@ -293,21 +293,9 @@ with st.form('form', clear_on_submit=True):
                 # total_content += '\n%d번 째 참조 문서: %s' %(i+1, context)
                 total_content.loc[i] = [i+1, context]
                 token_total_content += context
-
-            single_turn_text_json = {
+                                
+            output_token_json = {
             "messages": [
-            {
-                "role": "system",
-                "content": template
-            },
-            {
-                "role": "system",
-                "content": token_total_content
-            },
-            {
-                "role": "user",
-                "content": user_input
-            },
             {
                 "role": "assistant",
                 "content": response_text
@@ -315,30 +303,30 @@ with st.form('form', clear_on_submit=True):
             ]
             }
             
-            single_turn_text_token = token_completion_executor.execute(single_turn_text_json)
-            print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-            print(single_turn_text_json)
-            # single_turn_token_count = single_turn_text_token[0]['count'] + single_turn_text_token[1]['count'] + single_turn_text_token[2]['count'] + single_turn_text_token[3]['count']
-            single_turn_token_count = sum(token['count'] for token in single_turn_text_token[:4])
-
+            output_text_token = token_completion_executor.execute(output_token_json)
+            output_token_count = sum(token['count'] for token in output_text_token[:])
+                        
+            total_token_count = hcx_llm.total_input_token_count + output_token_count
+            
             # 할인 후 가격
-            discount_token_price = single_turn_token_count * 0.005
+            discount_token_price = total_token_count * 0.005
             # 할인 후 가격 VAT 포함
             discount_token_price_vat = discount_token_price * 1.1
             # 정가
-            regular_token_price = single_turn_token_count * 0.02
+            regular_token_price = total_token_count * 0.02
             # 정가 VAT 포함
             regular_token_price_vat = regular_token_price * 1.1
 
             st.session_state.past.append({'question': user_input})
-            # st.session_state.generated.append({'generated': response_text, 'token_count': single_turn_token_count, 'source_documents': total_content})
-            st.session_state.generated.append({'generated': response_text, 'token_count': single_turn_token_count,
+            st.session_state.generated.append({'generated': response_text, 'input_token_count':hcx_llm.total_input_token_count,
+                                               'output_token_count': output_token_count,
+                                               'total_token_count': total_token_count,
                                               'discount_token_price': discount_token_price,
                                               'discount_token_price_vat': discount_token_price_vat,
                                               'regular_token_price': regular_token_price,
                                               'regular_token_price_vat': regular_token_price_vat}
                                               )
-            
+                        
         if st.session_state['generated']:
             for i in range(len(st.session_state['generated']) - 1, -1, -1):
                 user_input = st.session_state['past'][i]
@@ -346,13 +334,7 @@ with st.form('form', clear_on_submit=True):
 
                 message(f"질문: {user_input['question']}", is_user=True, key=str(i) + '_question')
                 message(f"답변: {response['generated']}", is_user=False, key=str(i) + '_generated')
-                
-                # message(f"총 토큰 수: {response['token_count']}", is_user=False, key=str(i) + '_token_count')
-                # message(f"할인 후 가격: {round(response['discount_token_price'], 2)} (원)", is_user=False, key=str(i) + '_discount_token_price')
-                # message(f"할인 후 가격(VAT 포함): {round(response['discount_token_price_vat'], 2)} (원)", is_user=False, key=str(i) + '_discount_token_price_vat')
-                # message(f"정가: {round(response['regular_token_price'], 2)} (원)", is_user=False, key=str(i) + '_regular_token_price')
-                # message(f"정가(VAT 포함): {round(response['regular_token_price_vat'], 2)} (원)", is_user=False, key=str(i) + '_regular_token_price_vat')
-                message(f"총 토큰 수: {response['token_count']}\n할인 후 가격: {round(response['discount_token_price'], 2)} (원)\n할인 후 가격(VAT 포함): {round(response['discount_token_price_vat'], 2)} (원)\n정가: {round(response['regular_token_price'], 2)} (원)\n정가(VAT 포함): {round(response['regular_token_price_vat'], 2)} (원)", is_user=False, key=str(i) + '_cost')
+                message(f"input 토큰 수: {response['input_token_count']}\noutput 토큰 수: {response['output_token_count']}\n총 토큰 수: {response['total_token_count']}\n할인 후 가격: {round(response['discount_token_price'], 2)} (원)\n할인 후 가격(VAT 포함): {round(response['discount_token_price_vat'], 2)} (원)\n정가: {round(response['regular_token_price'], 2)} (원)\n정가(VAT 포함): {round(response['regular_token_price_vat'], 2)} (원)", is_user=False, key=str(i) + '_cost')
                 
             st.table(data = total_content)
 
