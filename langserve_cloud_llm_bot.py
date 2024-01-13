@@ -271,6 +271,6 @@ if __name__ == "__main__":
 
 ################### LangSerce ###################
 # /docs: langserve API 문서
-# uvicorn langserve_hcx_cloud_bot:app --host 223.130.140.95 --port 8080
+# uvicorn langserve_cloud_llm_bot:app --host 0.0.0.0 --port 8080
 # Playground UI
 # http://0.0.0.0:8000/retrieval_qa_chain/playground/
