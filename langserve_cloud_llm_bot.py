@@ -151,7 +151,7 @@ class CompletionExecutor(LLM):
     api_key_primary_val: str = Field(...)
     request_id: str = Field(...)
     
-    # RAG 과정 시 2번 씩 프린트 되는 flow 여서, init, totlal 별도 선언 해줘야 함.
+    # RAG 과정 시 2번 씩 프린트 되는 flow 여서, init, total 별도 선언 해줘야 함.
     total_input_token_count: int = 0
     
         
