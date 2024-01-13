@@ -273,4 +273,4 @@ if __name__ == "__main__":
 # /docs: langserve API 문서
 # uvicorn langserve_cloud_llm_bot:app --host 0.0.0.0 --port 8080
 # Playground UI
-# http://0.0.0.0:8000/retrieval_qa_chain/playground/
+# http://0.0.0.0:8080/retrieval_qa_chain/playground/
