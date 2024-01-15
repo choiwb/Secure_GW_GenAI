@@ -43,15 +43,16 @@ db_save_path = "YOUR DB SAVE PATH !!!!!!!!!!!!!!!!!!!!!!!"
 ##################################################################################
 
 
-template = """You are a Cloud (MSP) Engineer or Cloud Sales administrator, or Cloud Solution Architect. about user question, answering specifically in korean.
+SYSTEMPROMPT = """You are a Cloud (MSP) Engineer or Cloud Sales administrator, or Cloud Solution Architect. about user question, answering specifically in korean.
     Use the following pieces of context to answer the question at the end.
     You mast answer after understanding previous conversation.
     If you don't know the answer, just say that you don't know, don't try to make up an answer.
     Respond don't know to questions not related to Cloud Computing.
-    Use 3 sentences maximum and keep the answer as concise as possible.
-    context for answer: {context}
-    question: {question}
-    answer: """
+    Use 3 sentences maximum and keep the answer as concise as possible."""
+template = """
+     context for answer: {context}
+     question: {question}
+     answer: """
     
     
 QA_CHAIN_PROMPT = PromptTemplate(input_variables=["context", "question"],template=template)
@@ -157,6 +158,8 @@ class CompletionExecutor(LLM):
     api_key: str = Field(...)
     api_key_primary_val: str = Field(...)
     request_id: str = Field(...)
+    system_prompt: str = Field(...)
+
     
     # RAG 과정 시 2번 씩 프린트 되는 flow 여서, init, total 별도 선언 해줘야 함.
     total_input_token_count: int = 0
@@ -165,11 +168,13 @@ class CompletionExecutor(LLM):
     class Config:
         extra = Extra.forbid
  
-    def __init__(self, api_key, api_key_primary_val, request_id):
+    def __init__(self, api_key, api_key_primary_val, request_id, system_prompt):
         super().__init__()
         self.api_key = api_key
         self.api_key_primary_val = api_key_primary_val
         self.request_id = request_id
+        self.system_prompt = system_prompt
+
  
     @property
     def _llm_type(self) -> str:
@@ -192,8 +197,15 @@ class CompletionExecutor(LLM):
             'Content-Type': 'application/json; charset=utf-8'
         }
 
-        preset_text = [{"role": "system", "content": ""}, {"role": "user", "content": prompt}]
-        # preset_text = [{"role": "system", "content": prompt}, {"role": "user", "content": ""}]
+        # self.system_prompt 의 경우, 처음에 1번만 이용 !!!!!!!!!!!!!
+        # if self.total_input_token_count < 650:
+        #     preset_text = [{"role": "system", "content": self.system_prompt}, {"role": "user", "content": prompt}]
+        #     # preset_text = [{"role": "system", "content": self.system_prompt}]
+        # else:
+        #     preset_text = [{"role": "user", "content": prompt}]
+            
+        preset_text = [{"role": "system", "content": self.system_prompt}, {"role": "user", "content": prompt}]
+
                         
         output_token_json = {
             "messages": preset_text
@@ -235,8 +247,7 @@ class CompletionExecutor(LLM):
         return {"llmUrl": self.llm_url}
 
 
-
-hcx_llm = CompletionExecutor(api_key = API_KEY, api_key_primary_val=API_KEY_PRIMARY_VAL, request_id=REQUEST_ID)
+hcx_llm = CompletionExecutor(api_key = API_KEY, api_key_primary_val=API_KEY_PRIMARY_VAL, request_id=REQUEST_ID,  system_prompt=SYSTEMPROMPT)
 
 @st.cache_resource
 def init_memory():
