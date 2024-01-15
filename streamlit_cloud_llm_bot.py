@@ -198,7 +198,7 @@ class CompletionExecutor(LLM):
         }
 
         # self.system_prompt 의 경우, 처음에 1번만 이용 !!!!!!!!!!!!!
-        # if self.total_input_token_count < 650:
+        # if self.total_input_token_count == 0:
         #     preset_text = [{"role": "system", "content": self.system_prompt}, {"role": "user", "content": prompt}]
         #     # preset_text = [{"role": "system", "content": self.system_prompt}]
         # else:
