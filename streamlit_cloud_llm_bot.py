@@ -17,15 +17,17 @@ import streamlit as st
 from streamlit_chat import message
 from langchain.callbacks.manager import CallbackManagerForLLMRun
 import pandas as pd
-from langchain_core.runnables import RunnablePassthrough, RunnableParallel
+from langchain_core.runnables import RunnablePassthrough, RunnableLambda
 from langchain_core.output_parsers import StrOutputParser
-from langchain_core.runnables.config import RunnableConfig
-from langchain.schema.runnable.utils import Input
+from operator import itemgetter
+from langchain_core.messages import get_buffer_string
+from langchain.schema import format_document
 
 
 
 # HCX 토큰 계산기 API 호출
 from hcx_token_cal import token_completion_executor
+
 
 ##################################################################################
 # HCX API 키
@@ -125,11 +127,8 @@ def offline_chroma_save(*pdf_docs):
 new_docsearch = Chroma(persist_directory=os.path.join(db_save_path, "cloud_bot_20240108_chroma_db"),
                         embedding_function=embeddings)
 retriever = new_docsearch.as_retriever(
-                                        search_type="mmr",
-                                        
-                                        # search_kwargs={'k': 2, 'fetch_k': 5}
-                                        search_kwargs={'k': 1, 'fetch_k': 1}
-
+                                        search_type="mmr",                                        
+                                        search_kwargs={'k': 2, 'fetch_k': 5}
                                         # search_type="similarity_score_threshold",
                                         # search_kwargs={'score_threshold': 0.8}
                                        )
@@ -215,7 +214,7 @@ class CompletionExecutor(LLM):
             'messages': preset_text,
             'topP': 0.8,
             'topK': 0,
-            'maxTokens': 128,
+            'maxTokens': 256,
             'temperature': 0.1,
             'repeatPenalty': 5.0,
             'stopBefore': [],
@@ -264,53 +263,64 @@ def init_memory():
 
 memory = init_memory()
 
-retrieval_qa_chain = ConversationalRetrievalChain.from_llm(llm = hcx_llm,
-                                retriever = retriever, 
-                                memory = memory,
-                                return_source_documents = True,
-                                combine_docs_chain_kwargs={"prompt": QA_CHAIN_PROMPT}
-                                )
+# retrieval_qa_chain = ConversationalRetrievalChain.from_llm(llm = hcx_llm,
+#                                 retriever = retriever, 
+#                                 memory = memory,
+#                                 return_source_documents = True,
+#                                 combine_docs_chain_kwargs={"prompt": QA_CHAIN_PROMPT}
+#                                 )
 
 
 # 토큰 절약하기 위한
 # ConversationalRetrievalChain to LCEL !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# lcel_retriever = RunnableParallel(
-#     {"context": retriever, "question": RunnablePassthrough()}
-#     )
+DEFAULT_DOCUMENT_PROMPT = PromptTemplate.from_template(template="{page_content}")
 
-# retrieval_qa_chain = lcel_retriever | QA_CHAIN_PROMPT | hcx_llm | StrOutputParser()
+_template = """Given the following conversation and a follow up question, rephrase the follow up question to be a standalone question, in its original language.
 
-# stream
-# def stream(self, input: Input, config: Optional[RunnableConfig] = None, **kwargs: Optional[Any]):
-#     for key, runnable in self.runnables.items():
-#         if key in input:
-#             yield from runnable.stream(input[key], config, **kwargs)
+Chat History:
+{chat_history}
+Follow Up Input: {question}
+Standalone question:"""
+CONDENSE_QUESTION_PROMPT = PromptTemplate.from_template(_template)
 
+def _combine_documents(
+    docs, document_prompt=DEFAULT_DOCUMENT_PROMPT, document_separator="\n\n"
+):
+    doc_strings = [format_document(doc, document_prompt) for doc in docs]
+    return document_separator.join(doc_strings)
 
-# # 메모리 저장 & source_documents 를 어떻게 출력 ??????
-# def format_docs(docs):
-#     return "\n\n".join(doc.page_content for doc in docs)
-
-# retrieval_qa_chain = (
-#     # RunnablePassthrough.assign(source_documents=condense_question | retriever)
-#     RunnablePassthrough.assign(source_documents=RunnablePassthrough() | retriever)
-
-#     | RunnablePassthrough.assign(context=lambda inputs: format_docs(inputs["source_documents"]) if inputs["source_documents"] else "")
-#     | RunnablePassthrough.assign(prompt=QA_CHAIN_PROMPT)
-#     | RunnablePassthrough.assign(response=lambda inputs: hcx_llm(inputs["prompt"].messages))
-# )
-
-# retrieval_qa_chain = (
-#     RunnablePassthrough.assign(question=RunnablePassthrough())
-#     | RunnablePassthrough.assign(context=(lambda x: format_docs(x["context"])))
-#     | QA_CHAIN_PROMPT
-#     | hcx_llm
-#     | StrOutputParser()
-# )
-
-# retrieval_qa_chain_source = RunnableParallel(
-#     {"context": retriever, "question": RunnablePassthrough()}
-# ).assign(answer=retrieval_qa_chain)
+# First we add a step to load memory
+# This adds a "memory" key to the input object
+loaded_memory = RunnablePassthrough.assign(
+    chat_history=RunnableLambda(memory.load_memory_variables) | itemgetter("chat_history"),
+)
+# Now we calculate the standalone question
+standalone_question = {
+    "standalone_question": {
+        "question": lambda x: x["question"],
+        "chat_history": lambda x: get_buffer_string(x["chat_history"]),
+    }
+    | CONDENSE_QUESTION_PROMPT
+    | hcx_llm
+    | StrOutputParser(),
+}
+# Now we retrieve the documents
+retrieved_documents = {
+    "source_documents": itemgetter("standalone_question") | retriever,
+    "question": lambda x: x["standalone_question"],
+}
+# Now we construct the inputs for the final prompt
+final_inputs = {
+    "context": lambda x: _combine_documents(x["source_documents"]),
+    "question": itemgetter("question"),
+}
+# And finally, we do the part that returns the answers
+answer = {
+    "answer": final_inputs | QA_CHAIN_PROMPT | hcx_llm,
+    "source_documents": itemgetter("source_documents"),
+}
+# And now we put it all together!
+retrieval_qa_chain = loaded_memory | standalone_question | retrieved_documents | answer
 
 
 
@@ -332,34 +342,24 @@ with st.form('form', clear_on_submit=True):
         with st.spinner("Waiting for HyperCLOVA..."): 
             
             # ConversationBufferMemory
-            response_text_json = retrieval_qa_chain({'question': user_input, 'chat_history': memory.chat_memory})    
+            # response_text_json = retrieval_qa_chain({'question': user_input, 'chat_history': memory.chat_memory})    
             # ConversationSummaryBufferMemory 
             # response_text_json = retrieval_qa_chain({'question': user_input, 'chat_history': memory.moving_summary_buffer})     
             # LCEL            
-            # response_text_json = retrieval_qa_chain.invoke({'question': user_input, 'chat_history': memory.chat_memory})
-            # response_text_json = retrieval_qa_chain.invoke({"question": user_input})
-
-            # print('!!!!!!!!!!!!!!!!!!!!!!!!!!')
-            # print(response_text_json)
+            response_text_json = retrieval_qa_chain.invoke({"question": user_input})
             
-            # for chunk in retrieval_qa_chain.stream(user_input):
-            #     print(chunk, end="", flush=True)
-            #     time.sleep(0.01)
-            # print('!!!!!!!!!!!!!!!!!!!!!!!!!!')
-
             # print('************************************')
             # print(memory.chat_memory)
             # print(memory.moving_summary_buffer)
             # print('************************************')
             
-            # ConversationalRetrievalChain          
+            # ConversationalRetrievalChain & LCEL      
             response_text = response_text_json['answer']
-            # LCEL
-            # response_text = response_text_json
-            # response_source = retrieval_qa_chain_source(user_input)
-            # print('!!!!!!!!!!!!!!!!!!!!!!!!!!')
-            # print(response_source)
-            # print('!!!!!!!!!!!!!!!!!!!!!!!!!!')
+            
+            # Note that the memory does not save automatically
+            # This will be improved in the future
+            # For now you need to save it yourself
+            memory.save_context({"question": user_input}, {"answer": response_text})
                                 
             # 참조 문서 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             total_content = pd.DataFrame(columns=['순번', '참조 문서'])
