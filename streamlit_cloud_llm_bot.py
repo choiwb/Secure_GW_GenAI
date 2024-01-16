@@ -22,6 +22,15 @@ from langchain_core.output_parsers import StrOutputParser
 from operator import itemgetter
 from langchain_core.messages import get_buffer_string
 from langchain.schema import format_document
+from langchain.globals import set_llm_cache
+from langchain.cache import InMemoryCache
+from langchain.retrievers import ContextualCompressionRetriever
+from langchain.retrievers.document_compressors import LLMChainExtractor
+from langchain.retrievers.document_compressors import LLMChainFilter
+from langchain_community.document_transformers import EmbeddingsRedundantFilter
+from langchain.retrievers.document_compressors import DocumentCompressorPipeline
+from langchain.document_loaders import AsyncHtmlLoader
+from langchain.document_transformers import Html2TextTransformer
 
 
 
@@ -62,16 +71,19 @@ s1_documents = scenario_1.load_and_split()
 
 
 text_splitter = CharacterTextSplitter(        
-separator = "\n",
-chunk_size = 1000,
-chunk_overlap  = 200,
-length_function = len,
-)
+                            separator = "\n",
+                            chunk_size = 200,
+                            chunk_overlap  = 50,
+                            length_function = len,
+                            )
 
 
 # OpenAI VS HuggingFace
 embeddings = OpenAIEmbeddings()
 
+
+
+# 오프라인 데이터 가공 ####################################################################################
 def offline_faiss_save(*pdf_docs):
 
     total_docs = []
@@ -123,23 +135,66 @@ def offline_chroma_save(*pdf_docs):
 # end = time.time()
 # '''임베딩 완료 시간: 1.31 (초)'''
 # print('임베딩 완료 시간: %.2f (초)' %(end-start))
+#######################################################################################################
 
 
-new_docsearch = Chroma(persist_directory=os.path.join(db_save_path, "cloud_bot_20240108_chroma_db"),
+
+# 온라인 데이터 가공 ####################################################################################
+url_1 = 'https://guide.ncloud-docs.com/docs/clovastudio-tuning01'
+url_2 = 'https://guide.ncloud-docs.com/docs/clovastudio-dataset'
+url_3 = 'https://guide.ncloud-docs.com/docs/clovastudio-explorer01'
+url_4 = 'https://guide.ncloud-docs.com/docs/clovastudio-explorer02'
+url_5 = 'https://guide.ncloud-docs.com/docs/clovastudio-explorer03'
+url_6 = 'https://guide.ncloud-docs.com/docs/clovastudio-skillset'
+url_7 = 'https://guide.ncloud-docs.com/docs/clovastudio-skill'
+url_8 = 'https://guide.ncloud-docs.com/docs/clovastudio-scenario'
+url_9 = 'https://guide.ncloud-docs.com/docs/clovastudio-skillsetversion'
+url_10 = 'https://guide.ncloud-docs.com/docs/clovastuido-skillset-tuning'
+url_11 = 'https://guide.ncloud-docs.com/docs/clovastuido-skilltrainer-faq'
+
+html2text = Html2TextTransformer()
+
+def online_chroma_save(*urls):
+    total_docs = []
+    
+    for url in urls:
+        count += 1
+        
+        loader = AsyncHtmlLoader(url)
+        doc = loader.load()
+        doc = html2text.transform_documents(doc)  
+        doc = text_splitter.split_documents(doc)
+        total_docs = total_docs + doc
+
+    vectorstore = Chroma.from_documents(
+        documents=total_docs, 
+        embedding=embeddings,
+        persist_directory=os.path.join(db_save_path, "cloud_bot_20240117_chroma_db")
+        )
+    vectorstore.persist()
+
+# start = time.time()
+# total_content = online_chroma_save(url_1, url_2, url_3, url_4, url_5, url_6, url_7, url_8, url_9, url_10, url_11)
+# end = time.time()
+# '''임베딩 완료 시간: 28.29 (초)'''
+# print('임베딩 완료 시간: %.2f (초)' %(end-start))
+#######################################################################################################
+
+
+
+
+
+new_docsearch = Chroma(persist_directory=os.path.join(db_save_path, "cloud_bot_20240117_chroma_db"),
                         embedding_function=embeddings)
+
 retriever = new_docsearch.as_retriever(
                                         search_type="mmr",                                        
                                         search_kwargs={'k': 2, 'fetch_k': 5}
+                                        # search_kwargs={'k': 1, 'fetch_k': 1}
+
                                         # search_type="similarity_score_threshold",
                                         # search_kwargs={'score_threshold': 0.8}
                                        )
-
-# Chroma 의 저장된 벡터 DB에 대한 현황 파악 !!!!!!!!!!
-# query = '클라우드 컴퓨팅의 정의는 무엇인가요?'
-# docs = new_docsearch.similarity_search(query, k=3)
-# print('########################################')
-# print(len(docs))
-# print(docs[0].page_content)
 
 
 ##################################################################################
@@ -199,13 +254,15 @@ class CompletionExecutor(LLM):
 
         # self.system_prompt 의 경우, 처음에 1번만 이용 !!!!!!!!!!!!!
         # if self.total_input_token_count == 0:
-        #     preset_text = [{"role": "system", "content": self.system_prompt}, {"role": "user", "content": prompt}]
-        #     # preset_text = [{"role": "system", "content": self.system_prompt}]
+        #     # preset_text = [{"role": "system", "content": self.system_prompt}, {"role": "user", "content": prompt}]
+        #     preset_text = [{"role": "system", "content": self.system_prompt}]            
         # else:
         #     preset_text = [{"role": "user", "content": prompt}]
             
         preset_text = [{"role": "system", "content": self.system_prompt}, {"role": "user", "content": prompt}]
-
+        
+        print('^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^')
+        print(preset_text)
                         
         output_token_json = {
             "messages": preset_text
@@ -247,7 +304,22 @@ class CompletionExecutor(LLM):
         return {"llmUrl": self.llm_url}
 
 
+
 hcx_llm = CompletionExecutor(api_key = API_KEY, api_key_primary_val=API_KEY_PRIMARY_VAL, request_id=REQUEST_ID,  system_prompt=SYSTEMPROMPT)
+
+# LLM 을 사용하기 때문에, 질문과 관련없는 문서를 필터링 할 수 있으나, 속도가 느리고, 토큰 사용이더 됨.!
+# llm_compressor = LLMChainExtractor.from_llm(hcx_llm)
+# llm_filter = LLMChainFilter.from_llm(hcx_llm)
+
+# compression_retriever = ContextualCompressionRetriever(
+#     base_compressor = llm_compressor, base_retriever = retriever)
+# compression_retriever = ContextualCompressionRetriever(
+#     base_compressor = llm_filter, base_retriever = retriever)
+
+# LCEL 파이프라인 디버깅 필요 함!!!!!!!!
+# redundant_filter = EmbeddingsRedundantFilter(embeddings=embeddings)
+# pipeline_compressor = DocumentCompressorPipeline(transformers=[redundant_filter, llm_compressor, llm_filter])
+
 
 @st.cache_resource
 def init_memory():
@@ -318,6 +390,14 @@ standalone_question = {
 # Now we retrieve the documents
 retrieved_documents = {
     "source_documents": itemgetter("standalone_question") | retriever,
+    
+    # "question": lambda x: x["question"],
+    # "chat_history": lambda x: get_buffer_string(x["chat_history"]),
+    # "source_documents": itemgetter("question") | retriever,
+    
+    # "source_documents": itemgetter("standalone_question") | compression_retriever,
+    # "source_documents": itemgetter("standalone_question") | pipeline_compressor | retriever,
+
     "question": lambda x: x["standalone_question"],
 }
 # Now we construct the inputs for the final prompt
@@ -332,6 +412,7 @@ answer = {
 }
 # And now we put it all together!
 retrieval_qa_chain = loaded_memory | standalone_question | retrieved_documents | answer
+# retrieval_qa_chain = loaded_memory | retrieved_documents | answer
 
 
 
@@ -356,9 +437,9 @@ with st.form('form', clear_on_submit=True):
             # response_text_json = retrieval_qa_chain({'question': user_input, 'chat_history': memory.chat_memory})    
             # ConversationSummaryBufferMemory 
             # response_text_json = retrieval_qa_chain({'question': user_input, 'chat_history': memory.moving_summary_buffer})     
-            # LCEL            
+            # LCEL     
             response_text_json = retrieval_qa_chain.invoke({"question": user_input})
-            
+
             # print('************************************')
             # print(memory.chat_memory)
             # print(memory.moving_summary_buffer)
@@ -366,12 +447,14 @@ with st.form('form', clear_on_submit=True):
             
             # ConversationalRetrievalChain & LCEL      
             response_text = response_text_json['answer']
-            
+                        
             # Note that the memory does not save automatically
             # This will be improved in the future
             # For now you need to save it yourself
             memory.save_context({"question": user_input}, {"answer": response_text})
-                                
+            # print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
+            # print(memory)
+
             # 참조 문서 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             total_content = pd.DataFrame(columns=['순번', '참조 문서'])
             token_total_content = ''
