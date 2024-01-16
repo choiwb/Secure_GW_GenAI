@@ -158,7 +158,6 @@ def online_chroma_save(*urls):
     total_docs = []
     
     for url in urls:
-        count += 1
         
         loader = AsyncHtmlLoader(url)
         doc = loader.load()
