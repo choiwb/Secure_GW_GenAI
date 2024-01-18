@@ -32,6 +32,7 @@ from langchain.retrievers.document_compressors import DocumentCompressorPipeline
 from langchain.document_loaders import AsyncHtmlLoader
 from langchain.document_transformers import Html2TextTransformer
 from langchain.chat_models import ChatOpenAI
+from langchain.chains import create_extraction_chain
 
 
 # HCX 토큰 계산기 API 호출
