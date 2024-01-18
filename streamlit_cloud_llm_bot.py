@@ -33,6 +33,7 @@ from langchain.document_loaders import AsyncHtmlLoader
 from langchain.document_transformers import Html2TextTransformer
 from langchain.chat_models import ChatOpenAI
 from langchain.chains import create_extraction_chain
+from langchain.retrievers.document_compressors import EmbeddingsFilter
 
 
 # HCX 토큰 계산기 API 호출
@@ -292,6 +293,12 @@ retriever = new_docsearch.as_retriever(
                                         # search_kwargs={'score_threshold': 0.8}
                                        )
 
+# retriever의 compression 시도 !!!!!!!!!!!!!!!!!!!!!!!!!
+embeddings_filter = EmbeddingsFilter(embeddings=embeddings, similarity_threshold=0.7)
+
+compression_retriever = ContextualCompressionRetriever(
+    base_compressor=embeddings_filter, base_retriever=retriever
+)
 
 ##################################################################################
 # offline_faiss_save 또는 offline_chroma_save 와 같이 pinecone 함수 생성 !!!!!!!!!!!!!!!!!
@@ -485,7 +492,9 @@ standalone_question = {
 }
 # Now we retrieve the documents
 retrieved_documents = {
-    "source_documents": itemgetter("standalone_question") | retriever,
+    # "source_documents": itemgetter("standalone_question") | retriever,
+    "source_documents": itemgetter("standalone_question") | compression_retriever,
+
     
     # "question": lambda x: x["question"],
     # "chat_history": lambda x: get_buffer_string(x["chat_history"]),
