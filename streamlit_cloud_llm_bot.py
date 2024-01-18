@@ -140,17 +140,77 @@ def offline_chroma_save(*pdf_docs):
 
 
 # 온라인 데이터 가공 ####################################################################################
-url_1 = 'https://guide.ncloud-docs.com/docs/clovastudio-tuning01'
-url_2 = 'https://guide.ncloud-docs.com/docs/clovastudio-dataset'
-url_3 = 'https://guide.ncloud-docs.com/docs/clovastudio-explorer01'
-url_4 = 'https://guide.ncloud-docs.com/docs/clovastudio-explorer02'
-url_5 = 'https://guide.ncloud-docs.com/docs/clovastudio-explorer03'
-url_6 = 'https://guide.ncloud-docs.com/docs/clovastudio-skillset'
-url_7 = 'https://guide.ncloud-docs.com/docs/clovastudio-skill'
-url_8 = 'https://guide.ncloud-docs.com/docs/clovastudio-scenario'
-url_9 = 'https://guide.ncloud-docs.com/docs/clovastudio-skillsetversion'
-url_10 = 'https://guide.ncloud-docs.com/docs/clovastuido-skillset-tuning'
-url_11 = 'https://guide.ncloud-docs.com/docs/clovastuido-skilltrainer-faq'
+# 비정형 데이터 => 정형 데이터 가공 (도표 추출 등) 위한 Function Calling 구현 필요 !!!!!!!!!!!!!!!!!!!!!
+# url_0 = 'https://www.ncloud.com/product/aiService/clovaStudio'
+# url_0 = 'https://openai.com/pricing'
+url_0 = 'https://cloud.google.com/docs/get-started/aws-azure-gcp-service-comparison?hl=ko'
+
+# url_1 = 'https://guide.ncloud-docs.com/docs/clovastudio-tuning01'
+# url_2 = 'https://guide.ncloud-docs.com/docs/clovastudio-dataset'
+# url_3 = 'https://guide.ncloud-docs.com/docs/clovastudio-explorer01'
+# url_4 = 'https://guide.ncloud-docs.com/docs/clovastudio-explorer02'
+# url_5 = 'https://guide.ncloud-docs.com/docs/clovastudio-explorer03'
+# url_6 = 'https://guide.ncloud-docs.com/docs/clovastudio-skillset'
+# url_7 = 'https://guide.ncloud-docs.com/docs/clovastudio-skill'
+# url_8 = 'https://guide.ncloud-docs.com/docs/clovastudio-scenario'
+# url_9 = 'https://guide.ncloud-docs.com/docs/clovastudio-skillsetversion'
+# url_10 = 'https://guide.ncloud-docs.com/docs/clovastuido-skillset-tuning'
+# url_11 = 'https://guide.ncloud-docs.com/docs/clovastuido-skilltrainer-faq'
+
+# Function Calling
+url_0_schema = {
+    "properties": {
+        "서비스 카테고리": {"type": "string"},
+        "서비스 유형": {"type": "string"},
+        "Google Cloud 제품": {"type": "string"},
+        "Google Cloud 제품 설명": {"type": "string"},
+        "AWS 제공": {"type": "string"},
+        "Azure 제공": {"type": "string"}
+    },
+    "required": ["서비스 카테고리", "서비스 유형", "Google Cloud 제품", "Google Cloud 제품 설명", "AWS 제공", "Azure 제공"],
+}
+
+# url_etc_schema = {
+#     "properties": {
+#         "기능 명": {"type": "string"},
+#         "기능 특징": {"type": "string"},
+#     },
+#     "required": ["기능 명", "기능 특징"],
+# }
+
+# cost_table_schema = {
+#     "properties": {
+#         "모델 명": {"type": "string"},
+#         "input 요금": {"type": "string"},
+#         "output 요금": {"type": "string"}
+#     },
+#     "required": ["모델 명", "input 요금", "output 요금"],
+# }
+
+
+
+# from langchain.chat_models import ChatOpenAI
+openai_llm = ChatOpenAI(model_name='gpt-3.5-turbo', temperature=0, max_tokens=2048,
+                streaming=False)
+
+def extract(content: str, schema: dict):
+    # extracted_content = create_extraction_chain(schema=schema, llm=hcx_llm_json).invoke(content)
+    extracted_content = create_extraction_chain(schema=schema, llm=openai_llm).invoke(content)
+
+    return extracted_content
+
+# def extract_content(schema, content):
+#     # 토큰의 길이를 확인하고, 4096을 초과하지 않으면 내용 추출
+#     if len(content) <= 4096:
+#         return extract(schema=schema, content=content)
+    
+#     # 토큰의 길이가 4096을 초과하면, 내용을 절반으로 나누고 각 부분에 대해 재귀적으로 처리
+#     half = len(content) // 2
+#     first_half_content = extract_content(schema, content[:half])
+#     second_half_content = extract_content(schema, content[half:])
+    
+#     return first_half_content + second_half_content
+
 
 html2text = Html2TextTransformer()
 
@@ -159,23 +219,56 @@ def online_chroma_save(*urls):
     
     for url in urls:
         
-        loader = AsyncHtmlLoader(url)
+        loader = AsyncHtmlLoader(url)        
         doc = loader.load()
         doc = html2text.transform_documents(doc)  
-        doc = text_splitter.split_documents(doc)
-        total_docs = total_docs + doc
-
-    vectorstore = Chroma.from_documents(
-        documents=total_docs, 
+        
+        # print("Extracting content with LLM")
+        splits  = text_splitter_function_calling.split_documents(doc)
+        print('################################################################')
+        print(len(splits))
+        
+        for i in range(len(splits)):
+            try:
+                extracted_content = extract(schema=url_0_schema, content=splits[i].page_content)
+                # extracted_content = extract_content(schema=cost_table_schema, content=splits[i].page_content)
+                extracted_content = extracted_content['text']
+                
+                total_docs.append(extracted_content)
+                print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+                print(len(total_docs))
+                
+            except Exception as e:
+                # chunk화된 특정 splits 에서 json parsing 실패 시, 에러가 나는 경우, 있으므로 except 처리 함.!!! 추 후, 코드 개선 필요..
+                print(e)
+    
+    print('##########################################')
+    total_docs = [str(item) for item in total_docs]
+    print(total_docs)
+    print('111111111111111111111111111111111111')
+    print(total_docs)
+    
+    # vectorstore = Chroma.from_documents(
+    #     documents=total_docs, 
+    #     embedding=embeddings,
+    #     persist_directory=os.path.join(db_save_path, "cloud_bot_20240119_chroma_db")
+    #     )
+    vectorstore = Chroma.from_texts(
+        texts=total_docs, 
         embedding=embeddings,
-        persist_directory=os.path.join(db_save_path, "cloud_bot_20240117_chroma_db")
+        persist_directory=os.path.join(db_save_path, "cloud_bot_20240119_chroma_db")
         )
     vectorstore.persist()
 
+
+
 # start = time.time()
-# total_content = online_chroma_save(url_1, url_2, url_3, url_4, url_5, url_6, url_7, url_8, url_9, url_10, url_11)
+# # total_content = online_chroma_save(url_0, url_1, url_2, url_3, url_4, url_5, url_6, url_7, url_8, url_9, url_10, url_11)
+# total_content = online_chroma_save(url_0)
+
 # end = time.time()
-# '''임베딩 완료 시간: 28.29 (초)'''
+# '''임베딩 완료 시간: 1238.65 (초)'''
+# # 시간 단축 위해 cpu 수를 지정 하고, 병렬로 처리 !!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # print('임베딩 완료 시간: %.2f (초)' %(end-start))
 #######################################################################################################
 
@@ -183,12 +276,12 @@ def online_chroma_save(*urls):
 
 
 
-new_docsearch = Chroma(persist_directory=os.path.join(db_save_path, "cloud_bot_20240117_chroma_db"),
+new_docsearch = Chroma(persist_directory=os.path.join(db_save_path, "cloud_bot_20240119_chroma_db"),
                         embedding_function=embeddings)
 
 retriever = new_docsearch.as_retriever(
                                         search_type="mmr",                                        
-                                        search_kwargs={'k': 2, 'fetch_k': 5}
+                                        search_kwargs={'k': 3, 'fetch_k': 10}
                                         # search_kwargs={'k': 1, 'fetch_k': 1}
 
                                         # search_type="similarity_score_threshold",
