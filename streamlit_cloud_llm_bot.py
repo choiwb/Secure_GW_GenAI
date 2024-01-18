@@ -77,7 +77,7 @@ text_splitter = CharacterTextSplitter(
                             length_function = len,
                             )
 
-create_extraction_chain = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
+text_splitter_function_calling = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
     chunk_size=1000, chunk_overlap = 0
 )
 
