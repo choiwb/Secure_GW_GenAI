@@ -9,7 +9,7 @@ from langchain.chains import ConversationalRetrievalChain
 from langchain.prompts import PromptTemplate
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.vectorstores import FAISS, Chroma
-from langchain.text_splitter import CharacterTextSplitter
+from langchain.text_splitter import CharacterTextSplitter, RecursiveCharacterTextSplitter
 from langchain.memory import ConversationBufferMemory, ConversationSummaryBufferMemory
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.llms.base import LLM
@@ -31,7 +31,6 @@ from langchain_community.document_transformers import EmbeddingsRedundantFilter
 from langchain.retrievers.document_compressors import DocumentCompressorPipeline
 from langchain.document_loaders import AsyncHtmlLoader
 from langchain.document_transformers import Html2TextTransformer
-
 
 
 # HCX 토큰 계산기 API 호출
@@ -77,6 +76,9 @@ text_splitter = CharacterTextSplitter(
                             length_function = len,
                             )
 
+create_extraction_chain = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
+    chunk_size=1000, chunk_overlap = 0
+)
 
 # OpenAI VS HuggingFace
 embeddings = OpenAIEmbeddings()
