@@ -409,9 +409,9 @@ retriever = new_docsearch.as_retriever(
 # retriever의 compression 시도 !!!!!!!!!!!!!!!!!!!!!!!!!
 embeddings_filter = EmbeddingsFilter(embeddings=embeddings, similarity_threshold=0.8)
 
-compression_retriever = ContextualCompressionRetriever(
-    base_compressor=embeddings_filter, base_retriever=retriever
-)
+# compression_retriever = ContextualCompressionRetriever(
+#     base_compressor=embeddings_filter, base_retriever=retriever
+# )
 
 
 # LLM 을 사용하기 때문에, 질문과 관련없는 문서를 필터링 할 수 있으나, 속도가 느리고, 토큰 사용이더 됨.!
@@ -497,8 +497,8 @@ standalone_question = {
 }
 # Now we retrieve the documents
 retrieved_documents = {
-    # "source_documents": itemgetter("standalone_question") | retriever,
-    "source_documents": itemgetter("standalone_question") | compression_retriever,
+    "source_documents": itemgetter("standalone_question") | retriever,
+    # "source_documents": itemgetter("standalone_question") | compression_retriever,
     "question": lambda x: x["standalone_question"],
 }
 # Now we construct the inputs for the final prompt
