@@ -9,7 +9,7 @@ from langchain.chains import ConversationalRetrievalChain
 from langchain.prompts import PromptTemplate
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.vectorstores import FAISS, Chroma
-from langchain.text_splitter import CharacterTextSplitter, RecursiveCharacterTextSplitter
+from langchain.text_splitter import CharacterTextSplitter
 from langchain.memory import ConversationBufferMemory, ConversationSummaryBufferMemory
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.llms.base import LLM
@@ -18,7 +18,7 @@ from streamlit_chat import message
 from langchain.callbacks.manager import CallbackManagerForLLMRun
 import pandas as pd
 from langchain_core.runnables import RunnablePassthrough, RunnableLambda
-from langchain_core.output_parsers import StrOutputParser
+from langchain_core.output_parsers import StrOutputParser, JsonOutputParser
 from operator import itemgetter
 from langchain_core.messages import get_buffer_string
 from langchain.schema import format_document
@@ -31,10 +31,13 @@ from langchain_community.document_transformers import EmbeddingsRedundantFilter
 from langchain.retrievers.document_compressors import DocumentCompressorPipeline
 from langchain.document_loaders import AsyncHtmlLoader
 from langchain.document_transformers import Html2TextTransformer
-from langchain.chat_models import ChatOpenAI
 from langchain.chains import create_extraction_chain
+import pprint
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_community.document_loaders import AsyncChromiumLoader
+from langchain_community.document_transformers import BeautifulSoupTransformer
+from langchain.chat_models import ChatOpenAI  
 from langchain.retrievers.document_compressors import EmbeddingsFilter
-
 
 # HCX 토큰 계산기 API 호출
 from hcx_token_cal import token_completion_executor
@@ -64,7 +67,7 @@ template = """
      context for answer: {context}
      question: {question}
      answer: """
-    
+
     
 QA_CHAIN_PROMPT = PromptTemplate(input_variables=["context", "question"],template=template)
 
@@ -80,13 +83,123 @@ text_splitter = CharacterTextSplitter(
                             )
 
 text_splitter_function_calling = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
-    chunk_size=1000, chunk_overlap = 0
-)
+        chunk_size=500, chunk_overlap=0
+    )
+
 
 # OpenAI VS HuggingFace
 embeddings = OpenAIEmbeddings()
 
 
+try:
+    _create_unverified_https_context = ssl._create_unverified_context
+except AttributeError:
+    pass
+else:
+    ssl._create_default_https_context = _create_unverified_https_context
+
+
+class CompletionExecutor(LLM):
+    llm_url = 'https://clovastudio.stream.ntruss.com/testapp/v1/chat-completions/HCX-002'
+    api_key: str = Field(...)
+    api_key_primary_val: str = Field(...)
+    request_id: str = Field(...)
+    system_prompt: str = Field(...)
+
+    # RAG 과정 시 2번 씩 프린트 되는 flow 여서, init, total 별도 선언 해줘야 함.
+    total_input_token_count: int = 0
+    
+    class Config:
+        extra = Extra.forbid
+ 
+    def __init__(self, api_key, api_key_primary_val, request_id, system_prompt):
+
+        super().__init__()
+        self.api_key = api_key
+        self.api_key_primary_val = api_key_primary_val
+        self.request_id = request_id
+        self.system_prompt = system_prompt
+
+ 
+    @property
+    def _llm_type(self) -> str:
+        return "HyperClovaX"
+ 
+    def _call(
+        self,
+        prompt: str,
+        stop: Optional[List[str]] = None,
+        run_manager: Optional[CallbackManagerForLLMRun] = None,
+        **kwargs: Any,        
+    ) -> str:
+        if stop is not None:
+            raise ValueError("stop kwargs are not permitted.")
+ 
+        headers = {
+            'X-NCP-CLOVASTUDIO-API-KEY': self.api_key,
+            'X-NCP-APIGW-API-KEY': self.api_key_primary_val,
+            'X-NCP-CLOVASTUDIO-REQUEST-ID': self.request_id,
+            'Content-Type': 'application/json; charset=utf-8'
+        }
+
+        # self.system_prompt 의 경우, 처음에 1번만 이용 !!!!!!!!!!!!!
+        # if self.total_input_token_count == 0:
+        #     # preset_text = [{"role": "system", "content": self.system_prompt}, {"role": "user", "content": prompt}]
+        #     preset_text = [{"role": "system", "content": self.system_prompt}]            
+        # else:
+        #     preset_text = [{"role": "user", "content": prompt}]
+            
+        preset_text = [{"role": "system", "content": self.system_prompt}, {"role": "user", "content": prompt}]
+
+        # print('^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^')
+        # print(preset_text)
+                        
+        output_token_json = {
+            "messages": preset_text
+            }
+        
+        total_input_token_json = token_completion_executor.execute(output_token_json)
+        init_input_token_count = sum(token['count'] for token in total_input_token_json[:])
+        
+        # print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
+        # print(init_input_token_count)        
+        # print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
+
+        # RAG 과정 시 2번 씩 프린트 되는 flow 여서, init 을 total 에 합침
+        self.total_input_token_count += init_input_token_count
+
+        
+        payload = {
+            'messages': preset_text,
+            'topP': 0.8,
+            'topK': 0,
+            'maxTokens': 256,
+            'temperature': 0.1,
+            'repeatPenalty': 5.0,
+            'stopBefore': [],
+            'includeAiFilters': True
+        }
+
+        response = requests.post(self.llm_url, json=payload, headers=headers, verify=False)
+        response.raise_for_status()
+
+        return response.json()['result']['message']['content']
+        # langchain_core.exceptions.OutputParserException: This output parser can only be used with a chat generation.
+    
+        # response.json()['result']['message']['content'] 를 return 할 때. time.sleep 통해 0.01초 간격으로 출력
+        # for chunk in response.json()['result']['message']['content']:
+        #     print(chunk, end="", flush=True)
+        #     time.sleep(0.01)
+ 
+    @property
+    def _identifying_params(self) -> Mapping[str, Any]:
+        return {"llmUrl": self.llm_url}
+
+
+
+hcx_llm = CompletionExecutor(api_key = API_KEY, api_key_primary_val=API_KEY_PRIMARY_VAL, request_id=REQUEST_ID,  system_prompt=SYSTEMPROMPT)
+hcx_llm_json = hcx_llm | JsonOutputParser()
+# JsonOutputParser 를 데이터 형식에 맞게 수정.!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 # 오프라인 데이터 가공 ####################################################################################
 def offline_faiss_save(*pdf_docs):
@@ -204,17 +317,17 @@ def extract(content: str, schema: dict):
 
     return extracted_content
 
-# def extract_content(schema, content):
-#     # 토큰의 길이를 확인하고, 4096을 초과하지 않으면 내용 추출
-#     if len(content) <= 4096:
-#         return extract(schema=schema, content=content)
+def extract_content(schema, content):
+    # 토큰의 길이를 확인하고, 4096을 초과하지 않으면 내용 추출
+    if len(content) <= 4096:
+        return extract(schema=schema, content=content)
     
-#     # 토큰의 길이가 4096을 초과하면, 내용을 절반으로 나누고 각 부분에 대해 재귀적으로 처리
-#     half = len(content) // 2
-#     first_half_content = extract_content(schema, content[:half])
-#     second_half_content = extract_content(schema, content[half:])
+    # 토큰의 길이가 4096을 초과하면, 내용을 절반으로 나누고 각 부분에 대해 재귀적으로 처리
+    half = len(content) // 2
+    first_half_content = extract_content(schema, content[:half])
+    second_half_content = extract_content(schema, content[half:])
     
-#     return first_half_content + second_half_content
+    return first_half_content + second_half_content
 
 
 html2text = Html2TextTransformer()
@@ -235,8 +348,8 @@ def online_chroma_save(*urls):
         
         for i in range(len(splits)):
             try:
-                extracted_content = extract(schema=url_0_schema, content=splits[i].page_content)
-                # extracted_content = extract_content(schema=cost_table_schema, content=splits[i].page_content)
+                # extracted_content = extract(schema=cost_table_schema, content=splits[i].page_content)
+                extracted_content = extract_content(schema=url_0_schema, content=splits[i].page_content)
                 extracted_content = extracted_content['text']
                 
                 total_docs.append(extracted_content)
@@ -267,14 +380,14 @@ def online_chroma_save(*urls):
 
 
 
-# start = time.time()
-# # total_content = online_chroma_save(url_0, url_1, url_2, url_3, url_4, url_5, url_6, url_7, url_8, url_9, url_10, url_11)
-# total_content = online_chroma_save(url_0)
+start = time.time()
+# total_content = online_chroma_save(url_0, url_1, url_2, url_3, url_4, url_5, url_6, url_7, url_8, url_9, url_10, url_11)
+total_content = online_chroma_save(url_0)
 
-# end = time.time()
+end = time.time()
 '''임베딩 완료 시간: 632.88 (초)'''
-# # 시간 단축 위해 cpu 수를 지정 하고, 병렬로 처리 !!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# print('임베딩 완료 시간: %.2f (초)' %(end-start))
+# 시간 단축 위해 cpu 수를 지정 하고, 병렬로 처리 !!!!!!!!!!!!!!!!!!!!!!!!!!!!
+print('임베딩 완료 시간: %.2f (초)' %(end-start))
 #######################################################################################################
 
 
@@ -286,7 +399,7 @@ new_docsearch = Chroma(persist_directory=os.path.join(db_save_path, "cloud_bot_2
 
 retriever = new_docsearch.as_retriever(
                                         search_type="mmr",                                        
-                                        search_kwargs={'k': 3, 'fetch_k': 10}
+                                        search_kwargs={'k': 2, 'fetch_k': 5}
                                         # search_kwargs={'k': 1, 'fetch_k': 1}
 
                                         # search_type="similarity_score_threshold",
@@ -300,115 +413,6 @@ compression_retriever = ContextualCompressionRetriever(
     base_compressor=embeddings_filter, base_retriever=retriever
 )
 
-##################################################################################
-# offline_faiss_save 또는 offline_chroma_save 와 같이 pinecone 함수 생성 !!!!!!!!!!!!!!!!!
-
-try:
-    _create_unverified_https_context = ssl._create_unverified_context
-except AttributeError:
-    pass
-else:
-    ssl._create_default_https_context = _create_unverified_https_context
-
-
-class CompletionExecutor(LLM):
-    llm_url = 'https://clovastudio.stream.ntruss.com/testapp/v1/chat-completions/HCX-002'
-    api_key: str = Field(...)
-    api_key_primary_val: str = Field(...)
-    request_id: str = Field(...)
-    system_prompt: str = Field(...)
-
-    
-    # RAG 과정 시 2번 씩 프린트 되는 flow 여서, init, total 별도 선언 해줘야 함.
-    total_input_token_count: int = 0
-    
-        
-    class Config:
-        extra = Extra.forbid
- 
-    def __init__(self, api_key, api_key_primary_val, request_id, system_prompt):
-        super().__init__()
-        self.api_key = api_key
-        self.api_key_primary_val = api_key_primary_val
-        self.request_id = request_id
-        self.system_prompt = system_prompt
-
- 
-    @property
-    def _llm_type(self) -> str:
-        return "HyperClovaX"
- 
-    def _call(
-        self,
-        prompt: str,
-        stop: Optional[List[str]] = None,
-        run_manager: Optional[CallbackManagerForLLMRun] = None,
-        **kwargs: Any,        
-    ) -> str:
-        if stop is not None:
-            raise ValueError("stop kwargs are not permitted.")
- 
-        headers = {
-            'X-NCP-CLOVASTUDIO-API-KEY': self.api_key,
-            'X-NCP-APIGW-API-KEY': self.api_key_primary_val,
-            'X-NCP-CLOVASTUDIO-REQUEST-ID': self.request_id,
-            'Content-Type': 'application/json; charset=utf-8'
-        }
-
-        # self.system_prompt 의 경우, 처음에 1번만 이용 !!!!!!!!!!!!!
-        # if self.total_input_token_count == 0:
-        #     # preset_text = [{"role": "system", "content": self.system_prompt}, {"role": "user", "content": prompt}]
-        #     preset_text = [{"role": "system", "content": self.system_prompt}]            
-        # else:
-        #     preset_text = [{"role": "user", "content": prompt}]
-            
-        preset_text = [{"role": "system", "content": self.system_prompt}, {"role": "user", "content": prompt}]
-        
-        print('^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^')
-        print(preset_text)
-                        
-        output_token_json = {
-            "messages": preset_text
-            }
-        
-        total_input_token_json = token_completion_executor.execute(output_token_json)
-        init_input_token_count = sum(token['count'] for token in total_input_token_json[:])
-        
-        # print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
-        # print(init_input_token_count)        
-        # print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
-
-        # RAG 과정 시 2번 씩 프린트 되는 flow 여서, init 을 total 에 합침
-        self.total_input_token_count += init_input_token_count
-
-        
-        payload = {
-            'messages': preset_text,
-            'topP': 0.8,
-            'topK': 0,
-            'maxTokens': 256,
-            'temperature': 0.1,
-            'repeatPenalty': 5.0,
-            'stopBefore': [],
-            'includeAiFilters': True
-        }
-
-    
-        response = requests.post(self.llm_url, json=payload, headers=headers, verify=False)
-        response.raise_for_status()
-        return response.json()['result']['message']['content']
-        # response.json()['result']['message']['content'] 를 return 할 때. time.sleep 통해 0.01초 간격으로 출력
-        # for chunk in response.json()['result']['message']['content']:
-        #     print(chunk, end="", flush=True)
-        #     time.sleep(0.01)
- 
-    @property
-    def _identifying_params(self) -> Mapping[str, Any]:
-        return {"llmUrl": self.llm_url}
-
-
-
-hcx_llm = CompletionExecutor(api_key = API_KEY, api_key_primary_val=API_KEY_PRIMARY_VAL, request_id=REQUEST_ID,  system_prompt=SYSTEMPROMPT)
 
 # LLM 을 사용하기 때문에, 질문과 관련없는 문서를 필터링 할 수 있으나, 속도가 느리고, 토큰 사용이더 됨.!
 # llm_compressor = LLMChainExtractor.from_llm(hcx_llm)
@@ -457,6 +461,7 @@ memory = init_memory()
 #                                 )
 
 
+
 # 토큰 절약하기 위한
 # ConversationalRetrievalChain to LCEL !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 DEFAULT_DOCUMENT_PROMPT = PromptTemplate.from_template(template="{page_content}")
@@ -494,15 +499,6 @@ standalone_question = {
 retrieved_documents = {
     # "source_documents": itemgetter("standalone_question") | retriever,
     "source_documents": itemgetter("standalone_question") | compression_retriever,
-
-    
-    # "question": lambda x: x["question"],
-    # "chat_history": lambda x: get_buffer_string(x["chat_history"]),
-    # "source_documents": itemgetter("question") | retriever,
-    
-    # "source_documents": itemgetter("standalone_question") | compression_retriever,
-    # "source_documents": itemgetter("standalone_question") | pipeline_compressor | retriever,
-
     "question": lambda x: x["standalone_question"],
 }
 # Now we construct the inputs for the final prompt
@@ -517,7 +513,6 @@ answer = {
 }
 # And now we put it all together!
 retrieval_qa_chain = loaded_memory | standalone_question | retrieved_documents | answer
-# retrieval_qa_chain = loaded_memory | retrieved_documents | answer
 
 
 
@@ -544,6 +539,9 @@ with st.form('form', clear_on_submit=True):
             # response_text_json = retrieval_qa_chain({'question': user_input, 'chat_history': memory.moving_summary_buffer})     
             # LCEL     
             response_text_json = retrieval_qa_chain.invoke({"question": user_input})
+            
+            # print('$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$')
+            # print(response_text_json)
 
             # print('************************************')
             # print(memory.chat_memory)
