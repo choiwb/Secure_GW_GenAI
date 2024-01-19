@@ -399,7 +399,7 @@ new_docsearch = Chroma(persist_directory=os.path.join(db_save_path, "cloud_bot_2
 
 retriever = new_docsearch.as_retriever(
                                         search_type="mmr",                                        
-                                        search_kwargs={'k': 2, 'fetch_k': 5}
+                                        search_kwargs={'k': 3, 'fetch_k': 10}
                                         # search_kwargs={'k': 1, 'fetch_k': 1}
 
                                         # search_type="similarity_score_threshold",
@@ -407,7 +407,7 @@ retriever = new_docsearch.as_retriever(
                                        )
 
 # retriever의 compression 시도 !!!!!!!!!!!!!!!!!!!!!!!!!
-embeddings_filter = EmbeddingsFilter(embeddings=embeddings, similarity_threshold=0.7)
+embeddings_filter = EmbeddingsFilter(embeddings=embeddings, similarity_threshold=0.8)
 
 compression_retriever = ContextualCompressionRetriever(
     base_compressor=embeddings_filter, base_retriever=retriever
