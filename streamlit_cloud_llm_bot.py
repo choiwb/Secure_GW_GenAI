@@ -380,14 +380,14 @@ def online_chroma_save(*urls):
 
 
 
-start = time.time()
-# total_content = online_chroma_save(url_0, url_1, url_2, url_3, url_4, url_5, url_6, url_7, url_8, url_9, url_10, url_11)
-total_content = online_chroma_save(url_0)
+# start = time.time()
+# # total_content = online_chroma_save(url_0, url_1, url_2, url_3, url_4, url_5, url_6, url_7, url_8, url_9, url_10, url_11)
+# total_content = online_chroma_save(url_0)
 
-end = time.time()
-'''임베딩 완료 시간: 632.88 (초)'''
-# 시간 단축 위해 cpu 수를 지정 하고, 병렬로 처리 !!!!!!!!!!!!!!!!!!!!!!!!!!!!
-print('임베딩 완료 시간: %.2f (초)' %(end-start))
+# end = time.time()
+# '''임베딩 완료 시간: 1171.72 (초)'''
+# # 시간 단축 위해 cpu 수를 지정 하고, 병렬로 처리 !!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# print('임베딩 완료 시간: %.2f (초)' %(end-start))
 #######################################################################################################
 
 
