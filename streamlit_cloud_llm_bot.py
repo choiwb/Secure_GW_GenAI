@@ -5,12 +5,11 @@ import requests
 import ssl
 from pydantic import Extra, Field
 from typing import Any, List, Mapping, Optional
-from langchain.chains import ConversationalRetrievalChain
 from langchain.prompts import PromptTemplate
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.vectorstores import FAISS, Chroma
 from langchain.text_splitter import CharacterTextSplitter
-from langchain.memory import ConversationBufferMemory, ConversationSummaryBufferMemory
+from langchain.memory import ConversationBufferMemory
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.llms.base import LLM
 import streamlit as st
@@ -22,22 +21,15 @@ from langchain_core.output_parsers import StrOutputParser, JsonOutputParser
 from operator import itemgetter
 from langchain_core.messages import get_buffer_string
 from langchain.schema import format_document
-from langchain.globals import set_llm_cache
-from langchain.cache import InMemoryCache
 from langchain.retrievers import ContextualCompressionRetriever
-from langchain.retrievers.document_compressors import LLMChainExtractor
-from langchain.retrievers.document_compressors import LLMChainFilter
-from langchain_community.document_transformers import EmbeddingsRedundantFilter
-from langchain.retrievers.document_compressors import DocumentCompressorPipeline
 from langchain.document_loaders import AsyncHtmlLoader
 from langchain.document_transformers import Html2TextTransformer
 from langchain.chains import create_extraction_chain
-import pprint
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_community.document_loaders import AsyncChromiumLoader
-from langchain_community.document_transformers import BeautifulSoupTransformer
 from langchain.chat_models import ChatOpenAI  
 from langchain.retrievers.document_compressors import EmbeddingsFilter
+from multiprocessing import Pool
+import concurrent.futures
 
 # HCX 토큰 계산기 API 호출
 from hcx_token_cal import token_completion_executor
@@ -83,7 +75,7 @@ text_splitter = CharacterTextSplitter(
                             )
 
 text_splitter_function_calling = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
-        chunk_size=500, chunk_overlap=0
+        chunk_size=100, chunk_overlap=20
     )
 
 
@@ -161,10 +153,6 @@ class CompletionExecutor(LLM):
         total_input_token_json = token_completion_executor.execute(output_token_json)
         init_input_token_count = sum(token['count'] for token in total_input_token_json[:])
         
-        # print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
-        # print(init_input_token_count)        
-        # print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
-
         # RAG 과정 시 2번 씩 프린트 되는 flow 여서, init 을 total 에 합침
         self.total_input_token_count += init_input_token_count
 
@@ -200,6 +188,7 @@ class CompletionExecutor(LLM):
 hcx_llm = CompletionExecutor(api_key = API_KEY, api_key_primary_val=API_KEY_PRIMARY_VAL, request_id=REQUEST_ID,  system_prompt=SYSTEMPROMPT)
 hcx_llm_json = hcx_llm | JsonOutputParser()
 # JsonOutputParser 를 데이터 형식에 맞게 수정.!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# 토큰 비용 절약 위한 시스템 프롬프트 등 캐시 저장 고민 !!!!!!!!!!!!!!!
 
 # 오프라인 데이터 가공 ####################################################################################
 def offline_faiss_save(*pdf_docs):
@@ -259,21 +248,8 @@ def offline_chroma_save(*pdf_docs):
 
 # 온라인 데이터 가공 ####################################################################################
 # 비정형 데이터 => 정형 데이터 가공 (도표 추출 등) 위한 Function Calling 구현 필요 !!!!!!!!!!!!!!!!!!!!!
-# url_0 = 'https://www.ncloud.com/product/aiService/clovaStudio'
-# url_0 = 'https://openai.com/pricing'
 url_0 = 'https://cloud.google.com/docs/get-started/aws-azure-gcp-service-comparison?hl=ko'
 
-# url_1 = 'https://guide.ncloud-docs.com/docs/clovastudio-tuning01'
-# url_2 = 'https://guide.ncloud-docs.com/docs/clovastudio-dataset'
-# url_3 = 'https://guide.ncloud-docs.com/docs/clovastudio-explorer01'
-# url_4 = 'https://guide.ncloud-docs.com/docs/clovastudio-explorer02'
-# url_5 = 'https://guide.ncloud-docs.com/docs/clovastudio-explorer03'
-# url_6 = 'https://guide.ncloud-docs.com/docs/clovastudio-skillset'
-# url_7 = 'https://guide.ncloud-docs.com/docs/clovastudio-skill'
-# url_8 = 'https://guide.ncloud-docs.com/docs/clovastudio-scenario'
-# url_9 = 'https://guide.ncloud-docs.com/docs/clovastudio-skillsetversion'
-# url_10 = 'https://guide.ncloud-docs.com/docs/clovastuido-skillset-tuning'
-# url_11 = 'https://guide.ncloud-docs.com/docs/clovastuido-skilltrainer-faq'
 
 # Function Calling
 url_0_schema = {
@@ -287,23 +263,6 @@ url_0_schema = {
     },
     "required": ["서비스 카테고리", "서비스 유형", "Google Cloud 제품", "Google Cloud 제품 설명", "AWS 제공", "Azure 제공"],
 }
-
-# url_etc_schema = {
-#     "properties": {
-#         "기능 명": {"type": "string"},
-#         "기능 특징": {"type": "string"},
-#     },
-#     "required": ["기능 명", "기능 특징"],
-# }
-
-# cost_table_schema = {
-#     "properties": {
-#         "모델 명": {"type": "string"},
-#         "input 요금": {"type": "string"},
-#         "output 요금": {"type": "string"}
-#     },
-#     "required": ["모델 명", "input 요금", "output 요금"],
-# }
 
 
 
@@ -330,41 +289,47 @@ def extract_content(schema, content):
     return first_half_content + second_half_content
 
 
+
+def online_multiple_prep(args):
+    schema, page_content = args
+    try:
+        extracted_content = extract_content(schema=schema, content=page_content)
+        extracted_content = extracted_content['text']
+        return extracted_content
+    except Exception as e:
+        # Handle the exception as needed
+        print(e)
+        # openai 의 분당 최대 토큰 수 초과 관련 에러 발생할 경우, 아래 코드 적용 !!!!!!!!!!
+        # time.sleep(60)
+
+
 html2text = Html2TextTransformer()
 
-def online_chroma_save(*urls):
+def online_chroma_save(url):
     total_docs = []
     
-    for url in urls:
-        
-        loader = AsyncHtmlLoader(url)        
-        doc = loader.load()
-        doc = html2text.transform_documents(doc)  
-        
-        # print("Extracting content with LLM")
-        splits  = text_splitter_function_calling.split_documents(doc)
-        print('################################################################')
-        print(len(splits))
-        
-        for i in range(len(splits)):
-            try:
-                # extracted_content = extract(schema=cost_table_schema, content=splits[i].page_content)
-                extracted_content = extract_content(schema=url_0_schema, content=splits[i].page_content)
-                extracted_content = extracted_content['text']
-                
-                total_docs.append(extracted_content)
-                print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-                print(len(total_docs))
-                
-            except Exception as e:
-                # chunk화된 특정 splits 에서 json parsing 실패 시, 에러가 나는 경우, 있으므로 except 처리 함.!!! 추 후, 코드 개선 필요..
-                print(e)
+    loader = AsyncHtmlLoader(url)        
+    doc = loader.load()
+    doc = html2text.transform_documents(doc)  
     
-    print('##########################################')
+    # print("Extracting content with LLM")
+    splits  = text_splitter_function_calling.split_documents(doc)
+    print('################################################################')
+    print(len(splits))
+        
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        # Prepare arguments for extract_content_wrapper
+        args_list = [(url_0_schema, split.page_content) for split in splits]
+
+        # Process each split concurrently
+        results = list(executor.map(online_multiple_prep, args_list))
+
+        # Filter out None values (from exceptions in extract_content_wrapper)
+        total_docs.extend(filter(None, results))
+            
     total_docs = [str(item) for item in total_docs]
-    print(total_docs)
     print('111111111111111111111111111111111111')
-    print(total_docs)
+    print(len(total_docs))
     
     # vectorstore = Chroma.from_documents(
     #     documents=total_docs, 
@@ -377,20 +342,18 @@ def online_chroma_save(*urls):
         persist_directory=os.path.join(db_save_path, "cloud_bot_20240119_chroma_db")
         )
     vectorstore.persist()
-
-
-
-# start = time.time()
-# # total_content = online_chroma_save(url_0, url_1, url_2, url_3, url_4, url_5, url_6, url_7, url_8, url_9, url_10, url_11)
-# total_content = online_chroma_save(url_0)
-
-# end = time.time()
-# '''임베딩 완료 시간: 1171.72 (초)'''
-# # 시간 단축 위해 cpu 수를 지정 하고, 병렬로 처리 !!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# print('임베딩 완료 시간: %.2f (초)' %(end-start))
+    
+    
+# if __name__ == "__main__":
+#     start = time.time()
+#     # total_content = online_chroma_save(url_0)
+#     cpu_num = int(os.cpu_count() / 2)
+#     with Pool(processes=cpu_num) as pool:
+#         total_content = pool.map(online_chroma_save, [url_0])
+#     end = time.time()
+#     '''임베딩 완료 시간: 168.88 (초)'''
+#     print('임베딩 완료 시간: %.2f (초)' %(end-start))
 #######################################################################################################
-
-
 
 
 
@@ -400,33 +363,14 @@ new_docsearch = Chroma(persist_directory=os.path.join(db_save_path, "cloud_bot_2
 retriever = new_docsearch.as_retriever(
                                         search_type="mmr",                                        
                                         search_kwargs={'k': 3, 'fetch_k': 10}
-                                        # search_kwargs={'k': 1, 'fetch_k': 1}
-
-                                        # search_type="similarity_score_threshold",
-                                        # search_kwargs={'score_threshold': 0.8}
                                        )
 
 # retriever의 compression 시도 !!!!!!!!!!!!!!!!!!!!!!!!!
 embeddings_filter = EmbeddingsFilter(embeddings=embeddings, similarity_threshold=0.8)
 
-# compression_retriever = ContextualCompressionRetriever(
-#     base_compressor=embeddings_filter, base_retriever=retriever
-# )
-
-
-# LLM 을 사용하기 때문에, 질문과 관련없는 문서를 필터링 할 수 있으나, 속도가 느리고, 토큰 사용이더 됨.!
-# llm_compressor = LLMChainExtractor.from_llm(hcx_llm)
-# llm_filter = LLMChainFilter.from_llm(hcx_llm)
-
-# compression_retriever = ContextualCompressionRetriever(
-#     base_compressor = llm_compressor, base_retriever = retriever)
-# compression_retriever = ContextualCompressionRetriever(
-#     base_compressor = llm_filter, base_retriever = retriever)
-
-# LCEL 파이프라인 디버깅 필요 함!!!!!!!!
-# redundant_filter = EmbeddingsRedundantFilter(embeddings=embeddings)
-# pipeline_compressor = DocumentCompressorPipeline(transformers=[redundant_filter, llm_compressor, llm_filter])
-
+compression_retriever = ContextualCompressionRetriever(
+    base_compressor=embeddings_filter, base_retriever=retriever
+)
 
 @st.cache_resource
 def init_memory():
@@ -436,31 +380,7 @@ def init_memory():
         memory_key='chat_history',
         return_messages=True)
   
-# @st.cache_resource  
-# def init_memory():
-#     return ConversationSummaryBufferMemory(
-#         max_token_limit=200,
-#         # 요약 기능 때문에, llm 선언 해줘야 함.
-#         # transformers, pytorch  라이브러리 설치 필요 함.
-#         # 토큰 사용이 너무 많음 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-#         # 추가적으로 영어로 요약 됨.....
-#         llm=hcx_llm,
-        
-#         input_key='question',
-#         output_key='answer',
-#         memory_key='chat_history',
-#         return_messages=True)
-
 memory = init_memory()
-
-# retrieval_qa_chain = ConversationalRetrievalChain.from_llm(llm = hcx_llm,
-#                                 retriever = retriever, 
-#                                 memory = memory,
-#                                 return_source_documents = True,
-#                                 combine_docs_chain_kwargs={"prompt": QA_CHAIN_PROMPT}
-#                                 )
-
-
 
 # 토큰 절약하기 위한
 # ConversationalRetrievalChain to LCEL !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -497,8 +417,8 @@ standalone_question = {
 }
 # Now we retrieve the documents
 retrieved_documents = {
-    "source_documents": itemgetter("standalone_question") | retriever,
-    # "source_documents": itemgetter("standalone_question") | compression_retriever,
+    # "source_documents": itemgetter("standalone_question") | retriever,
+    "source_documents": itemgetter("standalone_question") | compression_retriever,
     "question": lambda x: x["standalone_question"],
 }
 # Now we construct the inputs for the final prompt
@@ -531,23 +451,10 @@ with st.form('form', clear_on_submit=True):
     submitted = st.form_submit_button('답변')
         
     if submitted and user_input:
-        with st.spinner("Waiting for HyperCLOVA..."): 
-            
-            # ConversationBufferMemory
-            # response_text_json = retrieval_qa_chain({'question': user_input, 'chat_history': memory.chat_memory})    
-            # ConversationSummaryBufferMemory 
-            # response_text_json = retrieval_qa_chain({'question': user_input, 'chat_history': memory.moving_summary_buffer})     
+        with st.spinner("Waiting for HyperCLOVA..."):   
             # LCEL     
             response_text_json = retrieval_qa_chain.invoke({"question": user_input})
-            
-            # print('$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$')
-            # print(response_text_json)
-
-            # print('************************************')
-            # print(memory.chat_memory)
-            # print(memory.moving_summary_buffer)
-            # print('************************************')
-            
+                        
             # ConversationalRetrievalChain & LCEL      
             response_text = response_text_json['answer']
                         
@@ -613,6 +520,7 @@ with st.form('form', clear_on_submit=True):
                 message(f"input 토큰 수: {response['input_token_count']}\noutput 토큰 수: {response['output_token_count']}\n총 토큰 수: {response['total_token_count']}\n할인 후 가격: {round(response['discount_token_price'], 2)} (원)\n할인 후 가격(VAT 포함): {round(response['discount_token_price_vat'], 2)} (원)\n정가: {round(response['regular_token_price'], 2)} (원)\n정가(VAT 포함): {round(response['regular_token_price_vat'], 2)} (원)", is_user=False, key=str(i) + '_cost')
                 
             st.table(data = total_content)
+
 
 
 ################### Streamlit ###################
