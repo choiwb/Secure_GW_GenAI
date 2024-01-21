@@ -5,12 +5,13 @@ from streamlit_cloud_llm_bot import retrieval_qa_chain, memory, hcx_llm
 from hcx_token_cal import token_completion_executor
 
 
+src_doc_cols = ['순번', '참조 문서']
 def get_completion(user_input):
     response_json = retrieval_qa_chain.invoke({"question": user_input})
     response = response_json['answer']
     memory.save_context({"question": user_input}, {"answer": response})
     
-    total_content = pd.DataFrame(columns=['순번', '참조 문서'])
+    total_content = pd.DataFrame(columns=src_doc_cols)
     
     for i in range(len(response_json['source_documents'])):
         content = response_json['source_documents'][i].page_content
@@ -43,12 +44,10 @@ def get_completion(user_input):
         
     return response, total_content, token_analysis
 
-
-
 input_config = gr.Textbox(label="질문")
 output_config = [
     gr.Textbox(label="답변"),
-    gr.DataFrame(label="참조 문서"),
+    gr.DataFrame(label="참조 문서", headers=src_doc_cols),
     gr.Textbox(label="토큰 분석")
 ]
 gr.close_all()
