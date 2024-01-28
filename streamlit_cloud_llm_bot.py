@@ -93,7 +93,7 @@ else:
     ssl._create_default_https_context = _create_unverified_https_context
 
 class CompletionExecutor(LLM):
-    llm_url = 'https://clovastudio.stream.ntruss.com/testapp/v1/chat-completions/HCX-002'
+    llm_url = 'YOUR URL PATH !!!!!!!!!!!!!!!!!!'
     api_key: str = Field(...)
     api_key_primary_val: str = Field(...)
     request_id: str = Field(...)
@@ -179,7 +179,7 @@ hcx_llm = CompletionExecutor(api_key = API_KEY, api_key_primary_val=API_KEY_PRIM
 
 
 def HCX_stream(prompt):
-    llm_url = 'https://clovastudio.stream.ntruss.com/testapp/v1/chat-completions/HCX-003'
+    llm_url = 'YOUR URL PATH !!!!!!!!!!!!!!!!!!'
     preset_text = [{"role": "system", "content": SYSTEMPROMPT}, {"role": "user", "content": prompt}]
 
     request_data = {
