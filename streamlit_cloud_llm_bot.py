@@ -469,7 +469,7 @@ answer = {
 
 
 retrieval_qa_chain =  HCX_stream | StrOutputParser()
-# retrieval_qa_chain = loaded_memory | stSandalone_question | retrieved_documents | answer
+# retrieval_qa_chain = loaded_memory | standalone_question | retrieved_documents | answer
 # retrieval_qa_chain = (
 #     {"context": retriever , "question": RunnablePassthrough()} 
 #     | QA_CHAIN_PROMPT
