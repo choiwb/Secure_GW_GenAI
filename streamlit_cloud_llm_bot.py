@@ -1,5 +1,7 @@
 
 import os
+import json
+import httpx
 import time
 import requests
 import ssl
@@ -17,7 +19,7 @@ from streamlit_chat import message
 from langchain.callbacks.manager import CallbackManagerForLLMRun
 import pandas as pd
 from langchain_core.runnables import RunnablePassthrough, RunnableLambda
-from langchain_core.output_parsers import StrOutputParser, JsonOutputParser
+from langchain_core.output_parsers import StrOutputParser
 from operator import itemgetter
 from langchain_core.messages import get_buffer_string
 from langchain.schema import format_document
@@ -56,9 +58,9 @@ SYSTEMPROMPT = """You are a Cloud (MSP) Engineer or Cloud Sales administrator, o
     Respond don't know to questions not related to Cloud Computing.
     Use 3 sentences maximum and keep the answer as concise as possible."""
 template = """
-     context for answer: {context}
-     question: {question}
-     answer: """
+    context for answer: {context}
+    question: {question}
+    answer: """
 
     
 QA_CHAIN_PROMPT = PromptTemplate(input_variables=["context", "question"],template=template)
@@ -89,7 +91,6 @@ except AttributeError:
     pass
 else:
     ssl._create_default_https_context = _create_unverified_https_context
-
 
 class CompletionExecutor(LLM):
     llm_url = 'https://clovastudio.stream.ntruss.com/testapp/v1/chat-completions/HCX-002'
@@ -142,9 +143,6 @@ class CompletionExecutor(LLM):
         #     preset_text = [{"role": "user", "content": prompt}]
             
         preset_text = [{"role": "system", "content": self.system_prompt}, {"role": "user", "content": prompt}]
-
-        # print('^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^')
-        # print(preset_text)
                         
         output_token_json = {
             "messages": preset_text
@@ -172,23 +170,58 @@ class CompletionExecutor(LLM):
         response.raise_for_status()
 
         return response.json()['result']['message']['content']
-        # langchain_core.exceptions.OutputParserException: This output parser can only be used with a chat generation.
-    
-        # response.json()['result']['message']['content'] 를 return 할 때. time.sleep 통해 0.01초 간격으로 출력
-        # for chunk in response.json()['result']['message']['content']:
-        #     print(chunk, end="", flush=True)
-        #     time.sleep(0.01)
  
     @property
     def _identifying_params(self) -> Mapping[str, Any]:
         return {"llmUrl": self.llm_url}
 
-
-
 hcx_llm = CompletionExecutor(api_key = API_KEY, api_key_primary_val=API_KEY_PRIMARY_VAL, request_id=REQUEST_ID,  system_prompt=SYSTEMPROMPT)
-hcx_llm_json = hcx_llm | JsonOutputParser()
-# JsonOutputParser 를 데이터 형식에 맞게 수정.!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# 토큰 비용 절약 위한 시스템 프롬프트 등 캐시 저장 고민 !!!!!!!!!!!!!!!
+
+
+def HCX_stream(prompt):
+    llm_url = 'https://clovastudio.stream.ntruss.com/testapp/v1/chat-completions/HCX-003'
+    preset_text = [{"role": "system", "content": SYSTEMPROMPT}, {"role": "user", "content": prompt}]
+
+    request_data = {
+        'messages': preset_text,
+        'topP': 0.8,
+        'topK': 0,
+        'maxTokens': 128,
+        'temperature': 0.1,
+        'repeatPenalty': 5.0,
+        'stopBefore': [],
+        'includeAiFilters': True
+    }
+
+    # def execute(self, completion_request):
+    headers = {
+        'X-NCP-CLOVASTUDIO-API-KEY': API_KEY,
+        'X-NCP-APIGW-API-KEY': API_KEY_PRIMARY_VAL,
+        'X-NCP-CLOVASTUDIO-REQUEST-ID': REQUEST_ID,
+        'Content-Type': 'application/json; charset=utf-8',
+        # streaming 옵션 !!!!!
+        'Accept': 'text/event-stream'
+    }
+
+    full_response = ""
+    message_placeholder = st.empty()
+    
+    with httpx.stream(method="POST", 
+                    url=llm_url,
+                    json=request_data,
+                    headers=headers, 
+                    timeout=120) as res:
+        for line in res.iter_lines():
+            if line.startswith("data:"):
+                split_line = line.split("data:")
+                line_json = json.loads(split_line[1])
+                if "stopReason" in line_json and line_json["stopReason"] == None:
+                    full_response += line_json["message"]["content"]
+                    message_placeholder.markdown(full_response + "▌")
+        message_placeholder.markdown(full_response)
+        return full_response
+
+
 
 # 오프라인 데이터 가공 ####################################################################################
 def offline_faiss_save(*pdf_docs):
@@ -362,10 +395,10 @@ new_docsearch = Chroma(persist_directory=os.path.join(db_save_path, "cloud_bot_2
 
 retriever = new_docsearch.as_retriever(
                                         search_type="mmr",                                        
-                                        search_kwargs={'k': 3, 'fetch_k': 10}
+                                        search_kwargs={'k': 2, 'fetch_k': 5}
                                        )
 
-# retriever의 compression 시도 !!!!!!!!!!!!!!!!!!!!!!!!!
+# # retriever의 compression 시도 !!!!!!!!!!!!!!!!!!!!!!!!!
 embeddings_filter = EmbeddingsFilter(embeddings=embeddings, similarity_threshold=0.8)
 
 compression_retriever = ContextualCompressionRetriever(
@@ -382,8 +415,8 @@ def init_memory():
   
 memory = init_memory()
 
-# 토큰 절약하기 위한
-# ConversationalRetrievalChain to LCEL !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# # 토큰 절약하기 위한
+# # ConversationalRetrievalChain to LCEL !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 DEFAULT_DOCUMENT_PROMPT = PromptTemplate.from_template(template="{page_content}")
 
 _template = """Given the following conversation and a follow up question, rephrase the follow up question to be a standalone question, in its original language.
@@ -405,16 +438,18 @@ def _combine_documents(
 loaded_memory = RunnablePassthrough.assign(
     chat_history=RunnableLambda(memory.load_memory_variables) | itemgetter("chat_history"),
 )
-# Now we calculate the standalone question
+
+# # Now we calculate the standalone question
 standalone_question = {
     "standalone_question": {
         "question": lambda x: x["question"],
         "chat_history": lambda x: get_buffer_string(x["chat_history"]),
     }
     | CONDENSE_QUESTION_PROMPT
-    | hcx_llm
-    | StrOutputParser(),
+    | HCX_stream
+    | StrOutputParser()
 }
+
 # Now we retrieve the documents
 retrieved_documents = {
     # "source_documents": itemgetter("standalone_question") | retriever,
@@ -428,23 +463,29 @@ final_inputs = {
 }
 # And finally, we do the part that returns the answers
 answer = {
-    "answer": final_inputs | QA_CHAIN_PROMPT | hcx_llm,
+    "answer": final_inputs | QA_CHAIN_PROMPT | HCX_stream,
     "source_documents": itemgetter("source_documents"),
 }
-# And now we put it all together!
-retrieval_qa_chain = loaded_memory | standalone_question | retrieved_documents | answer
 
+
+retrieval_qa_chain =  HCX_stream | StrOutputParser()
+# retrieval_qa_chain = loaded_memory | stSandalone_question | retrieved_documents | answer
+# retrieval_qa_chain = (
+#     {"context": retriever , "question": RunnablePassthrough()} 
+#     | QA_CHAIN_PROMPT
+#     | HCX_stream
+#     | StrOutputParser()
+# )
 
 
 st.title("Cloud 관련 무물보~!")
-
 
 if 'generated' not in st.session_state:
     st.session_state['generated'] = []  
  
 if 'past' not in st.session_state:
     st.session_state['past'] = []
- 
+        
 with st.form('form', clear_on_submit=True):
     user_input = st.text_input('질문', '', key='ques')
 
@@ -509,7 +550,16 @@ with st.form('form', clear_on_submit=True):
                                               'regular_token_price': regular_token_price,
                                               'regular_token_price_vat': regular_token_price_vat}
                                               )
-                        
+            
+            response_container = st.empty()  # Use an empty container to update the response dynamically
+            full_response = ""
+            for chunk in response_text:
+                full_response += chunk
+                # Update the response dynamically within the same container
+                # response_container.markdown(f"답변: {full_response}")
+                message(f"답변: {full_response}", is_user=False)
+                time.sleep(0.01)                
+        
         if st.session_state['generated']:
             for i in range(len(st.session_state['generated']) - 1, -1, -1):
                 user_input = st.session_state['past'][i]
@@ -518,7 +568,7 @@ with st.form('form', clear_on_submit=True):
                 message(f"질문: {user_input['question']}", is_user=True, key=str(i) + '_question')
                 message(f"답변: {response['generated']}", is_user=False, key=str(i) + '_generated')
                 message(f"input 토큰 수: {response['input_token_count']}\noutput 토큰 수: {response['output_token_count']}\n총 토큰 수: {response['total_token_count']}\n할인 후 가격: {round(response['discount_token_price'], 2)} (원)\n할인 후 가격(VAT 포함): {round(response['discount_token_price_vat'], 2)} (원)\n정가: {round(response['regular_token_price'], 2)} (원)\n정가(VAT 포함): {round(response['regular_token_price_vat'], 2)} (원)", is_user=False, key=str(i) + '_cost')
-                
+      
             st.table(data = total_content)
 
 
