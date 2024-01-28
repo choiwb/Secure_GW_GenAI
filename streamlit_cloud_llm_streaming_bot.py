@@ -19,8 +19,8 @@ if prompt := st.chat_input("What is up?"):
     with st.chat_message("assistant", avatar="🤖"):
         message_placeholder = st.empty()
         full_response = ""
-        for chunk in retrieval_qa_chain.stream({"question":prompt}):
-        # for chunk in retrieval_qa_chain.stream(prompt):
+        # for chunk in retrieval_qa_chain.stream({"question":prompt}):
+        for chunk in retrieval_qa_chain.stream(prompt):
             print('-----------------------')
             print(chunk, end="", flush=True)            
             full_response += chunk
