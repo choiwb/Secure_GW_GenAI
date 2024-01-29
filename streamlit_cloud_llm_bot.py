@@ -48,6 +48,9 @@ os.environ['OPENAI_API_KEY'] = "YOUR OPENAI API KEY !!!!!!!!!!!!!!!!!!!!!!!"
 
 # 임베딩 벡터 DB 저장 & 호출
 db_save_path = "YOUR DB SAVE PATH !!!!!!!!!!!!!!!!!!!!!!!" 
+
+# HCX LLM 경로 !!!!!!!!!!!!!!!!!!!!!!!
+llm_url = 'your llm url !!!!!!!!!!'
 ##################################################################################
 
 
@@ -61,9 +64,10 @@ template = """
     context for answer: {context}
     question: {question}
     answer: """
-
     
 QA_CHAIN_PROMPT = PromptTemplate(input_variables=["context", "question"],template=template)
+
+
 
 scenario_1 =  PyPDFLoader('contents/cloud_computing.pdf')
 s1_documents = scenario_1.load_and_split()
@@ -93,7 +97,6 @@ else:
     ssl._create_default_https_context = _create_unverified_https_context
 
 class CompletionExecutor(LLM):
-    llm_url = 'YOUR URL PATH !!!!!!!!!!!!!!!!!!'
     api_key: str = Field(...)
     api_key_primary_val: str = Field(...)
     request_id: str = Field(...)
@@ -178,11 +181,25 @@ class CompletionExecutor(LLM):
 hcx_llm = CompletionExecutor(api_key = API_KEY, api_key_primary_val=API_KEY_PRIMARY_VAL, request_id=REQUEST_ID,  system_prompt=SYSTEMPROMPT)
 
 
-def HCX_stream(prompt):
-    llm_url = 'YOUR URL PATH !!!!!!!!!!!!!!!!!!'
-    preset_text = [{"role": "system", "content": SYSTEMPROMPT}, {"role": "user", "content": prompt}]
 
-    request_data = {
+class HCX_LLM(LLM):        
+    @property
+    def _llm_type(self) -> str:
+        return "HyperClovaX"
+    
+    def _call(
+        self,
+        prompt: str,
+        stop: Optional[List[str]] = None,
+        run_manager: Optional[CallbackManagerForLLMRun] = None,
+        **kwargs: Any,
+    ) -> str:
+        if stop is not None:
+            raise ValueError("stop kwargs are not permitted.")
+        
+        preset_text = [{"role": "system", "content": SYSTEMPROMPT}, {"role": "user", "content": prompt}]
+
+        request_data = {
         'messages': preset_text,
         'topP': 0.8,
         'topK': 0,
@@ -191,35 +208,56 @@ def HCX_stream(prompt):
         'repeatPenalty': 5.0,
         'stopBefore': [],
         'includeAiFilters': True
-    }
+        }
+        
+        
+        general_headers = {
+            'X-NCP-CLOVASTUDIO-API-KEY': API_KEY,
+            'X-NCP-APIGW-API-KEY': API_KEY_PRIMARY_VAL,
+            'X-NCP-CLOVASTUDIO-REQUEST-ID': REQUEST_ID,
+            'Content-Type': 'application/json; charset=utf-8',
+        }
+                
+        stream_headers = {
+            'X-NCP-CLOVASTUDIO-API-KEY': API_KEY,
+            'X-NCP-APIGW-API-KEY': API_KEY_PRIMARY_VAL,
+            'X-NCP-CLOVASTUDIO-REQUEST-ID': REQUEST_ID,
+            'Content-Type': 'application/json; charset=utf-8',
+            # streaming 옵션 !!!!!
+            'Accept': 'text/event-stream'
+        }
+        
+        
+        # RAG의 경우, standalone question 도출 과정이 있으므로, stream 아닌 형태로 먼저 return
+        if "question: Standalone question:" not in prompt:
 
-    # def execute(self, completion_request):
-    headers = {
-        'X-NCP-CLOVASTUDIO-API-KEY': API_KEY,
-        'X-NCP-APIGW-API-KEY': API_KEY_PRIMARY_VAL,
-        'X-NCP-CLOVASTUDIO-REQUEST-ID': REQUEST_ID,
-        'Content-Type': 'application/json; charset=utf-8',
-        # streaming 옵션 !!!!!
-        'Accept': 'text/event-stream'
-    }
-
-    full_response = ""
-    message_placeholder = st.empty()
-    
-    with httpx.stream(method="POST", 
-                    url=llm_url,
-                    json=request_data,
-                    headers=headers, 
-                    timeout=120) as res:
-        for line in res.iter_lines():
-            if line.startswith("data:"):
-                split_line = line.split("data:")
-                line_json = json.loads(split_line[1])
-                if "stopReason" in line_json and line_json["stopReason"] == None:
-                    full_response += line_json["message"]["content"]
-                    message_placeholder.markdown(full_response + "▌")
-        message_placeholder.markdown(full_response)
-        return full_response
+            response = requests.post(llm_url, json=request_data, headers=general_headers, verify=False)
+            response.raise_for_status()
+                        
+            return response.json()['result']['message']['content']
+        
+        # streaming 형태로 최종 출력 도출
+        else:
+            full_response = ""
+            message_placeholder = st.empty()
+            
+            with httpx.stream(method="POST", 
+                            url=llm_url,
+                            json=request_data,
+                            headers=stream_headers, 
+                            timeout=120) as res:
+                for line in res.iter_lines():
+                    if line.startswith("data:"):
+                        split_line = line.split("data:")
+                        line_json = json.loads(split_line[1])
+                        if "stopReason" in line_json and line_json["stopReason"] == None:
+                            full_response += line_json["message"]["content"]
+                            print('************************************************************')
+                            print(full_response)
+                            message_placeholder.markdown(full_response + "▌")
+                message_placeholder.markdown(full_response)
+                
+                return full_response
 
 
 
@@ -412,7 +450,7 @@ def init_memory():
         output_key='answer',
         memory_key='chat_history',
         return_messages=True)
-  
+
 memory = init_memory()
 
 # # 토큰 절약하기 위한
@@ -446,7 +484,7 @@ standalone_question = {
         "chat_history": lambda x: get_buffer_string(x["chat_history"]),
     }
     | CONDENSE_QUESTION_PROMPT
-    | HCX_stream
+    | HCX_LLM()
     | StrOutputParser()
 }
 
@@ -456,120 +494,119 @@ retrieved_documents = {
     "source_documents": itemgetter("standalone_question") | compression_retriever,
     "question": lambda x: x["standalone_question"],
 }
+
 # Now we construct the inputs for the final prompt
 final_inputs = {
     "context": lambda x: _combine_documents(x["source_documents"]),
     "question": itemgetter("question"),
 }
-# And finally, we do the part that returns the answers
-answer = {
-    "answer": final_inputs | QA_CHAIN_PROMPT | HCX_stream,
-    "source_documents": itemgetter("source_documents"),
-}
+# And finally, we do the part that returns the answers 
+# answer = {
+#     "answer": final_inputs | QA_CHAIN_PROMPT | HCX_LLM(),
+#     "source_documents": itemgetter("source_documents"),
+# }
 
-
-retrieval_qa_chain =  HCX_stream | StrOutputParser()
+# stream 기능이 있는 llm 클래스의 경우, 위 lcel의 answer 처럼 파이프라인 안에서 선언하면 안되고, 아래 코드와 같이 별도로 선언해야 함 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# 따라서 stream으로 최종 출력을 뽑를 경우, 위 lcel의 answer 과정의 source_documents 를 추출 못하여 참조 문서를 표출 못하는거 같음.....
 # retrieval_qa_chain = loaded_memory | standalone_question | retrieved_documents | answer
-# retrieval_qa_chain = (
-#     {"context": retriever , "question": RunnablePassthrough()} 
-#     | QA_CHAIN_PROMPT
-#     | HCX_stream
-#     | StrOutputParser()
-# )
+retrieval_qa_chain = loaded_memory | standalone_question | retrieved_documents | final_inputs | QA_CHAIN_PROMPT | HCX_LLM() | StrOutputParser()
 
 
-st.title("Cloud 관련 무물보~!")
 
-if 'generated' not in st.session_state:
-    st.session_state['generated'] = []  
+
+
+# st.title("Cloud 관련 무물보~!")
+
+# if 'generated' not in st.session_state:
+#     st.session_state['generated'] = []  
  
-if 'past' not in st.session_state:
-    st.session_state['past'] = []
+# if 'past' not in st.session_state:
+#     st.session_state['past'] = []
         
-with st.form('form', clear_on_submit=True):
-    user_input = st.text_input('질문', '', key='ques')
+# with st.form('form', clear_on_submit=True):
+#     user_input = st.text_input('질문', '', key='ques')
 
-    submitted = st.form_submit_button('답변')
+#     submitted = st.form_submit_button('답변')
         
-    if submitted and user_input:
-        with st.spinner("Waiting for HyperCLOVA..."):   
-            # LCEL     
-            response_text_json = retrieval_qa_chain.invoke({"question": user_input})
+#     if submitted and user_input:
+#         with st.spinner("Waiting for HyperCLOVA..."):   
+#             # LCEL     
+#             response_text_json = retrieval_qa_chain.invoke({"question": user_input})
                         
-            # ConversationalRetrievalChain & LCEL      
-            response_text = response_text_json['answer']
+#             # ConversationalRetrievalChain & LCEL      
+#             response_text = response_text_json['answer']
                         
-            # Note that the memory does not save automatically
-            # This will be improved in the future
-            # For now you need to save it yourself
-            memory.save_context({"question": user_input}, {"answer": response_text})
-            # print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
-            # print(memory)
+#             # Note that the memory does not save automatically
+#             # This will be improved in the future
+#             # For now you need to save it yourself
+#             memory.save_context({"question": user_input}, {"answer": response_text})
+#             # print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
+#             # print(memory)
 
-            # 참조 문서 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            total_content = pd.DataFrame(columns=['순번', '참조 문서'])
-            token_total_content = ''
-            for i in range(len(response_text_json['source_documents'])):
-                context = response_text_json['source_documents'][i].page_content
-                # print('==================================================')
-                # print('\n%d번 째 참조 문서: %s' %(i+1, context))
-                # total_content += '=================================================='
-                # total_content += '\n%d번 째 참조 문서: %s' %(i+1, context)
-                total_content.loc[i] = [i+1, context]
-                token_total_content += context
+#             # 참조 문서 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#             total_content = pd.DataFrame(columns=['순번', '참조 문서'])
+#             token_total_content = ''
+#             for i in range(len(response_text_json['source_documents'])):
+#                 context = response_text_json['source_documents'][i].page_content
+#                 # print('==================================================')
+#                 # print('\n%d번 째 참조 문서: %s' %(i+1, context))
+#                 # total_content += '=================================================='
+#                 # total_content += '\n%d번 째 참조 문서: %s' %(i+1, context)
+#                 total_content.loc[i] = [i+1, context]
+#                 token_total_content += context
                                 
-            output_token_json = {
-            "messages": [
-            {
-                "role": "assistant",
-                "content": response_text
-            }
-            ]
-            }
+#             output_token_json = {
+#             "messages": [
+#             {
+#                 "role": "assistant",
+#                 "content": response_text
+#             }
+#             ]
+#             }
             
-            output_text_token = token_completion_executor.execute(output_token_json)
-            output_token_count = sum(token['count'] for token in output_text_token[:])
+#             output_text_token = token_completion_executor.execute(output_token_json)
+#             output_token_count = sum(token['count'] for token in output_text_token[:])
                         
-            total_token_count = hcx_llm.total_input_token_count + output_token_count
+#             total_token_count = hcx_llm.total_input_token_count + output_token_count
             
-            # 할인 후 가격
-            discount_token_price = total_token_count * 0.005
-            # 할인 후 가격 VAT 포함
-            discount_token_price_vat = discount_token_price * 1.1
-            # 정가
-            regular_token_price = total_token_count * 0.02
-            # 정가 VAT 포함
-            regular_token_price_vat = regular_token_price * 1.1
+#             # 할인 후 가격
+#             discount_token_price = total_token_count * 0.005
+#             # 할인 후 가격 VAT 포함
+#             discount_token_price_vat = discount_token_price * 1.1
+#             # 정가
+#             regular_token_price = total_token_count * 0.02
+#             # 정가 VAT 포함
+#             regular_token_price_vat = regular_token_price * 1.1
 
-            st.session_state.past.append({'question': user_input})
-            st.session_state.generated.append({'generated': response_text, 'input_token_count':hcx_llm.total_input_token_count,
-                                               'output_token_count': output_token_count,
-                                               'total_token_count': total_token_count,
-                                              'discount_token_price': discount_token_price,
-                                              'discount_token_price_vat': discount_token_price_vat,
-                                              'regular_token_price': regular_token_price,
-                                              'regular_token_price_vat': regular_token_price_vat}
-                                              )
+#             st.session_state.past.append({'question': user_input})
+#             st.session_state.generated.append({'generated': response_text, 'input_token_count':hcx_llm.total_input_token_count,
+#                                                'output_token_count': output_token_count,
+#                                                'total_token_count': total_token_count,
+#                                               'discount_token_price': discount_token_price,
+#                                               'discount_token_price_vat': discount_token_price_vat,
+#                                               'regular_token_price': regular_token_price,
+#                                               'regular_token_price_vat': regular_token_price_vat}
+#                                               )
             
-            response_container = st.empty()  # Use an empty container to update the response dynamically
-            full_response = ""
-            for chunk in response_text:
-                full_response += chunk
-                # Update the response dynamically within the same container
-                # response_container.markdown(f"답변: {full_response}")
-                message(f"답변: {full_response}", is_user=False)
-                time.sleep(0.01)                
+#             response_container = st.empty()  # Use an empty container to update the response dynamically
+#             full_response = ""
+#             for chunk in response_text:
+#                 full_response += chunk
+#                 # Update the response dynamically within the same container
+#                 # response_container.markdown(f"답변: {full_response}")
+#                 message(f"답변: {full_response}", is_user=False)
+#                 time.sleep(0.01)                
         
-        if st.session_state['generated']:
-            for i in range(len(st.session_state['generated']) - 1, -1, -1):
-                user_input = st.session_state['past'][i]
-                response = st.session_state['generated'][i]
+#         if st.session_state['generated']:
+#             for i in range(len(st.session_state['generated']) - 1, -1, -1):
+#                 user_input = st.session_state['past'][i]
+#                 response = st.session_state['generated'][i]
 
-                message(f"질문: {user_input['question']}", is_user=True, key=str(i) + '_question')
-                message(f"답변: {response['generated']}", is_user=False, key=str(i) + '_generated')
-                message(f"input 토큰 수: {response['input_token_count']}\noutput 토큰 수: {response['output_token_count']}\n총 토큰 수: {response['total_token_count']}\n할인 후 가격: {round(response['discount_token_price'], 2)} (원)\n할인 후 가격(VAT 포함): {round(response['discount_token_price_vat'], 2)} (원)\n정가: {round(response['regular_token_price'], 2)} (원)\n정가(VAT 포함): {round(response['regular_token_price_vat'], 2)} (원)", is_user=False, key=str(i) + '_cost')
+#                 message(f"질문: {user_input['question']}", is_user=True, key=str(i) + '_question')
+#                 message(f"답변: {response['generated']}", is_user=False, key=str(i) + '_generated')
+#                 message(f"input 토큰 수: {response['input_token_count']}\noutput 토큰 수: {response['output_token_count']}\n총 토큰 수: {response['total_token_count']}\n할인 후 가격: {round(response['discount_token_price'], 2)} (원)\n할인 후 가격(VAT 포함): {round(response['discount_token_price_vat'], 2)} (원)\n정가: {round(response['regular_token_price'], 2)} (원)\n정가(VAT 포함): {round(response['regular_token_price_vat'], 2)} (원)", is_user=False, key=str(i) + '_cost')
       
-            st.table(data = total_content)
+#             st.table(data = total_content)
 
 
 
