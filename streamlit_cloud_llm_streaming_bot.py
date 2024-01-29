@@ -1,7 +1,7 @@
 
 import pandas as pd
 import streamlit as st
-from streamlit_hcx_cloud_bot import retrieval_qa_chain, memory
+from streamlit_cloud_llm_bot import retrieval_qa_chain, memory
 
 st.title("Cloud 관련 무물보~!")
    
