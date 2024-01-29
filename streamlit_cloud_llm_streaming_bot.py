@@ -29,13 +29,13 @@ if prompt := st.chat_input("What is up?"):
         st.markdown(prompt)
 
     with st.chat_message("assistant", avatar="🤖"):
-        message_placeholder = st.empty()        
+        # HCX_stream 클래스에서 이미 stream 기능을 streamlit ui 에서 구현했으므로 별도의 langchain의 .stream() 필요없고 .invoke()만 호출하면 됨.
         full_response = retrieval_qa_chain.invoke({"question":prompt})
         memory.save_context({"question": prompt}, {"answer": full_response})
-        
+
     st.session_state.messages.append({"role": "assistant", "content": full_response})
-    
-    #  참조 문서 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+    # 참조 문서 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     # total_content = pd.DataFrame(columns=['순번', '참조 문서'])
     # for i in range(len(full_response['source_documents'])):
     #     context = full_response['source_documents'][i].page_content
