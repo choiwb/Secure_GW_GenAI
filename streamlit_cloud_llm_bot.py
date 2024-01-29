@@ -182,7 +182,7 @@ hcx_llm = CompletionExecutor(api_key = API_KEY, api_key_primary_val=API_KEY_PRIM
 
 
 
-class HCX_LLM(LLM):        
+class HCX_general(LLM):        
     @property
     def _llm_type(self) -> str:
         return "HyperClovaX"
@@ -198,6 +198,9 @@ class HCX_LLM(LLM):
             raise ValueError("stop kwargs are not permitted.")
         
         preset_text = [{"role": "system", "content": SYSTEMPROMPT}, {"role": "user", "content": prompt}]
+
+        print('---------------------------------------------')
+        print(preset_text)
 
         request_data = {
         'messages': preset_text,
@@ -218,6 +221,44 @@ class HCX_LLM(LLM):
             'Content-Type': 'application/json; charset=utf-8',
         }
                 
+        response = requests.post(llm_url, json=request_data, headers=general_headers, verify=False)
+        response.raise_for_status()
+                    
+        return response.json()['result']['message']['content']
+        
+
+
+class HCX_stream(LLM):        
+    @property
+    def _llm_type(self) -> str:
+        return "HyperClovaX"
+    
+    def _call(
+        self,
+        prompt: str,
+        stop: Optional[List[str]] = None,
+        run_manager: Optional[CallbackManagerForLLMRun] = None,
+        **kwargs: Any,
+    ) -> str:
+        if stop is not None:
+            raise ValueError("stop kwargs are not permitted.")
+        
+        preset_text = [{"role": "system", "content": SYSTEMPROMPT}, {"role": "user", "content": prompt}]
+
+        print('---------------------------------------------')
+        print(preset_text)
+
+        request_data = {
+        'messages': preset_text,
+        'topP': 0.8,
+        'topK': 0,
+        'maxTokens': 128,
+        'temperature': 0.1,
+        'repeatPenalty': 5.0,
+        'stopBefore': [],
+        'includeAiFilters': True
+        }
+                        
         stream_headers = {
             'X-NCP-CLOVASTUDIO-API-KEY': API_KEY,
             'X-NCP-APIGW-API-KEY': API_KEY_PRIMARY_VAL,
@@ -226,38 +267,29 @@ class HCX_LLM(LLM):
             # streaming 옵션 !!!!!
             'Accept': 'text/event-stream'
         }
-        
-        
-        # RAG의 경우, standalone question 도출 과정이 있으므로, stream 아닌 형태로 먼저 return
-        if "question: Standalone question:" not in prompt:
 
-            response = requests.post(llm_url, json=request_data, headers=general_headers, verify=False)
-            response.raise_for_status()
-                        
-            return response.json()['result']['message']['content']
         
         # streaming 형태로 최종 출력 도출
-        else:
-            full_response = ""
-            message_placeholder = st.empty()
+        full_response = ""
+        message_placeholder = st.empty()
+        
+        with httpx.stream(method="POST", 
+                        url=llm_url,
+                        json=request_data,
+                        headers=stream_headers, 
+                        timeout=120) as res:
+            for line in res.iter_lines():
+                if line.startswith("data:"):
+                    split_line = line.split("data:")
+                    line_json = json.loads(split_line[1])
+                    if "stopReason" in line_json and line_json["stopReason"] == None:
+                        full_response += line_json["message"]["content"]
+                        print('************************************************************')
+                        print(full_response)
+                        message_placeholder.markdown(full_response + "▌")
+            message_placeholder.markdown(full_response)
             
-            with httpx.stream(method="POST", 
-                            url=llm_url,
-                            json=request_data,
-                            headers=stream_headers, 
-                            timeout=120) as res:
-                for line in res.iter_lines():
-                    if line.startswith("data:"):
-                        split_line = line.split("data:")
-                        line_json = json.loads(split_line[1])
-                        if "stopReason" in line_json and line_json["stopReason"] == None:
-                            full_response += line_json["message"]["content"]
-                            print('************************************************************')
-                            print(full_response)
-                            message_placeholder.markdown(full_response + "▌")
-                message_placeholder.markdown(full_response)
-                
-                return full_response
+            return full_response
 
 
 
@@ -484,7 +516,7 @@ standalone_question = {
         "chat_history": lambda x: get_buffer_string(x["chat_history"]),
     }
     | CONDENSE_QUESTION_PROMPT
-    | HCX_LLM()
+    | HCX_general()
     | StrOutputParser()
 }
 
@@ -500,18 +532,26 @@ final_inputs = {
     "context": lambda x: _combine_documents(x["source_documents"]),
     "question": itemgetter("question"),
 }
+
 # And finally, we do the part that returns the answers 
 # answer = {
-#     "answer": final_inputs | QA_CHAIN_PROMPT | HCX_LLM(),
+#     "answer": final_inputs | QA_CHAIN_PROMPT | HCX_stream(),
 #     "source_documents": itemgetter("source_documents"),
 # }
 
 # stream 기능이 있는 llm 클래스의 경우, 위 lcel의 answer 처럼 파이프라인 안에서 선언하면 안되고, 아래 코드와 같이 별도로 선언해야 함 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # 따라서 stream으로 최종 출력을 뽑를 경우, 위 lcel의 answer 과정의 source_documents 를 추출 못하여 참조 문서를 표출 못하는거 같음.....
 # retrieval_qa_chain = loaded_memory | standalone_question | retrieved_documents | answer
-retrieval_qa_chain = loaded_memory | standalone_question | retrieved_documents | final_inputs | QA_CHAIN_PROMPT | HCX_LLM() | StrOutputParser()
-
-
+retrieval_qa_chain = loaded_memory | standalone_question | retrieved_documents | final_inputs | QA_CHAIN_PROMPT | HCX_stream() | StrOutputParser()
+# retrieval_qa_chain = (loaded_memory 
+#                       | standalone_question 
+#                       | retrieved_documents 
+#                       | final_inputs 
+#                       | QA_CHAIN_PROMPT 
+#                       | HCX_stream() 
+#                       | {"answer": itemgetter("answer"),
+#                         "source_documents": itemgetter("source_documents")}
+#                     )
 
 
 
