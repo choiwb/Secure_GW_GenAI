@@ -186,34 +186,72 @@ st.title("음식점 사장님 리뷰 자동 생성")
 default_menu = '양념 치킨 1마리, 치즈볼 5개, 콜라 1.25L'
 default_review = '양념 치킨이 존맛탱이고, 다리살이 정말 부드러워용~~ 그리고 가슴살도 안퍽퍽하고 좋아요! 또 시켜먹을게요!'
 
-if 'generated' not in st.session_state:
-    st.session_state['generated'] = []
- 
-if 'past' not in st.session_state:
-    st.session_state['past'] = []
+# 세션 상태 초기화
+if 'reviews' not in st.session_state:
+    st.session_state.reviews = []
+
+with st.form('review_form', clear_on_submit=True):
+    # 사용자 리뷰 및 별점 입력
+    st.markdown("""
+    <h2 style="font-size: 24px; display: inline-block; margin-right: 10px;">🧑 마라보이 님</h2>
+    <span style="font-size: 16px; vertical-align: super;">3시간 전, 작성됨.</span>
+""", unsafe_allow_html=True)
+    st.markdown("""
+    <style>
+        .rating-container {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+        }
+        .star-rating {
+            color: gold;
+            font-size: 20px; /* 별의 크기를 조절하려면 이 값을 변경하세요 */
+            margin-right: 5px; /* 별과 텍스트 사이의 간격을 조절하려면 이 값을 변경하세요 */
+        }
+        .rating-label {
+            font-size: 16px; /* 라벨 텍스트의 크기를 조절하려면 이 값을 변경하세요 */
+            margin-right: 10px; /* 라벨과 별 사이의 간격을 조절하려면 이 값을 변경하세요 */
+        }
+        .rating-section {
+            margin-right: 20px; /* 각 평점 섹션 사이의 간격을 조절하려면 이 값을 변경하세요 */
+        }
+    </style>
+    <div class="rating-container">
+        <div class="rating-section">
+            <span class="rating-label">맛:</span>
+            <span class="star-rating">&#9733;&#9733;&#9733;&#9733;&#9734;</span>
+        </div>
+        <div class="rating-section">
+            <span class="rating-label">양:</span>
+            <span class="star-rating">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+        </div>
+        <div class="rating-section">
+            <span class="rating-label">배달:</span>
+            <span class="star-rating">&#9733;&#9733;&#9733;&#9733;&#9734;</span>
+        </div>
+    </div>
+""", unsafe_allow_html=True)
+
+    user_review = st.text_area('', default_review)     
+    menu_items = default_menu.split(', ')
+    # menu_items 각 '#' 앞에 붙이기
+    menu_items = ['#' + item for item in menu_items]
+    st.markdown(f"""
+    <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+        {' '.join(f'<span class="menu-item" style="font-size: 16px; padding: 8px; background-color: #f0f2f6; border-radius: 5px;">{item}</span>' for item in menu_items)}
+    </div>
+""", unsafe_allow_html=True)
+    # <br> 추가
+    st.markdown('<br>', unsafe_allow_html=True)
+    submit_review = st.form_submit_button('사장님 리뷰 등록')
     
-with st.form('form', clear_on_submit=True):
-    # st.subheader("리뷰 입력")
-    user_input_2 = st.text_area('사용자 리뷰', default_review, key='review')
-    # user_input_1 = st.text_input('사용자 주문 메뉴', default_menu, key='menu')
-    st.markdown(f'<div class="small-font">{default_menu}</div>', unsafe_allow_html=True)
-    st.session_state['review_width'] = min(max(len(default_menu.split('\n')) * 20, 100), 300)  # 최소 100, 최대 300 픽셀로 조정
-    
-    submitted = st.form_submit_button('사장님 답변 생성')
+    if submit_review and user_review:
 
-    if submitted and user_input_2:
-
-        with st.spinner("사장님의 답변을 생성 중입니다..."):
-            response_text = hcx_llm_chain.predict(menu=default_menu, review=user_input_2)
-            st.session_state.past.append({'menu': default_menu, 'review': user_input_2, 'response': response_text})
-            st.session_state.generated.append({'generated': response_text})
-            st.success("생성 완료!")
-
-if st.session_state['past']:
-    st.subheader("이전 리뷰 및 사장님 답변")
-    for item in reversed(st.session_state['past']):
-        st.text_area("리뷰", value=item['review'], disabled=True)
-        st.text_area("사장님 답변", value=item['response'], disabled=True)
-        st.markdown("---")
-
+        # 사장님 리뷰 생성
+        st.markdown("""
+    <h2 style="font-size: 24px; display: inline-block; margin-right: 10px;">🙋‍♂️ 사장님</h2>
+    <span style="font-size: 16px; vertical-align: super;">지금, 작성됨.</span>
+""", unsafe_allow_html=True)
+        
+        owner_response = hcx_llm_chain.predict(menu=default_menu, review=user_review)
 
