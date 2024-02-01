@@ -351,8 +351,9 @@ def offline_chroma_save(*pdf_docs):
 
 # 온라인 데이터 가공 ####################################################################################
 # 비정형 데이터 => 정형 데이터 가공 (도표 추출 등) 위한 Function Calling 구현 필요 !!!!!!!!!!!!!!!!!!!!!
-url_0 = 'https://cloud.google.com/docs/get-started/aws-azure-gcp-service-comparison?hl=ko'
-
+# url_0 = 'https://cloud.google.com/docs/get-started/aws-azure-gcp-service-comparison?hl=ko'
+url_0 = 'https://www.ncloud.com/product/compute/gpuServer'
+url_1 = 'https://www.ncloud.com/product/networking/loadBalancer'
 
 # Function Calling
 url_0_schema = {
@@ -406,45 +407,45 @@ def online_multiple_prep(args):
         # time.sleep(60)
 
 
-html2text = Html2TextTransformer()
+# html2text = Html2TextTransformer()
 
-def online_chroma_save(url):
-    total_docs = []
+# def online_chroma_save(url):
+#     total_docs = []
     
-    loader = AsyncHtmlLoader(url)        
-    doc = loader.load()
-    doc = html2text.transform_documents(doc)  
+#     loader = AsyncHtmlLoader(url)        
+#     doc = loader.load()
+#     doc = html2text.transform_documents(doc)  
     
-    # print("Extracting content with LLM")
-    splits  = text_splitter_function_calling.split_documents(doc)
-    print('################################################################')
-    print(len(splits))
+#     # print("Extracting content with LLM")
+#     splits  = text_splitter_function_calling.split_documents(doc)
+#     print('################################################################')
+#     print(len(splits))
         
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        # Prepare arguments for extract_content_wrapper
-        args_list = [(url_0_schema, split.page_content) for split in splits]
+#     with concurrent.futures.ThreadPoolExecutor() as executor:
+#         # Prepare arguments for extract_content_wrapper
+#         args_list = [(url_0_schema, split.page_content) for split in splits]
 
-        # Process each split concurrently
-        results = list(executor.map(online_multiple_prep, args_list))
+#         # Process each split concurrently
+#         results = list(executor.map(online_multiple_prep, args_list))
 
-        # Filter out None values (from exceptions in extract_content_wrapper)
-        total_docs.extend(filter(None, results))
+#         # Filter out None values (from exceptions in extract_content_wrapper)
+#         total_docs.extend(filter(None, results))
             
-    total_docs = [str(item) for item in total_docs]
-    print('111111111111111111111111111111111111')
-    print(len(total_docs))
+#     total_docs = [str(item) for item in total_docs]
+#     print('111111111111111111111111111111111111')
+#     print(len(total_docs))
     
-    # vectorstore = Chroma.from_documents(
-    #     documents=total_docs, 
-    #     embedding=embeddings,
-    #     persist_directory=os.path.join(db_save_path, "cloud_bot_20240119_chroma_db")
-    #     )
-    vectorstore = Chroma.from_texts(
-        texts=total_docs, 
-        embedding=embeddings,
-        persist_directory=os.path.join(db_save_path, "cloud_bot_20240119_chroma_db")
-        )
-    vectorstore.persist()
+#     # vectorstore = Chroma.from_documents(
+#     #     documents=total_docs, 
+#     #     embedding=embeddings,
+#     #     persist_directory=os.path.join(db_save_path, "cloud_bot_20240119_chroma_db")
+#     #     )
+#     vectorstore = Chroma.from_texts(
+#         texts=total_docs, 
+#         embedding=embeddings,
+#         persist_directory=os.path.join(db_save_path, "cloud_bot_20240119_chroma_db")
+#         )
+#     vectorstore.persist()
     
     
 # if __name__ == "__main__":
@@ -456,6 +457,40 @@ def online_chroma_save(url):
 #     end = time.time()
 #     '''임베딩 완료 시간: 168.88 (초)'''
 #     print('임베딩 완료 시간: %.2f (초)' %(end-start))
+
+
+
+def online_chroma_save(*urls):
+    
+    html2text = Html2TextTransformer()
+    total_splits = []
+    
+    for url in urls:
+        loader = AsyncHtmlLoader(url)        
+        doc = loader.load()
+        doc = html2text.transform_documents(doc)  
+        
+        splits = text_splitter_function_calling.split_documents(doc)
+        print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+        print(len(splits))
+        # multiple url 에 대한 splits 를 append !!!!!!!
+        total_splits = total_splits + splits
+        
+    print('@@@@@@@@@@@@@@@@@@@@@@@@@')
+    print(len(total_splits))
+    
+    vectorstore = Chroma.from_documents(
+        documents=splits, 
+        embedding=embeddings,
+        persist_directory=os.path.join(db_save_path, "cloud_bot_20240131_chroma_db")
+        )
+    vectorstore.persist()
+
+# start = time.time()
+# total_content = online_chroma_save(url_0, url_1)
+# end = time.time()
+# '''임베딩 완료 시간: 1.62 (초)'''
+# print('임베딩 완료 시간: %.2f (초)' %(end-start))
 #######################################################################################################
 
 
