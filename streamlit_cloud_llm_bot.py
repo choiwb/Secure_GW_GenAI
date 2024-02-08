@@ -51,6 +51,10 @@ db_save_path = "YOUR DB SAVE PATH !!!!!!!!!!!!!!!!!!!!!!!"
 
 # HCX LLM 경로 !!!!!!!!!!!!!!!!!!!!!!!
 llm_url = 'your llm url !!!!!!!!!!'
+
+# pdf 형태 context 경로 !!!!!!!!
+pdf_path_1 = 'your pdf context rag data path !!!!!!!!!!!!!!!!!!'
+pdf_path_2 = 'your pdf context rag data path !!!!!!!!!!!!!!!!!!'
 ##################################################################################
 
 
@@ -67,12 +71,6 @@ template = """
     
 QA_CHAIN_PROMPT = PromptTemplate(input_variables=["context", "question"],template=template)
 
-
-
-scenario_1 =  PyPDFLoader('contents/cloud_computing.pdf')
-s1_documents = scenario_1.load_and_split()
-
-
 text_splitter = CharacterTextSplitter(        
                             separator = "\n",
                             chunk_size = 200,
@@ -81,7 +79,7 @@ text_splitter = CharacterTextSplitter(
                             )
 
 text_splitter_function_calling = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
-        chunk_size=100, chunk_overlap=20
+        chunk_size=200, chunk_overlap=50
     )
 
 
@@ -190,17 +188,17 @@ class HCX_general(LLM):
     def _call(
         self,
         prompt: str,
-        stop: Optional[List[str]] = None,
+        # stop: Optional[List[str]] = None,
         run_manager: Optional[CallbackManagerForLLMRun] = None,
         **kwargs: Any,
     ) -> str:
-        if stop is not None:
-            raise ValueError("stop kwargs are not permitted.")
+        # if stop is not None:
+        #    raise ValueError("stop kwargs are not permitted.")
         
         preset_text = [{"role": "system", "content": SYSTEMPROMPT}, {"role": "user", "content": prompt}]
 
-        print('---------------------------------------------')
-        print(preset_text)
+        # print('---------------------------------------------')
+        # print(preset_text)
 
         request_data = {
         'messages': preset_text,
@@ -223,6 +221,8 @@ class HCX_general(LLM):
                 
         response = requests.post(llm_url, json=request_data, headers=general_headers, verify=False)
         response.raise_for_status()
+        print('$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$')
+        print(response)
                     
         return response.json()['result']['message']['content']
         
@@ -270,7 +270,9 @@ class HCX_stream(LLM):
 
         
         # streaming 형태로 최종 출력 도출
-        full_response = ""
+        # full_response = ""
+        full_response = "<b>Assistant</b><br>"
+
         message_placeholder = st.empty()
         
         with httpx.stream(method="POST", 
@@ -286,20 +288,28 @@ class HCX_stream(LLM):
                         full_response += line_json["message"]["content"]
                         print('************************************************************')
                         print(full_response)
-                        message_placeholder.markdown(full_response + "▌")
-            message_placeholder.markdown(full_response)
+                        message_placeholder.markdown(full_response + "▌", unsafe_allow_html=True)
+            message_placeholder.markdown(full_response, unsafe_allow_html=True)
             
             return full_response
 
 
 
 # 오프라인 데이터 가공 ####################################################################################
-def offline_faiss_save(*pdf_docs):
+def offline_faiss_save(*pdf_path):
 
     total_docs = []
-    for pdf_doc in pdf_docs:
+    
+    for pdf_url in pdf_path:
+        pdfreader =  PyPDFLoader(pdf_url)
+        pdf_doc = pdfreader.load_and_split()
         doc = text_splitter.split_documents(pdf_doc)
+        print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+        print(len(doc))
         total_docs = total_docs + doc
+        
+    print('@@@@@@@@@@@@@@@@@@@@@@@@@@')
+    print(len(total_docs))
 
     # Convert list of dictionaries to strings
     total_content = [str(item) for item in total_docs]
@@ -307,41 +317,41 @@ def offline_faiss_save(*pdf_docs):
     docsearch = FAISS.from_texts(total_content, embeddings)
 
     docsearch.embedding_function
-    docsearch.save_local(os.path.join(db_save_path, "cloud_bot_20240108_faiss_db"))
+    docsearch.save_local(os.path.join(db_save_path, "cloud_bot_20240208_faiss_db"))
 
 
 # start = time.time()
-# total_content = offline_faiss_save(s1_documents)
+# total_content = offline_faiss_save(pdf_path_1, pdf_path_2)
 # end = time.time()
 # '''임베딩 완료 시간: 1.62 (초)'''
 # print('임베딩 완료 시간: %.2f (초)' %(end-start))
 
-# new_docsearch = FAISS.load_local(os.path.join(db_save_path, 'cloud_bot_20240108_faiss_db'), embeddings)
-
-
-# retriever = new_docsearch.as_retriever(search_type="similarity", search_kwargs={"k":2,
-#                                                                         "score_threshold": 0.7}
-#                                                                         )
-
-def offline_chroma_save(*pdf_docs):
+def offline_chroma_save(*pdf_path):
 
     total_docs = []
-    for pdf_doc in pdf_docs:
+    
+    for pdf_url in pdf_path:
+        pdfreader =  PyPDFLoader(pdf_url)
+        pdf_doc = pdfreader.load_and_split()
         doc = text_splitter.split_documents(pdf_doc)
+        print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+        print(len(doc))
         total_docs = total_docs + doc
         
+    print('@@@@@@@@@@@@@@@@@@@@@@@@@@')
+    print(len(total_docs))
     # Convert list of dictionaries to strings
     # total_content = [str(item) for item in total_docs]    
     
     vectorstore = Chroma.from_documents(
         documents=total_docs, 
         embedding=embeddings,
-        persist_directory=os.path.join(db_save_path, "cloud_bot_20240108_chroma_db")
+        persist_directory=os.path.join(db_save_path, "cloud_bot_20240208_chroma_db")
         )
     vectorstore.persist()
 
 # start = time.time()
-# total_content = offline_chroma_save(s1_documents)
+# total_content = offline_chroma_save(pdf_path_1, pdf_path_2)
 # end = time.time()
 # '''임베딩 완료 시간: 1.31 (초)'''
 # print('임베딩 완료 시간: %.2f (초)' %(end-start))
@@ -352,59 +362,63 @@ def offline_chroma_save(*pdf_docs):
 # 온라인 데이터 가공 ####################################################################################
 # 비정형 데이터 => 정형 데이터 가공 (도표 추출 등) 위한 Function Calling 구현 필요 !!!!!!!!!!!!!!!!!!!!!
 # url_0 = 'https://cloud.google.com/docs/get-started/aws-azure-gcp-service-comparison?hl=ko'
+# url_0 = 'https://m.ahnlab.com/ko/contents/asec/info/37285'
 url_0 = 'https://www.ncloud.com/product/compute/gpuServer'
 url_1 = 'https://www.ncloud.com/product/networking/loadBalancer'
 
 # Function Calling
-url_0_schema = {
-    "properties": {
-        "서비스 카테고리": {"type": "string"},
-        "서비스 유형": {"type": "string"},
-        "Google Cloud 제품": {"type": "string"},
-        "Google Cloud 제품 설명": {"type": "string"},
-        "AWS 제공": {"type": "string"},
-        "Azure 제공": {"type": "string"}
-    },
-    "required": ["서비스 카테고리", "서비스 유형", "Google Cloud 제품", "Google Cloud 제품 설명", "AWS 제공", "Azure 제공"],
-}
+# url_0_schema = {
+#     "properties": {
+#         "서비스 카테고리": {"type": "string"},
+#         "서비스 유형": {"type": "string"},
+#         "Google Cloud 제품": {"type": "string"},
+#         "Google Cloud 제품 설명": {"type": "string"},
+#         "AWS 제공": {"type": "string"},
+#         "Azure 제공": {"type": "string"}
+#     },
+#     "required": ["서비스 카테고리", "서비스 유형", "Google Cloud 제품", "Google Cloud 제품 설명", "AWS 제공", "Azure 제공"],
+# }
 
 
 
-# from langchain.chat_models import ChatOpenAI
-openai_llm = ChatOpenAI(model_name='gpt-3.5-turbo', temperature=0, max_tokens=2048,
-                streaming=False)
+# # from langchain.chat_models import ChatOpenAI
+# openai_llm = ChatOpenAI(model_name='gpt-3.5-turbo', temperature=0, max_tokens=2048,
+#                 streaming=False)
 
-def extract(content: str, schema: dict):
-    # extracted_content = create_extraction_chain(schema=schema, llm=hcx_llm_json).invoke(content)
-    extracted_content = create_extraction_chain(schema=schema, llm=openai_llm).invoke(content)
+# # function calling - HCX
+# hcx_prep = HCX_general() | StrOutputParser()
 
-    return extracted_content
+# def extract(content: str, schema: dict):
+#     extracted_content = create_extraction_chain(schema=schema, llm=hcx_prep).invoke(content)
+#     # extracted_content = create_extraction_chain(schema=schema, llm=openai_llm).invoke(content)
 
-def extract_content(schema, content):
-    # 토큰의 길이를 확인하고, 4096을 초과하지 않으면 내용 추출
-    if len(content) <= 4096:
-        return extract(schema=schema, content=content)
+#     return extracted_content
+
+# def extract_content(schema, content):
+#     # 토큰의 길이를 확인하고, 4096을 초과하지 않으면 내용 추출
+#     if len(content) <= 4096:
+#         return extract(schema=schema, content=content)
     
-    # 토큰의 길이가 4096을 초과하면, 내용을 절반으로 나누고 각 부분에 대해 재귀적으로 처리
-    half = len(content) // 2
-    first_half_content = extract_content(schema, content[:half])
-    second_half_content = extract_content(schema, content[half:])
+#     # 토큰의 길이가 4096을 초과하면, 내용을 절반으로 나누고 각 부분에 대해 재귀적으로 처리
+#     half = len(content) // 2
+#     first_half_content = extract_content(schema, content[:half])
+#     second_half_content = extract_content(schema, content[half:])
     
-    return first_half_content + second_half_content
+#     return first_half_content + second_half_content
 
 
 
-def online_multiple_prep(args):
-    schema, page_content = args
-    try:
-        extracted_content = extract_content(schema=schema, content=page_content)
-        extracted_content = extracted_content['text']
-        return extracted_content
-    except Exception as e:
-        # Handle the exception as needed
-        print(e)
-        # openai 의 분당 최대 토큰 수 초과 관련 에러 발생할 경우, 아래 코드 적용 !!!!!!!!!!
-        # time.sleep(60)
+# def online_multiple_prep(args):
+#     schema, page_content = args
+#     try:
+#         extracted_content = extract_content(schema=schema, content=page_content)
+#         extracted_content = extracted_content['text']
+#         return extracted_content
+#     except Exception as e:
+#         # Handle the exception as needed
+#         print(e)
+#         # openai 의 분당 최대 토큰 수 초과 관련 에러 발생할 경우, 아래 코드 적용 !!!!!!!!!!
+#         time.sleep(60)
 
 
 # html2text = Html2TextTransformer()
@@ -443,7 +457,7 @@ def online_multiple_prep(args):
 #     vectorstore = Chroma.from_texts(
 #         texts=total_docs, 
 #         embedding=embeddings,
-#         persist_directory=os.path.join(db_save_path, "cloud_bot_20240119_chroma_db")
+#         persist_directory=os.path.join(db_save_path, "cloud_bot_20240131_chroma_db")
 #         )
 #     vectorstore.persist()
     
@@ -457,8 +471,13 @@ def online_multiple_prep(args):
 #     end = time.time()
 #     '''임베딩 완료 시간: 168.88 (초)'''
 #     print('임베딩 완료 시간: %.2f (초)' %(end-start))
+#######################################################################################################
 
 
+
+
+# 온라인 데이터 가공 ####################################################################################
+# Funcation Calling 사용 X
 
 def online_chroma_save(*urls):
     
@@ -491,16 +510,13 @@ def online_chroma_save(*urls):
 # end = time.time()
 # '''임베딩 완료 시간: 1.62 (초)'''
 # print('임베딩 완료 시간: %.2f (초)' %(end-start))
-#######################################################################################################
 
-
-
-new_docsearch = Chroma(persist_directory=os.path.join(db_save_path, "cloud_bot_20240119_chroma_db"),
+new_docsearch = Chroma(persist_directory=os.path.join(db_save_path, "cloud_bot_20240131_chroma_db"),
                         embedding_function=embeddings)
 
 retriever = new_docsearch.as_retriever(
                                         search_type="mmr",                                        
-                                        search_kwargs={'k': 2, 'fetch_k': 5}
+                                        search_kwargs={'k': 3, 'fetch_k': 10}
                                        )
 
 # # retriever의 compression 시도 !!!!!!!!!!!!!!!!!!!!!!!!!
@@ -509,6 +525,14 @@ embeddings_filter = EmbeddingsFilter(embeddings=embeddings, similarity_threshold
 compression_retriever = ContextualCompressionRetriever(
     base_compressor=embeddings_filter, base_retriever=retriever
 )
+
+
+# =langchain 기반 memory caching
+from langchain.cache import InMemoryCache
+from langchain.globals import set_llm_cache
+
+cache_instance = InMemoryCache()
+set_llm_cache(cache_instance)
 
 @st.cache_resource
 def init_memory():
@@ -520,8 +544,8 @@ def init_memory():
 
 memory = init_memory()
 
-# # 토큰 절약하기 위한
-# # ConversationalRetrievalChain to LCEL !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# 토큰 절약하기 위한
+# ConversationalRetrievalChain to LCEL !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 DEFAULT_DOCUMENT_PROMPT = PromptTemplate.from_template(template="{page_content}")
 
 _template = """Given the following conversation and a follow up question, rephrase the follow up question to be a standalone question, in its original language.
@@ -569,10 +593,10 @@ final_inputs = {
 }
 
 # And finally, we do the part that returns the answers 
-# answer = {
-#     "answer": final_inputs | QA_CHAIN_PROMPT | HCX_stream(),
-#     "source_documents": itemgetter("source_documents"),
-# }
+answer = {
+    "answer": final_inputs | QA_CHAIN_PROMPT | HCX_stream(),
+    "source_documents": itemgetter("source_documents"),
+}
 
 # stream 기능이 있는 llm 클래스의 경우, 위 lcel의 answer 처럼 파이프라인 안에서 선언하면 안되고, 아래 코드와 같이 별도로 선언해야 함 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # 따라서 stream으로 최종 출력을 뽑를 경우, 위 lcel의 answer 과정의 source_documents 를 추출 못하여 참조 문서를 표출 못하는거 같음.....
