@@ -180,7 +180,11 @@ hcx_llm = CompletionExecutor(api_key = API_KEY, api_key_primary_val=API_KEY_PRIM
 
 
 
+
 class HCX_general(LLM):        
+    
+    init_input_token_count: int = 0
+
     @property
     def _llm_type(self) -> str:
         return "HyperClovaX"
@@ -199,7 +203,14 @@ class HCX_general(LLM):
 
         # print('---------------------------------------------')
         # print(preset_text)
-
+        
+        output_token_json = {
+            "messages": preset_text
+            }
+        
+        total_input_token_json = token_completion_executor.execute(output_token_json)
+        self.init_input_token_count = sum(token['count'] for token in total_input_token_json[:])
+                
         request_data = {
         'messages': preset_text,
         'topP': 0.8,
@@ -228,7 +239,10 @@ class HCX_general(LLM):
         
 
 
-class HCX_stream(LLM):        
+class HCX_stream(LLM):      
+    
+    init_input_token_count: int = 0
+    
     @property
     def _llm_type(self) -> str:
         return "HyperClovaX"
@@ -247,7 +261,14 @@ class HCX_stream(LLM):
 
         print('---------------------------------------------')
         print(preset_text)
-
+        
+        output_token_json = {
+            "messages": preset_text
+            }
+        
+        total_input_token_json = token_completion_executor.execute(output_token_json)
+        self.init_input_token_count = sum(token['count'] for token in total_input_token_json[:])
+        
         request_data = {
         'messages': preset_text,
         'topP': 0.8,
@@ -292,6 +313,11 @@ class HCX_stream(LLM):
             message_placeholder.markdown(full_response, unsafe_allow_html=True)
             
             return full_response
+
+
+
+hcx_general = HCX_general()
+hcx_stream = HCX_stream()
 
 
 
@@ -575,7 +601,7 @@ standalone_question = {
         "chat_history": lambda x: get_buffer_string(x["chat_history"]),
     }
     | CONDENSE_QUESTION_PROMPT
-    | HCX_general()
+    | hcx_general
     | StrOutputParser()
 }
 
@@ -594,14 +620,14 @@ final_inputs = {
 
 # And finally, we do the part that returns the answers 
 answer = {
-    "answer": final_inputs | QA_CHAIN_PROMPT | HCX_stream(),
+    "answer": final_inputs | QA_CHAIN_PROMPT | hcx_stream,
     "source_documents": itemgetter("source_documents"),
 }
 
 # stream 기능이 있는 llm 클래스의 경우, 위 lcel의 answer 처럼 파이프라인 안에서 선언하면 안되고, 아래 코드와 같이 별도로 선언해야 함 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # 따라서 stream으로 최종 출력을 뽑를 경우, 위 lcel의 answer 과정의 source_documents 를 추출 못하여 참조 문서를 표출 못하는거 같음.....
 # retrieval_qa_chain = loaded_memory | standalone_question | retrieved_documents | answer
-retrieval_qa_chain = loaded_memory | standalone_question | retrieved_documents | final_inputs | QA_CHAIN_PROMPT | HCX_stream() | StrOutputParser()
+retrieval_qa_chain = loaded_memory | standalone_question | retrieved_documents | final_inputs | QA_CHAIN_PROMPT | hcx_stream | StrOutputParser()
 # retrieval_qa_chain = (loaded_memory 
 #                       | standalone_question 
 #                       | retrieved_documents 
