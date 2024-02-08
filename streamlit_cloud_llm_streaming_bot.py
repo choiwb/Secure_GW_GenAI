@@ -22,6 +22,7 @@ for avatar_message in st.session_state.messages:
         # AI 응답 메시지일 경우, AI 아바타 적용
         avatar_icon = avatar_message.get("avatar", "https://www.shutterstock.com/image-vector/chat-bot-logo-design-concept-600nw-1938811039.jpg")
         with st.chat_message(avatar_message["role"], avatar=avatar_icon):
+            # HCX_stream 클래스에서 "Assistant" 를 이미 bold 처리하여 생성하므로, 굳이 더할 필요는 없음! 하지만 unsafe_allow_html = True를 해야 함.
             st.markdown(avatar_message["content"],  unsafe_allow_html=True)
 
 if prompt := st.chat_input("클라우드 컴퓨팅이란 무엇인가요?"):
