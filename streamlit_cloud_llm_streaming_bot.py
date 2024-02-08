@@ -16,12 +16,13 @@ for avatar_message in st.session_state.messages:
     if avatar_message["role"] == "user":
         # 사용자 메시지일 경우, 사용자 아바타 적용
         avatar_icon = avatar_message.get("avatar", "https://lh3.googleusercontent.com/a/ACg8ocKGr2xjdFlRqAbXU6GCKnYQRDCbttNuDhVJhiLA2Nw8=s432-c-no")
+        with st.chat_message(avatar_message["role"], avatar=avatar_icon):
+            st.markdown("<b>You</b><br>" + avatar_message["content"], unsafe_allow_html=True)
     else:
         # AI 응답 메시지일 경우, AI 아바타 적용
         avatar_icon = avatar_message.get("avatar", "https://www.shutterstock.com/image-vector/chat-bot-logo-design-concept-600nw-1938811039.jpg")
-
-    with st.chat_message(avatar_message["role"], avatar=avatar_icon):
-        st.markdown(avatar_message["content"])
+        with st.chat_message(avatar_message["role"], avatar=avatar_icon):
+            st.markdown(avatar_message["content"],  unsafe_allow_html=True)
 
 if prompt := st.chat_input("클라우드 컴퓨팅이란 무엇인가요?"):
     with st.chat_message("user", avatar="https://lh3.googleusercontent.com/a/ACg8ocKGr2xjdFlRqAbXU6GCKnYQRDCbttNuDhVJhiLA2Nw8=s432-c-no"):
