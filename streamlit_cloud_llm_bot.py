@@ -83,8 +83,8 @@ text_splitter_function_calling = RecursiveCharacterTextSplitter.from_tiktoken_en
     )
 
 
-# OpenAI VS HuggingFace
-embeddings = OpenAIEmbeddings()
+# text-embedding-3-small or text-embedding-3-large
+embeddings = OpenAIEmbeddings(model = 'text-embedding-3-small')
 
 
 try:
@@ -242,6 +242,7 @@ class HCX_general(LLM):
 class HCX_stream(LLM):      
     
     init_input_token_count: int = 0
+    source_documents: str = ""
     
     @property
     def _llm_type(self) -> str:
@@ -261,6 +262,11 @@ class HCX_stream(LLM):
 
         print('---------------------------------------------')
         print(preset_text)
+        
+        # print('*************************************************')
+        # prompt 변수의 context for answer: 부터 question: 이전 text를 source_documents 선언
+        self.source_documents = prompt.split("context for answer: ")[1].split("question: ")[0]
+        # print(source_documents)
         
         output_token_json = {
             "messages": preset_text
@@ -372,7 +378,7 @@ def offline_chroma_save(*pdf_path):
     vectorstore = Chroma.from_documents(
         documents=total_docs, 
         embedding=embeddings,
-        persist_directory=os.path.join(db_save_path, "cloud_bot_20240208_chroma_db")
+        persist_directory=os.path.join(db_save_path, "cloud_bot_20240210_chroma_db")
         )
     vectorstore.persist()
 
@@ -527,7 +533,7 @@ def online_chroma_save(*urls):
     vectorstore = Chroma.from_documents(
         documents=splits, 
         embedding=embeddings,
-        persist_directory=os.path.join(db_save_path, "cloud_bot_20240131_chroma_db")
+        persist_directory=os.path.join(db_save_path, "cloud_bot_20240209_chroma_db")
         )
     vectorstore.persist()
 
@@ -537,7 +543,7 @@ def online_chroma_save(*urls):
 # '''임베딩 완료 시간: 1.62 (초)'''
 # print('임베딩 완료 시간: %.2f (초)' %(end-start))
 
-new_docsearch = Chroma(persist_directory=os.path.join(db_save_path, "cloud_bot_20240131_chroma_db"),
+new_docsearch = Chroma(persist_directory=os.path.join(db_save_path, "cloud_bot_20240210_chroma_db"),
                         embedding_function=embeddings)
 
 retriever = new_docsearch.as_retriever(
@@ -546,7 +552,7 @@ retriever = new_docsearch.as_retriever(
                                        )
 
 # # retriever의 compression 시도 !!!!!!!!!!!!!!!!!!!!!!!!!
-embeddings_filter = EmbeddingsFilter(embeddings=embeddings, similarity_threshold=0.8)
+embeddings_filter = EmbeddingsFilter(embeddings=embeddings, similarity_threshold=0.5)
 
 compression_retriever = ContextualCompressionRetriever(
     base_compressor=embeddings_filter, base_retriever=retriever
@@ -607,8 +613,8 @@ standalone_question = {
 
 # Now we retrieve the documents
 retrieved_documents = {
-    # "source_documents": itemgetter("standalone_question") | retriever,
-    "source_documents": itemgetter("standalone_question") | compression_retriever,
+    "source_documents": itemgetter("standalone_question") | retriever,
+    # "source_documents": itemgetter("standalone_question") | compression_retriever,
     "question": lambda x: x["standalone_question"],
 }
 
