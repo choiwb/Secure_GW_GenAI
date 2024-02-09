@@ -71,11 +71,9 @@ if prompt := st.chat_input("클라우드 컴퓨팅이란 무엇인가요?"):
             st.session_state.messages.append({"role": "assistant", "content": full_response_for_token_cal})
             
     # 참조 문서 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!                                                                                               
-    # total_content = pd.DataFrame(columns=['순번', '참조 문서'])
-    # for i in range(len(full_response['source_documents'])):
-    #     context = full_response['source_documents'][i].page_content
-    #     total_content.loc[i] = [i+1, context]
+    total_content = pd.DataFrame(columns=['참조 문서'])
+    total_content.loc[0] = [hcx_stream.source_documents]
         
-    # st.table(data = total_content)
+    st.table(data = total_content)
 
 
