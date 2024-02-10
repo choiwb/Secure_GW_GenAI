@@ -44,7 +44,6 @@ for avatar_message in st.session_state.messages:
 
    
 
-
 feedback_option = "faces" if st.toggle(label="`Thumbs` ⇄ `Faces`", value=False) else "thumbs"
 
 if st.session_state.get("run_id"):
@@ -66,7 +65,6 @@ if prompt := st.chat_input("클라우드 컴퓨팅이란 무엇인가요?"):
         with st.spinner("검색 및 생성 중....."):
             with callbacks.collect_runs() as cb:
                 full_response = retrieval_qa_chain.invoke({"question":prompt})               
-                # display_message_with_feedback(full_response)
                 
                 # full_response에서 <b>Assistant</b><br> 제거
                 full_response_for_token_cal = full_response.replace('<b>Assistant</b><br>', '')
@@ -90,64 +88,63 @@ if prompt := st.chat_input("클라우드 컴퓨팅이란 무엇인가요?"):
                 
                 memory.save_context({"question": prompt}, {"answer": full_response_for_token_cal})
                         
-                ##################################
-                # AttributeError: 'NoneType' object has no attribute 'traced_runs' 에러 발생
                 run_id = cb.traced_runs[0].id
                 print('##################################')
                 print('run_id: ', run_id)
+                # 총 토큰의 경우 langchain이 아닌 NCP의 입력 및 출력 토큰 별도 적용 !!!!!!!!!!!!!
             
-            # print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-            # print(memory)           
-            # memory와는 별도로 cache 된 memory 출력
-            # print('&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&')
-            # print(cache_instance._cache)
+                # print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+                # print(memory)           
+                # memory와는 별도로 cache 된 memory 출력
+                # print('&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&')
+                # print(cache_instance._cache)
 
-            st.session_state.messages.append({"role": "assistant", "content": full_response_for_token_cal})
-            
-            
-            ########################################################################################
-            # langsmith 기반 배포 위한 피드백 
-            feedback = streamlit_feedback(
-            feedback_type=feedback_option,
-            optional_text_label="[Optional] Please provide an explanation",
-            key=f"feedback_{run_id}",
-            )
-
-            # Define score mappings for both "thumbs" and "faces" feedback systems
-            score_mappings = {
-                "thumbs": {"👍": 1, "👎": 0},
-                "faces": {"😀": 1, "🙂": 0.75, "😐": 0.5, "🙁": 0.25, "😞": 0},
-            }
-
-            # Get the score mapping based on the selected feedback option
-            scores = score_mappings[feedback_option]
-
-            if feedback:
-                # Get the score from the selected feedback option's score mapping
-                score = scores.get(feedback["score"])
-
-                if score is not None:
-                    # Formulate feedback type string incorporating the feedback option
-                    # and score value
-                    feedback_type_str = f"{feedback_option} {feedback['score']}"
-
-                    # Record the feedback with the formulated feedback type string
-                    # and optional comment
-                    feedback_record = client.create_feedback(
-                        run_id,
-                        feedback_type_str,
-                        score=score,
-                        comment=feedback.get("text"),
-                    )
-                    st.session_state.feedback = {
-                        "feedback_id": str(feedback_record.id),
-                        "score": score,
-                    }
-                else:
-                    st.warning("Invalid feedback score.")
+                st.session_state.messages.append({"role": "assistant", "content": full_response_for_token_cal})
                 
+                ########################################################################################
+                # langsmith 기반 배포 위한 피드백 
+                feedback = streamlit_feedback(
+                feedback_type=feedback_option,
+                optional_text_label="[Optional] Please provide an explanation",
+                key=f"feedback_{run_id}",
+                )
 
-      
+                # Define score mappings for both "thumbs" and "faces" feedback systems
+                score_mappings = {
+                    "thumbs": {"👍": 1, "👎": 0},
+                    "faces": {"😀": 1, "🙂": 0.75, "😐": 0.5, "🙁": 0.25, "😞": 0},
+                }
+
+                # Get the score mapping based on the selected feedback option
+                scores = score_mappings[feedback_option]
+
+                if feedback:
+                    # Get the score from the selected feedback option's score mapping
+                    score = scores.get(feedback["score"])
+
+                    if score is not None:
+                        # Formulate feedback type string incorporating the feedback option
+                        # and score value
+                        feedback_type_str = f"{feedback_option} {feedback['score']}"
+
+                        # Record the feedback with the formulated feedback type string
+                        # and optional comment
+                        feedback_record = client.create_feedback(
+                            run_id,
+                            feedback_type_str,
+                            score=score,
+                            comment=feedback.get("text")
+                        )
+                        st.session_state.feedback = {
+                            "feedback_id": str(feedback_record.id),
+                            "score": score,
+                        }
+                        st.toast("Feedback recorded!", icon="📝")
+                    else:
+                        st.warning("Invalid feedback score.")
+                
+            
+            
     # 참조 문서 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!                                                                                               
     total_content = pd.DataFrame(columns=['참조 문서'])
     total_content.loc[0] = [hcx_stream.source_documents]
