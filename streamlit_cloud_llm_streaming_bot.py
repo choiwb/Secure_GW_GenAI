@@ -1,18 +1,33 @@
 
+import os
 import pandas as pd
 import streamlit as st
 from streamlit_cloud_llm_bot import retrieval_qa_chain, memory, cache_instance, hcx_general, hcx_stream
+from streamlit_feedback import streamlit_feedback
+from langsmith import Client
+from langchain import callbacks
 
 # HCX 토큰 계산기 API 호출
 from hcx_token_cal import token_completion_executor
 
+##################################################################################
+os.environ["LANGCHAIN_TRACING_V2"] = "true"
+os.environ["LANGCHAIN_PROJECT"] = f"your langsmith project name !!!!!!!!!!!!!!!!!!!"
+os.environ["LANGCHAIN_ENDPOINT"] = 'https://api.smith.langchain.com'
+os.environ["LANGCHAIN_API_KEY"] = 'your langsmith api key !!!!!!!!!!!!!!!!!!!!'
+##################################################################################
 
 st.title("Cloud 관련 무물보~!")
       
 if "messages" not in st.session_state:
     st.session_state.messages = []
                             
-
+if st.sidebar.button("Clear message history"):
+    print("Clearing message history")
+    memory.clear()
+    st.session_state.trace_link = None
+    st.session_state.run_id = None
+    
 # 저장된 대화 내역과 아바타를 렌더링
 for avatar_message in st.session_state.messages:
     if avatar_message["role"] == "user":
@@ -29,6 +44,18 @@ for avatar_message in st.session_state.messages:
 
    
 
+
+feedback_option = "faces" if st.toggle(label="`Thumbs` ⇄ `Faces`", value=False) else "thumbs"
+
+if st.session_state.get("run_id"):
+    feedback = streamlit_feedback(
+        feedback_type=feedback_option,  # Apply the selected feedback style
+        optional_text_label="[Optional] Please provide an explanation",  # Allow for additional comments
+        key=f"feedback_{st.session_state.run_id}",
+    )
+    
+client = Client()
+
 if prompt := st.chat_input("클라우드 컴퓨팅이란 무엇인가요?"):
     with st.chat_message("user", avatar="https://lh3.googleusercontent.com/a/ACg8ocKGr2xjdFlRqAbXU6GCKnYQRDCbttNuDhVJhiLA2Nw8=s432-c-no"):
         st.markdown("<b>You</b><br>" + prompt, unsafe_allow_html=True)
@@ -37,31 +64,38 @@ if prompt := st.chat_input("클라우드 컴퓨팅이란 무엇인가요?"):
     with st.chat_message("assistant",  avatar="https://www.shutterstock.com/image-vector/chat-bot-logo-design-concept-600nw-1938811039.jpg"):    
         # HCX_stream 클래스에서 이미 stream 기능을 streamlit ui 에서 구현했으므로 별도의 langchain의 .stream() 필요없고 .invoke()만 호출하면 됨.        
         with st.spinner("검색 및 생성 중....."):
-            full_response = retrieval_qa_chain.invoke({"question":prompt})               
-            # display_message_with_feedback(full_response)
+            with callbacks.collect_runs() as cb:
+                full_response = retrieval_qa_chain.invoke({"question":prompt})               
+                # display_message_with_feedback(full_response)
+                
+                # full_response에서 <b>Assistant</b><br> 제거
+                full_response_for_token_cal = full_response.replace('<b>Assistant</b><br>', '')
+                output_token_json = {
+                "messages": [
+                {
+                    "role": "assistant",
+                    "content": full_response_for_token_cal
+                }
+                ]
+                }
+
+                output_text_token = token_completion_executor.execute(output_token_json)
+                output_token_count = sum(token['count'] for token in output_text_token[:])
+
+                total_token_count = hcx_general.init_input_token_count + hcx_stream.init_input_token_count + output_token_count
+
+                st.markdown(f"입력 토큰 수: {hcx_general.init_input_token_count + hcx_stream.init_input_token_count}")
+                st.markdown(f"출력 토큰 수: {output_token_count}")
+                st.markdown(f"총 토큰 수: {total_token_count}")
+                
+                memory.save_context({"question": prompt}, {"answer": full_response_for_token_cal})
+                        
+                ##################################
+                # AttributeError: 'NoneType' object has no attribute 'traced_runs' 에러 발생
+                run_id = cb.traced_runs[0].id
+                print('##################################')
+                print('run_id: ', run_id)
             
-            # full_response에서 <b>Assistant</b><br> 제거
-            full_response_for_token_cal = full_response.replace('<b>Assistant</b><br>', '')
-            output_token_json = {
-            "messages": [
-            {
-                "role": "assistant",
-                "content": full_response_for_token_cal
-            }
-            ]
-            }
-
-            output_text_token = token_completion_executor.execute(output_token_json)
-            output_token_count = sum(token['count'] for token in output_text_token[:])
-
-            total_token_count = hcx_general.init_input_token_count + hcx_stream.init_input_token_count + output_token_count
-
-            st.markdown(f"입력 토큰 수: {hcx_general.init_input_token_count + hcx_stream.init_input_token_count}")
-            st.markdown(f"출력 토큰 수: {output_token_count}")
-            st.markdown(f"총 토큰 수: {total_token_count}")
-            
-            memory.save_context({"question": prompt}, {"answer": full_response_for_token_cal})
-                    
             # print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
             # print(memory)           
             # memory와는 별도로 cache 된 memory 출력
@@ -70,10 +104,52 @@ if prompt := st.chat_input("클라우드 컴퓨팅이란 무엇인가요?"):
 
             st.session_state.messages.append({"role": "assistant", "content": full_response_for_token_cal})
             
+            
+            ########################################################################################
+            # langsmith 기반 배포 위한 피드백 
+            feedback = streamlit_feedback(
+            feedback_type=feedback_option,
+            optional_text_label="[Optional] Please provide an explanation",
+            key=f"feedback_{run_id}",
+            )
+
+            # Define score mappings for both "thumbs" and "faces" feedback systems
+            score_mappings = {
+                "thumbs": {"👍": 1, "👎": 0},
+                "faces": {"😀": 1, "🙂": 0.75, "😐": 0.5, "🙁": 0.25, "😞": 0},
+            }
+
+            # Get the score mapping based on the selected feedback option
+            scores = score_mappings[feedback_option]
+
+            if feedback:
+                # Get the score from the selected feedback option's score mapping
+                score = scores.get(feedback["score"])
+
+                if score is not None:
+                    # Formulate feedback type string incorporating the feedback option
+                    # and score value
+                    feedback_type_str = f"{feedback_option} {feedback['score']}"
+
+                    # Record the feedback with the formulated feedback type string
+                    # and optional comment
+                    feedback_record = client.create_feedback(
+                        run_id,
+                        feedback_type_str,
+                        score=score,
+                        comment=feedback.get("text"),
+                    )
+                    st.session_state.feedback = {
+                        "feedback_id": str(feedback_record.id),
+                        "score": score,
+                    }
+                else:
+                    st.warning("Invalid feedback score.")
+                
+
+      
     # 참조 문서 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!                                                                                               
     total_content = pd.DataFrame(columns=['참조 문서'])
     total_content.loc[0] = [hcx_stream.source_documents]
         
     st.table(data = total_content)
-
-
