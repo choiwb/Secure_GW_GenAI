@@ -548,11 +548,11 @@ new_docsearch = Chroma(persist_directory=os.path.join(db_save_path, "cloud_bot_2
 
 retriever = new_docsearch.as_retriever(
                                         search_type="mmr",                                        
-                                        search_kwargs={'k': 3, 'fetch_k': 10}
+                                        search_kwargs={'k': 5, 'fetch_k': 25}
                                        )
 
 # # retriever의 compression 시도 !!!!!!!!!!!!!!!!!!!!!!!!!
-embeddings_filter = EmbeddingsFilter(embeddings=embeddings, similarity_threshold=0.5)
+embeddings_filter = EmbeddingsFilter(embeddings=embeddings, similarity_threshold=0.2)
 
 compression_retriever = ContextualCompressionRetriever(
     base_compressor=embeddings_filter, base_retriever=retriever
@@ -613,8 +613,8 @@ standalone_question = {
 
 # Now we retrieve the documents
 retrieved_documents = {
-    "source_documents": itemgetter("standalone_question") | retriever,
-    # "source_documents": itemgetter("standalone_question") | compression_retriever,
+    # "source_documents": itemgetter("standalone_question") | retriever,
+    "source_documents": itemgetter("standalone_question") | compression_retriever,
     "question": lambda x: x["standalone_question"],
 }
 
