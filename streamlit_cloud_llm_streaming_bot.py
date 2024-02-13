@@ -66,48 +66,63 @@ if prompt := st.chat_input("클라우드 컴퓨팅이란 무엇인가요?"):
             with callbacks.collect_runs() as cb:
                 full_response = retrieval_qa_chain.invoke({"question":prompt})               
                 
-                # full_response에서 <b>Assistant</b><br> 제거
-                full_response_for_token_cal = full_response.replace('<b>Assistant</b><br>', '')
-                output_token_json = {
-                "messages": [
-                {
-                    "role": "assistant",
-                    "content": full_response_for_token_cal
-                }
-                ]
-                }
+            # full_response에서 <b>Assistant</b><br> 제거
+            full_response_for_token_cal = full_response.replace('<b>Assistant</b><br>', '')
+            output_token_json = {
+            "messages": [
+            {
+                "role": "assistant",
+                "content": full_response_for_token_cal
+            }
+            ]
+            }
 
-                output_text_token = token_completion_executor.execute(output_token_json)
-                output_token_count = sum(token['count'] for token in output_text_token[:])
+            output_text_token = token_completion_executor.execute(output_token_json)
+            output_token_count = sum(token['count'] for token in output_text_token[:])
 
-                total_token_count = hcx_general.init_input_token_count + hcx_stream.init_input_token_count + output_token_count
+            total_token_count = hcx_general.init_input_token_count + hcx_stream.init_input_token_count + output_token_count
 
-                st.markdown(f"입력 토큰 수: {hcx_general.init_input_token_count + hcx_stream.init_input_token_count}")
-                st.markdown(f"출력 토큰 수: {output_token_count}")
-                st.markdown(f"총 토큰 수: {total_token_count}")
-                
-                memory.save_context({"question": prompt}, {"answer": full_response_for_token_cal})
-                        
-                run_id = cb.traced_runs[0].id
-                print('##################################')
-                print('run_id: ', run_id)
-                # 총 토큰의 경우 langchain이 아닌 NCP의 입력 및 출력 토큰 별도 적용 !!!!!!!!!!!!!
+            st.markdown(f"입력 토큰 수: {hcx_general.init_input_token_count + hcx_stream.init_input_token_count}")
+            st.markdown(f"출력 토큰 수: {output_token_count}")
+            st.markdown(f"총 토큰 수: {total_token_count}")
             
-                # print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-                # print(memory)           
-                # memory와는 별도로 cache 된 memory 출력
-                # print('&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&')
-                # print(cache_instance._cache)
+            memory.save_context({"question": prompt}, {"answer": full_response_for_token_cal})
+                    
+            run_id = cb.traced_runs[0].id
+            print('##################################')
+            print('run_id: ', run_id)
+            # print(cb.total_tokens)
+            cb.total_tokens = total_token_count
+            # cb.traced_runs[0].total_tokens = total_token_count           
+            # 출력은 되는데, langsmith 대시보드에 적용은 안됨 !!!!!!!!                     
+            print(cb.total_tokens)
 
-                st.session_state.messages.append({"role": "assistant", "content": full_response_for_token_cal})
-                
-                ########################################################################################
+            # 총 토큰의 경우 langchain이 아닌 NCP의 입력 및 출력 토큰 별도 적용 !!!!!!!!!!!!!
+            langsmith_input_token_count = hcx_general.init_input_token_count + hcx_stream.init_input_token_count
+            langsmith_output_token_count = output_token_count
+            langsmith_total_token_count = total_token_count
+        
+            # print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+            # print(memory)           
+            # memory와는 별도로 cache 된 memory 출력
+            # print('&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&')
+            # print(cache_instance._cache)
+
+            st.session_state.messages.append({"role": "assistant", "content": full_response_for_token_cal})
+            
+            ########################################################################################
+            if run_id:
                 # langsmith 기반 배포 위한 피드백 
                 feedback = streamlit_feedback(
                 feedback_type=feedback_option,
                 optional_text_label="[Optional] Please provide an explanation",
-                key=f"feedback_{run_id}",
+                key=f"feedback_{run_id}"
                 )
+
+                print('@@@@@@@@@@@@@@@@@@@@@@@@@@')
+                # None !!!!!!!!!!!!!!!!!!
+                print(feedback)
+                print('@@@@@@@@@@@@@@@@@@@@@@@@@@')
 
                 # Define score mappings for both "thumbs" and "faces" feedback systems
                 score_mappings = {
@@ -134,7 +149,12 @@ if prompt := st.chat_input("클라우드 컴퓨팅이란 무엇인가요?"):
                             feedback_type_str,
                             score=score,
                             comment=feedback.get("text")
-                        )
+                            )
+                        
+                        print('@@@@@@@@@@@@@@@@@@@@@@@@@@')
+                        print(feedback_record)
+                        print('@@@@@@@@@@@@@@@@@@@@@@@@@@')
+
                         st.session_state.feedback = {
                             "feedback_id": str(feedback_record.id),
                             "score": score,
@@ -142,7 +162,7 @@ if prompt := st.chat_input("클라우드 컴퓨팅이란 무엇인가요?"):
                         st.toast("Feedback recorded!", icon="📝")
                     else:
                         st.warning("Invalid feedback score.")
-                
+            
             
             
     # 참조 문서 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!                                                                                               
