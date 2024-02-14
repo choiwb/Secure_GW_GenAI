@@ -568,7 +568,7 @@ compression_retriever = ContextualCompressionRetriever(
 )
 
 
-# =langchain 기반 memory caching
+# langchain 기반 memory caching
 from langchain.cache import InMemoryCache
 from langchain.globals import set_llm_cache
 
