@@ -17,7 +17,7 @@ os.environ["LANGCHAIN_ENDPOINT"] = 'https://api.smith.langchain.com'
 os.environ["LANGCHAIN_API_KEY"] = 'your langsmith api key !!!!!!!!!!!!!!!!!!!!'
 ##################################################################################
 
-st.title("Cloud 관련 무물보~!")
+st.title("Cloud 특화 챗봇")
       
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -40,9 +40,7 @@ for avatar_message in st.session_state.messages:
         avatar_icon = avatar_message.get("avatar", "https://www.shutterstock.com/image-vector/chat-bot-logo-design-concept-600nw-1938811039.jpg")
         with st.chat_message(avatar_message["role"], avatar=avatar_icon):
             # HCX_stream 클래스에서 "Assistant" 를 이미 bold 처리하여 생성하므로, 굳이 더할 필요는 없음! 하지만 unsafe_allow_html = True를 해야 함.
-            st.markdown(avatar_message["content"],  unsafe_allow_html=True)
-
-   
+            st.markdown("<b>Assistant</b><br>" + avatar_message["content"],  unsafe_allow_html=True)
 
 feedback_option = "faces" if st.toggle(label="`Thumbs` ⇄ `Faces`", value=False) else "thumbs"
 
@@ -55,7 +53,7 @@ if st.session_state.get("run_id"):
     
 client = Client()
 
-if prompt := st.chat_input("클라우드 컴퓨팅이란 무엇인가요?"):
+if prompt := st.chat_input(""):
     with st.chat_message("user", avatar="https://lh3.googleusercontent.com/a/ACg8ocKGr2xjdFlRqAbXU6GCKnYQRDCbttNuDhVJhiLA2Nw8=s432-c-no"):
         st.markdown("<b>You</b><br>" + prompt, unsafe_allow_html=True)
     st.session_state.messages.append({"role": "user", "content": prompt})
@@ -104,7 +102,7 @@ if prompt := st.chat_input("클라우드 컴퓨팅이란 무엇인가요?"):
         
             # print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
             # print(memory)           
-            # memory와는 별도로 cache 된 memory 출력
+            # # memory와는 별도로 cache 된 memory 출력
             # print('&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&')
             # print(cache_instance._cache)
 
