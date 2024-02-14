@@ -55,15 +55,24 @@ llm_url = 'your llm url !!!!!!!!!!'
 # pdf 형태 context 경로 !!!!!!!!
 pdf_path_1 = 'your pdf context rag data path !!!!!!!!!!!!!!!!!!'
 pdf_path_2 = 'your pdf context rag data path !!!!!!!!!!!!!!!!!!'
+
+ahn_asec_path = 'pdf files dir !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
 ##################################################################################
 
+pdf_paths = []
+for filename in os.listdir(ahn_asec_path):
+    if filename.endswith(".pdf"):
+        # 완전한 파일 경로 생성
+        globals()[f'pdf_path_{filename}']  = os.path.join(ahn_asec_path, filename)
+        # print(globals()[f'pdf_path_{filename}'])
+        pdf_paths.append(globals()[f'pdf_path_{filename}'])
 
 SYSTEMPROMPT = """You are a Cloud (MSP) Engineer or Cloud Sales administrator, or Cloud Solution Architect. about user question, answering specifically in korean.
     Use the following pieces of context to answer the question at the end.
     You mast answer after understanding previous conversation.
     If you don't know the answer, just say that you don't know, don't try to make up an answer.
     Respond don't know to questions not related to Cloud Computing.
-    Use 3 sentences maximum and keep the answer as concise as possible."""
+    Use 5 sentences maximum and keep the answer as concise as possible."""
 template = """
     context for answer: {context}
     question: {question}
@@ -215,7 +224,7 @@ class HCX_general(LLM):
         'messages': preset_text,
         'topP': 0.8,
         'topK': 0,
-        'maxTokens': 128,
+        'maxTokens': 256,
         'temperature': 0.1,
         'repeatPenalty': 5.0,
         'stopBefore': [],
@@ -279,7 +288,7 @@ class HCX_stream(LLM):
         'messages': preset_text,
         'topP': 0.8,
         'topK': 0,
-        'maxTokens': 128,
+        'maxTokens': 512,
         'temperature': 0.1,
         'repeatPenalty': 5.0,
         'stopBefore': [],
@@ -358,11 +367,11 @@ def offline_faiss_save(*pdf_path):
 # '''임베딩 완료 시간: 1.62 (초)'''
 # print('임베딩 완료 시간: %.2f (초)' %(end-start))
 
-def offline_chroma_save(*pdf_path):
+def offline_chroma_save(pdf_paths):
 
     total_docs = []
     
-    for pdf_url in pdf_path:
+    for pdf_url in pdf_paths:
         pdfreader =  PyPDFLoader(pdf_url)
         pdf_doc = pdfreader.load_and_split()
         doc = text_splitter.split_documents(pdf_doc)
@@ -378,12 +387,12 @@ def offline_chroma_save(*pdf_path):
     vectorstore = Chroma.from_documents(
         documents=total_docs, 
         embedding=embeddings,
-        persist_directory=os.path.join(db_save_path, "cloud_bot_20240210_chroma_db")
+        persist_directory=os.path.join(db_save_path, "cloud_bot_20240214_chroma_db")
         )
     vectorstore.persist()
 
 # start = time.time()
-# total_content = offline_chroma_save(pdf_path_1, pdf_path_2)
+# total_content = offline_chroma_save(pdf_paths)
 # end = time.time()
 # '''임베딩 완료 시간: 1.31 (초)'''
 # print('임베딩 완료 시간: %.2f (초)' %(end-start))
@@ -543,16 +552,16 @@ def online_chroma_save(*urls):
 # '''임베딩 완료 시간: 1.62 (초)'''
 # print('임베딩 완료 시간: %.2f (초)' %(end-start))
 
-new_docsearch = Chroma(persist_directory=os.path.join(db_save_path, "cloud_bot_20240210_chroma_db"),
+new_docsearch = Chroma(persist_directory=os.path.join(db_save_path, "cloud_bot_20240214_chroma_db"),
                         embedding_function=embeddings)
 
 retriever = new_docsearch.as_retriever(
                                         search_type="mmr",                                        
-                                        search_kwargs={'k': 5, 'fetch_k': 25}
+                                        search_kwargs={'k': 8, 'fetch_k': 32}
                                        )
 
 # # retriever의 compression 시도 !!!!!!!!!!!!!!!!!!!!!!!!!
-embeddings_filter = EmbeddingsFilter(embeddings=embeddings, similarity_threshold=0.2)
+embeddings_filter = EmbeddingsFilter(embeddings=embeddings, similarity_threshold=0.5)
 
 compression_retriever = ContextualCompressionRetriever(
     base_compressor=embeddings_filter, base_retriever=retriever
@@ -613,8 +622,8 @@ standalone_question = {
 
 # Now we retrieve the documents
 retrieved_documents = {
-    # "source_documents": itemgetter("standalone_question") | retriever,
-    "source_documents": itemgetter("standalone_question") | compression_retriever,
+    "source_documents": itemgetter("standalone_question") | retriever,
+    # "source_documents": itemgetter("standalone_question") | compression_retriever,
     "question": lambda x: x["standalone_question"],
 }
 
@@ -634,15 +643,6 @@ answer = {
 # 따라서 stream으로 최종 출력을 뽑를 경우, 위 lcel의 answer 과정의 source_documents 를 추출 못하여 참조 문서를 표출 못하는거 같음.....
 # retrieval_qa_chain = loaded_memory | standalone_question | retrieved_documents | answer
 retrieval_qa_chain = loaded_memory | standalone_question | retrieved_documents | final_inputs | QA_CHAIN_PROMPT | hcx_stream | StrOutputParser()
-# retrieval_qa_chain = (loaded_memory 
-#                       | standalone_question 
-#                       | retrieved_documents 
-#                       | final_inputs 
-#                       | QA_CHAIN_PROMPT 
-#                       | HCX_stream() 
-#                       | {"answer": itemgetter("answer"),
-#                         "source_documents": itemgetter("source_documents")}
-#                     )
 
 
 
