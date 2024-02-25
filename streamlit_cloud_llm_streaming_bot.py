@@ -5,7 +5,7 @@ import streamlit as st
 from streamlit_cloud_llm_bot import retrieval_qa_chain, memory, cache_instance, hcx_general, hcx_stream
 from streamlit_feedback import streamlit_feedback
 from langsmith import Client
-from langchain.callbacks.manager import collect_runs, get_openai_callback
+from langchain.callbacks.manager import collect_runs
 
 # HCX 토큰 계산기 API 호출
 from hcx_token_cal import token_completion_executor
@@ -18,6 +18,7 @@ os.environ["LANGCHAIN_API_KEY"] = 'your langsmith api key !!!!!!!!!!!!!!!!!!!!'
 ##################################################################################
 
 client = Client()
+
     
 st.title("Cloud 특화 챗봇")
       
@@ -53,7 +54,6 @@ if prompt := st.chat_input(""):
         # HCX_stream 클래스에서 이미 stream 기능을 streamlit ui 에서 구현했으므로 별도의 langchain의 .stream() 필요없고 .invoke()만 호출하면 됨.        
         with st.spinner("검색 및 생성 중....."):
             with collect_runs() as cb:
-
                 full_response = retrieval_qa_chain.invoke({"question":prompt})               
                 
                 # full_response에서 <b>Assistant</b><br> 제거
@@ -79,17 +79,6 @@ if prompt := st.chat_input(""):
 
                 st.session_state.run_id = cb.traced_runs[0].id
                 
-                print('==========================')
-                print(st.session_state.run_id)
-                
-                # latency의 경우, streaming 시작 기준으로 지정 필요 !!!!!!!!!!!!!!
-                print(cb.traced_runs[0].start_time)
-                print(cb.traced_runs[0].end_time)                
-                print('==========================')
-
-                # with get_openai_callback() as token_cb:
-                    # retrieval_qa_chain("Your custom AsyncCallbackHandler code here")
-
                 output_text_token = token_completion_executor.execute(output_token_json)
                 output_token_count = sum(token['count'] for token in output_text_token[:])
 
@@ -104,16 +93,45 @@ if prompt := st.chat_input(""):
                 st.markdown(f"출력 토큰 수: {hcx_output_token_count}")
                 st.markdown(f"총 토큰 수: {hcx_total_token_count}")
                 
-                print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-                # client의 list_runs 파라미터 파악 !!!!!!!!!!!!!!!!!!
-                print(client.list_runs(id=st.session_state.run_id))
+                one_dashboard_log = list(client.list_runs(
+                    project_name='Cloud Chatbot - Monitoring 20240210',
+                    run_type="llm",
+                    start_time=cb.traced_runs[0].start_time,
+                ))
+                
+                # print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
+                # 총 길이: 2
+                # print(len(one_dashboard_log))
+                
+                # print(one_dashboard_log[0].prompt_tokens)
+                # print(one_dashboard_log[0].completion_tokens)
+                # print(one_dashboard_log[0].total_tokens)
+                
+                # print(one_dashboard_log[1].prompt_tokens)
+                # print(one_dashboard_log[1].completion_tokens)
+                # print(one_dashboard_log[1].total_tokens)
 
-                # total_tokens = token_cb.total_tokens
-            
-                print('==========================')
-                # print(total_tokens)
-                print('==========================')
-                            
+                # one_dashboard_log[0].prompt_tokens = hcx_input_token_count
+                # one_dashboard_log[0].completion_tokens = hcx_output_token_count
+                # one_dashboard_log[0].total_tokens = hcx_total_token_count
+                # one_dashboard_log[1].prompt_tokens = hcx_input_token_count
+                # one_dashboard_log[1].completion_tokens = hcx_output_token_count
+                # one_dashboard_log[1].total_tokens = hcx_total_token_count
+                # print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
+                # print(one_dashboard_log[0].prompt_tokens)
+                # print(one_dashboard_log[0].completion_tokens)
+                # print(one_dashboard_log[0].total_tokens)
+                
+                # Assuming `client` is an instance of LangSmith's Client and one_dashboard_log[0] has an ID
+                # updated_log = {
+                #     "prompt_tokens": hcx_input_token_count,
+                #     "completion_tokens": hcx_output_token_count,
+                #     "total_tokens": hcx_total_token_count
+                # }
+
+                # Hypothetical method to update a run's details
+                # client.update_run(run_id=st.session_state.run_id, update_data=updated_log)
+
     # 참조 문서 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!                                                                                               
     total_content = pd.DataFrame(columns=['참조 문서'])
     total_content.loc[0] = [hcx_stream.source_documents]
@@ -129,6 +147,16 @@ if st.session_state.get("run_id"):
         optional_text_label="[Optional] Please provide an explanation",  # Allow for additional comments
         key=f"feedback_{st.session_state.run_id}",
     )
+    
+    updated_log = {
+            "prompt_tokens": hcx_input_token_count,
+            "completion_tokens": hcx_output_token_count,
+            "total_tokens": hcx_total_token_count
+        }
+    # print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+    # print(updated_log)
+    # Hypothetical method toㄴ update a run's details
+    client.update_run(run_id=run_id, total_tokens=hcx_total_token_count)
 
     # Define score mappings for both "thumbs" and "faces" feedback systems
     score_mappings = {
