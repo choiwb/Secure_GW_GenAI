@@ -2,7 +2,7 @@
 import os
 import pandas as pd
 import streamlit as st
-from streamlit_cloud_llm_bot import retrieval_qa_chain, memory, cache_instance, hcx_general, hcx_stream
+from streamlit_cloud_llm_bot import retrieval_qa_chain, asa_memory, hcx_general, hcx_stream
 from streamlit_feedback import streamlit_feedback
 from langsmith import Client
 from langchain.callbacks.manager import collect_runs
@@ -20,14 +20,14 @@ os.environ["LANGCHAIN_API_KEY"] = 'your langsmith api key !!!!!!!!!!!!!!!!!!!!'
 client = Client()
 
     
-st.title("Cloud 특화 챗봇")
+st.title("Cloud 특화 어시스턴트")
       
 if "messages" not in st.session_state:
     st.session_state.messages = []
                             
 if st.sidebar.button("Clear message history"):
     print("Clearing message history")
-    memory.clear()
+    asa_memory.clear()
     st.session_state.trace_link = None
     st.session_state.run_id = None
     
@@ -67,7 +67,7 @@ if prompt := st.chat_input(""):
                 ]
                 }
 
-                memory.save_context({"question": prompt}, {"answer": full_response_for_token_cal})
+                asa_memory.save_context({"question": prompt}, {"answer": full_response_for_token_cal})
                 
                 # print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
                 # print(memory)           
