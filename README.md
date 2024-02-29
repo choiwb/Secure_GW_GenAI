@@ -10,4 +10,5 @@ NCP (Naver Cloud Platform) HCX (Hyper Clova X) Generative AI Application
 - Frontend: Streamlit, Gradio
 - Production & Deployment: LangSmith
 -----
-- TO DO: FinOps & Generative AI Scenario
+- TO DO 1: LangSmith customizing - token count & price (OpenAI to HCX)
+- TO DO 2: Cloud Architecture & Generative AI Scenario
