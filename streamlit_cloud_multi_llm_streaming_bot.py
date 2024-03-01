@@ -46,13 +46,13 @@ if "hcx_messages" not in st.session_state:
 if "ahn_messages" not in st.session_state:
     st.session_state.ahn_messages = []
  
-ahn_hcx, hcx_only = st.columns(2)
+ahn_hcx, hcx_col = st.columns(2)
  
 with ahn_hcx:
-    st.subheader("Cloud 특화 어시스턴트")
+    st.subheader("AhnLab Savvy Assistant")
     # st.image(image_path, caption='Protocol Stack', use_column_width=False)
  
-with hcx_only:
+with hcx_col:
     st.subheader("Hyper Clova X")
     # st.image(image_path, caption='Protocol Stack', use_column_width=False)
  
@@ -73,8 +73,10 @@ for avatar_message in st.session_state.ahn_messages:
                 with st.expander('ASA'):
                     st.markdown("<b>ASA</b><br>" + avatar_message["content"], unsafe_allow_html=True)
  
+               
+               
 for avatar_message in st.session_state.hcx_messages:
-    with hcx_only:
+    with hcx_col:
         if avatar_message["role"] == "user":
  
             # 사용자 메시지일 경우, 사용자 아바타 적용
@@ -87,7 +89,7 @@ for avatar_message in st.session_state.hcx_messages:
             with st.chat_message(avatar_message["role"], avatar=avatar_icon):
                                
                 with st.expander('HCX'):
-                    st.markdown("<b>HCX</b><br>" + avatar_message["content"], unsafe_allow_html=True)
+                    st.markdown("<b>HCX</b><br>" + avatar_message["content"], unsafe_allow_html=True) 
  
 if prompt := st.chat_input(""):
     with ahn_hcx:          
@@ -98,18 +100,45 @@ if prompt := st.chat_input(""):
         with st.chat_message("assistant",  avatar=ahn_icon):    
             # HCX_stream 클래스에서 이미 stream 기능을 streamlit ui 에서 구현했으므로 별도의 langchain의 .stream() 필요없고 .invoke()만 호출하면 됨.        
             with st.spinner("검색 및 생성 중....."):
-                try:
-                    full_response = hcx_sec_pipe.invoke({"question": prompt})
-                except:               
-                    # HCX 테스트 앱의 경우, 1초 당 1번만 호출할 수 있으므로, sleep 을 서비스하기 전까지는 하는게 좋을거 같음
-                    print('injection => asa 요청횟수 초과')
-                    time.sleep(1)
-                    full_response = hcx_sec_pipe.invoke({"question": prompt})
-               
-                if '보안 취약점이 우려되는 질문입니다.' not in full_response:    
+                full_response = hcx_sec_pipe.invoke({"question": prompt})
+                sec_inj_input_token = hcx_sec.init_input_token_count
+                output_token_json = {
+                    "messages": [
+                    {
+                        "role": "assistant",
+                        "content": full_response
+                    }
+                    ]
+                    }
+                output_text_token = token_completion_executor.execute(output_token_json)
+                output_token_count = sum(token['count'] for token in output_text_token[:])
+                sec_inj_total_token = sec_inj_input_token + output_token_count
+
+                if '보안 취약점이 우려되는 질문입니다.' not in full_response:
                     full_response = retrieval_qa_chain.invoke({"question":prompt})    
                     # full_response에서 <b>Assistant</b><br> 제거
                     full_response_for_token_cal = full_response.replace('<b>Assistant</b><br>', '').replace('<b>ASA</b><br>', '')
+                    asa_input_token = hcx_general.init_input_token_count + hcx_stream.init_input_token_count
+                    output_token_json = {
+                        "messages": [
+                        {
+                            "role": "assistant",
+                            "content": full_response_for_token_cal
+                        }
+                        ]
+                        }
+                    output_text_token = token_completion_executor.execute(output_token_json)
+                    output_token_count = sum(token['count'] for token in output_text_token[:])
+                    asa_total_token = asa_input_token + output_token_count
+                    
+                    asa_total_token_final = sec_inj_total_token + asa_total_token
+                    with st.expander('토큰 정보'):
+                        st.markdown(f"""
+                        - 총 토큰 수: {asa_total_token_final}<br>
+                        - 총 토큰 비용: {round(asa_total_token_final * 0.005, 3)}(원)<br>
+                        - 첫 토큰 지연 시간: {round(hcx_stream.stream_token_start_time, 2)}(초)
+                        """, unsafe_allow_html=True)
+
                     asa_memory.save_context({"question": prompt}, {"answer": full_response_for_token_cal})
                    
                     # print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
@@ -119,11 +148,16 @@ if prompt := st.chat_input(""):
                 else:
                     message_placeholder = st.empty()
                     message_placeholder.markdown('<b>ASA</b><br>' + full_response, unsafe_allow_html=True)
-       
-                    full_response_for_token_cal = full_response.replace('<b>Assistant</b><br>', '').replace('<b>ASA</b><br>', '')
-                    st.session_state.ahn_messages.append({"role": "assistant", "content": full_response_for_token_cal})
- 
-    with hcx_only:
+                    with st.expander('토큰 정보'):
+                        st.markdown(f"""
+                        - 총 토큰 수: {sec_inj_total_token}<br>
+                        - 총 토큰 비용: {round(sec_inj_total_token * 0.005, 3)}(원)<br>
+                        - 총 토큰 지연 시간: {round(hcx_sec.total_token_dur_time, 2)}(초)
+                        """, unsafe_allow_html=True)
+
+                    st.session_state.ahn_messages.append({"role": "assistant", "content": full_response})
+   
+    with hcx_col:
         with st.chat_message("user", avatar=you_icon):
             st.markdown("<b>You</b><br>" + prompt, unsafe_allow_html=True)
             st.session_state.hcx_messages.append({"role": "user", "content": prompt})  
@@ -131,15 +165,28 @@ if prompt := st.chat_input(""):
         with st.chat_message("assistant",  avatar=hcx_icon):    
             # HCX_stream 클래스에서 이미 stream 기능을 streamlit ui 에서 구현했으므로 별도의 langchain의 .stream() 필요없고 .invoke()만 호출하면 됨.        
             with st.spinner("검색 및 생성 중....."):
-                try:
-                    full_response = hcx_only_pipe.invoke({"question":prompt})            
-                except:
-                    # HCX 테스트 앱의 경우, 1초 당 1번만 호출할 수 있으므로, sleep 을 서비스하기 전까지는 하는게 좋을거 같음
-                    print('asa => hcx 요청횟수 초과')
-                    time.sleep(1)
-                    full_response = hcx_only_pipe.invoke({"question":prompt})            
+                full_response = hcx_only_pipe.invoke({"question":prompt})            
                 
                 full_response_for_token_cal = full_response.replace('<b>Assistant</b><br>', '').replace('<b>HCX</b><br>', '')
+                hcx_input_token = hcx_only_2.init_input_token_count + hcx_only.init_input_token_count
+                output_token_json = {
+                    "messages": [
+                    {
+                        "role": "assistant",
+                        "content": full_response_for_token_cal
+                    }
+                    ]
+                    }
+                output_text_token = token_completion_executor.execute(output_token_json)
+                output_token_count = sum(token['count'] for token in output_text_token[:])
+                hcx_total_token = hcx_input_token + output_token_count
+                with st.expander('토큰 정보'):
+                    st.markdown(f"""
+                        - 총 토큰 수: {hcx_total_token}<br>
+                        - 총 토큰 비용: {round(hcx_total_token * 0.005, 3)}(원)<br>
+                        - 첫 토큰 지연 시간: {round(hcx_only.stream_token_start_time, 2)}(초)
+                        """, unsafe_allow_html=True)
+
                 hcx_memory.save_context({"question": prompt}, {"answer": full_response_for_token_cal})
                
                 # print('######################################################################')
