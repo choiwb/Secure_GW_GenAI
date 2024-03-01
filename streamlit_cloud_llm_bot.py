@@ -47,22 +47,6 @@ API_KEY_PRIMARY_VAL='YOUR API KEY PRIMARY VAL !!!!!!!!!!!!!!!!!!!!!!!'
 REQUEST_ID=str(uuid.uuid4())
 
 # (개인) 유료 API 키!!!!!!!!
-os.environ['OPENAI_API_KEY'] = "YOUR OPENAI API KEY !!!!!!!!!!!!!!!!!!!!!!!"
-
-# 임베딩 벡터 DB 저장 & 호출
-db_save_path = "YOUR DB SAVE PATH !!!!!!!!!!!!!!!!!!!!!!!" 
-
-# HCX LLM 경로 !!!!!!!!!!!!!!!!!!!!!!!
-llm_url = 'your llm url !!!!!!!!!!'
-
-# pdf 형태 context 경로 !!!!!!!!
-pdf_path_1 = 'your pdf context rag data path !!!!!!!!!!!!!!!!!!'
-pdf_path_2 = 'your pdf context rag data path !!!!!!!!!!!!!!!!!!'
-
-ahn_asec_path = 'pdf files dir !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
-##################################################################################
-
- 
 try:
     st.set_page_config(layout="wide")
 except:
@@ -145,6 +129,7 @@ embeddings = OpenAIEmbeddings(model = 'text-embedding-3-small')
 class HCX_only(LLM):        
    
     init_input_token_count: int = 0
+    stream_token_start_time: float = 0.0
  
     @property
     def _llm_type(self) -> str:
@@ -193,6 +178,9 @@ class HCX_only(LLM):
         full_response = "<b>HCX</b><br>"
  
         message_placeholder = st.empty()
+        
+        stream_first_token_init_time = time.time()
+        start_token_count = 1
        
         with httpx.stream(method="POST",
                         url=llm_url,
@@ -205,8 +193,14 @@ class HCX_only(LLM):
                     line_json = json.loads(split_line[1])
                     if "stopReason" in line_json and line_json["stopReason"] == None:
                         full_response += line_json["message"]["content"]
-                        print('************************************************************')
-                        print(full_response)
+                        stream_first_token_start_time = time.time()
+                        if start_token_count == 1:
+                            self.stream_token_start_time = stream_first_token_start_time - stream_first_token_init_time
+                            print('stream token latency')
+                            print('%.2f (초)' %(self.stream_token_start_time))
+                            start_token_count += 1
+                        # print('************************************************************')
+                        # print(full_response)
                         message_placeholder.markdown(full_response + "▌", unsafe_allow_html=True)
             message_placeholder.markdown(full_response, unsafe_allow_html=True)
            
@@ -264,7 +258,8 @@ class HCX_only_2(LLM):
 class HCX_sec(LLM):        
    
     init_input_token_count: int = 0
- 
+    total_token_dur_time: float = 0.0
+
     @property
     def _llm_type(self) -> str:
         return "hcx-003"
@@ -304,12 +299,17 @@ class HCX_sec(LLM):
             'X-NCP-CLOVASTUDIO-REQUEST-ID': REQUEST_ID,
             'Content-Type': 'application/json; charset=utf-8',
         }
+
+        total_token_start_time = time.time()
                
         response = requests.post(llm_url, json=request_data, headers=general_headers, verify=False)
         response.raise_for_status()
-        # print('$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$')
-        # print(response)
-                   
+        
+        total_token_end_time = time.time()
+        self.total_token_dur_time = total_token_end_time - total_token_start_time
+        print('total token latency')
+        print('%.2f (초)' %(self.total_token_dur_time))
+                  
         return response.json()['result']['message']['content']
        
  
@@ -371,6 +371,8 @@ class HCX_stream(LLM):
    
     init_input_token_count: int = 0
     source_documents: str = ""
+    stream_token_start_time: float = 0.0
+
    
     @property
     def _llm_type(self) -> str:
@@ -431,6 +433,9 @@ class HCX_stream(LLM):
  
         message_placeholder = st.empty()
        
+        stream_first_token_init_time = time.time()
+        start_token_count = 1
+       
         with httpx.stream(method="POST",
                         url=llm_url,
                         json=request_data,
@@ -442,6 +447,12 @@ class HCX_stream(LLM):
                     line_json = json.loads(split_line[1])
                     if "stopReason" in line_json and line_json["stopReason"] == None:
                         full_response += line_json["message"]["content"]
+                        stream_first_token_start_time = time.time()
+                        if start_token_count == 1:
+                            self.stream_token_start_time = stream_first_token_start_time - stream_first_token_init_time
+                            print('stream token latency')
+                            print('%.2f (초)' %(self.stream_token_start_time))
+                            start_token_count += 1
                         # print('************************************************************')
                         # print(full_response)
                         message_placeholder.markdown(full_response + "▌", unsafe_allow_html=True)
@@ -684,7 +695,7 @@ retriever = new_docsearch.as_retriever(
                                        )
  
 # # retriever의 compression 시도 !!!!!!!!!!!!!!!!!!!!!!!!!
-embeddings_filter = EmbeddingsFilter(embeddings=embeddings, similarity_threshold=0.5)
+embeddings_filter = EmbeddingsFilter(embeddings=embeddings, similarity_threshold=0.3)
  
 compression_retriever = ContextualCompressionRetriever(
     base_compressor=embeddings_filter, base_retriever=retriever
@@ -720,11 +731,11 @@ hcx_memory = hcx_init_memory()
 # ConversationalRetrievalChain to LCEL !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 DEFAULT_DOCUMENT_PROMPT = PromptTemplate.from_template(template="{page_content}")
  
-_template = """다음 대화와 후속 질문이 주어졌을 때, 후속 질문을 Standalone question으로 다시 표현하고, 구체적으로 한국어로 답변해주세요..
+_template = """Given the following conversation and a follow up question, rephrase the follow up question to be a standalone question, in its original language.
 Chat History:
 {chat_history}
 Follow Up Input: {question}
-Standalone question: """
+Standalone question:"""
 CONDENSE_QUESTION_PROMPT = PromptTemplate.from_template(_template)
  
 def _combine_documents(
@@ -766,8 +777,8 @@ hcx_standalone_question = {
  
 # Now we retrieve the documents
 retrieved_documents = {
-    "source_documents": itemgetter("standalone_question") | retriever,
-    # "source_documents": itemgetter("standalone_question") | compression_retriever,
+    # "source_documents": itemgetter("standalone_question") | retriever,
+    "source_documents": itemgetter("standalone_question") | compression_retriever,
     "question": lambda x: x["standalone_question"],
 }
  
@@ -780,13 +791,7 @@ final_inputs = {
     "context": lambda x: _combine_documents(x["source_documents"]),
     "question": itemgetter("question"),
 }
- 
-# And finally, we do the part that returns the answers
-answer = {
-    "answer": final_inputs | QA_CHAIN_PROMPT | hcx_stream,
-    "source_documents": itemgetter("source_documents"),
-}
- 
+  
 # stream 기능이 있는 llm 클래스의 경우, 위 lcel의 answer 처럼 파이프라인 안에서 선언하면 안되고, 아래 코드와 같이 별도로 선언해야 함 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # 따라서 stream으로 최종 출력을 뽑를 경우, 위 lcel의 answer 과정의 source_documents 를 추출 못하여 참조 문서를 표출 못하는거 같음.....
 hcx_sec_pipe = SEC_CHAIN_PROMPT | hcx_sec | StrOutputParser()
