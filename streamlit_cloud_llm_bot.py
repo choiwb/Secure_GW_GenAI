@@ -812,3 +812,6 @@ hcx_sec_pipe = SEC_CHAIN_PROMPT | hcx_sec | StrOutputParser()
 retrieval_qa_chain = asa_loaded_memory | asa_standalone_question | retrieved_documents | final_inputs | QA_CHAIN_PROMPT | hcx_stream | StrOutputParser()
 hcx_only_pipe = hcx_loaded_memory | hcx_standalone_question | not_retrieved_documents |ONLY_CHAIN_PROMPT | hcx_only | StrOutputParser()
 
+
+
+
