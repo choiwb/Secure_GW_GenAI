@@ -52,7 +52,7 @@ if "ahn_messages" not in st.session_state:
 ahn_hcx, hcx_col = st.columns(2)
  
 with ahn_hcx:
-    st.subheader("AhnLab Savvy Assistant")
+    st.subheader("Cloud 특화 어시스턴트")
     # st.image(image_path, caption='Protocol Stack', use_column_width=False)
  
 with hcx_col:
