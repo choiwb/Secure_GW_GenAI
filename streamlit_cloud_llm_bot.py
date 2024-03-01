@@ -749,7 +749,7 @@ _template = """Given the following conversation and a follow up question, rephra
 Chat History:
 {chat_history}
 Follow Up Input: {question}
-Standalone question:"""
+Standalone question: """
 CONDENSE_QUESTION_PROMPT = PromptTemplate.from_template(_template)
  
 def _combine_documents(
