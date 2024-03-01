@@ -47,6 +47,21 @@ API_KEY_PRIMARY_VAL='YOUR API KEY PRIMARY VAL !!!!!!!!!!!!!!!!!!!!!!!'
 REQUEST_ID=str(uuid.uuid4())
 
 # (개인) 유료 API 키!!!!!!!!
+os.environ['OPENAI_API_KEY'] = "YOUR OPENAI API KEY !!!!!!!!!!!!!!!!!!!!!!!"
+
+# 임베딩 벡터 DB 저장 & 호출
+db_save_path = "YOUR DB SAVE PATH !!!!!!!!!!!!!!!!!!!!!!!" 
+
+# HCX LLM 경로 !!!!!!!!!!!!!!!!!!!!!!!
+llm_url = 'your llm url !!!!!!!!!!'
+
+# pdf 형태 context 경로 !!!!!!!!
+pdf_path_1 = 'your pdf context rag data path !!!!!!!!!!!!!!!!!!'
+pdf_path_2 = 'your pdf context rag data path !!!!!!!!!!!!!!!!!!'
+
+ahn_asec_path = 'pdf files dir !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
+##################################################################################
+
 try:
     st.set_page_config(layout="wide")
 except:
