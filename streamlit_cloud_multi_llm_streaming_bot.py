@@ -3,10 +3,13 @@ import os
 import time
 import streamlit as st
 # from streamlit_hcx_cloud_bot import cache_instance
-from streamlit_cloud_llm_bot import retrieval_qa_chain, asa_memory, hcx_memory, hcx_sec_pipe, hcx_only_pipe
+from streamlit_cloud_llm_bot import hcx_only, hcx_only_2, hcx_general, hcx_stream, retrieval_qa_chain, asa_memory, hcx_memory, hcx_sec, hcx_sec_pipe, hcx_only_pipe
  
 # 초 당 1회만 요청할 수 있으므로 multi processing 는 안됨 (hcx 테스트 앱 경우)
 # from concurrent.futures import ThreadPoolExecutor
+
+# HCX 토큰 계산기 API 호출
+from hcx_token_cal import token_completion_executor
  
  
  
