@@ -155,7 +155,7 @@ if st.session_state.get("run_id"):
         }
     # print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
     # print(updated_log)
-    # Hypothetical method toㄴ update a run's details
+    # Hypothetical method to update a run's details
     client.update_run(run_id=run_id, total_tokens=hcx_total_token_count)
 
     # Define score mappings for both "thumbs" and "faces" feedback systems
