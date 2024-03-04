@@ -193,7 +193,7 @@ class HCX_only(LLM):
  
         message_placeholder = st.empty()
         
-        stream_first_token_init_time = time.time()
+        # stream_first_token_init_time = time.time()
         start_token_count = 1
        
         with httpx.stream(method="POST",
@@ -209,7 +209,7 @@ class HCX_only(LLM):
                         full_response += line_json["message"]["content"]
                         stream_first_token_start_time = time.time()
                         if start_token_count == 1:
-                            self.stream_token_start_time = stream_first_token_start_time - stream_first_token_init_time
+                            self.stream_token_start_time = stream_first_token_start_time - hcx_only_2.stream_first_token_init_time
                             print('stream token latency')
                             print('%.2f (초)' %(self.stream_token_start_time))
                             start_token_count += 1
@@ -224,7 +224,8 @@ class HCX_only(LLM):
 class HCX_only_2(LLM):        
    
     init_input_token_count: int = 0
- 
+    stream_first_token_init_time = time.time()
+
     @property
     def _llm_type(self) -> str:
         return "hcx-003"
@@ -236,6 +237,8 @@ class HCX_only_2(LLM):
         **kwargs: Any,
     ) -> str:
        
+        self.stream_first_token_init_time = time.time()
+
         preset_text = [{"role": "system", "content": ""}, {"role": "user", "content": prompt}]
         
         output_token_json = {
@@ -273,6 +276,7 @@ class HCX_sec(LLM):
    
     init_input_token_count: int = 0
     total_token_dur_time: float = 0.0
+    total_token_start_time = time.time()
 
     @property
     def _llm_type(self) -> str:
@@ -314,13 +318,13 @@ class HCX_sec(LLM):
             'Content-Type': 'application/json; charset=utf-8',
         }
 
-        total_token_start_time = time.time()
+        self.total_token_start_time = time.time()
                
         response = requests.post(llm_url, json=request_data, headers=general_headers, verify=False)
         response.raise_for_status()
         
         total_token_end_time = time.time()
-        self.total_token_dur_time = total_token_end_time - total_token_start_time
+        self.total_token_dur_time = total_token_end_time - self.total_token_start_time
         print('total token latency')
         print('%.2f (초)' %(self.total_token_dur_time))
                   
@@ -331,7 +335,7 @@ class HCX_sec(LLM):
 class HCX_general(LLM):        
    
     init_input_token_count: int = 0
- 
+
     @property
     def _llm_type(self) -> str:
         return "hcx-003"
@@ -387,7 +391,6 @@ class HCX_stream(LLM):
     source_documents: str = ""
     stream_token_start_time: float = 0.0
 
-   
     @property
     def _llm_type(self) -> str:
         return "hcx-003"
@@ -447,7 +450,7 @@ class HCX_stream(LLM):
  
         message_placeholder = st.empty()
        
-        stream_first_token_init_time = time.time()
+        # stream_first_token_init_time = time.time()
         start_token_count = 1
        
         with httpx.stream(method="POST",
@@ -463,7 +466,7 @@ class HCX_stream(LLM):
                         full_response += line_json["message"]["content"]
                         stream_first_token_start_time = time.time()
                         if start_token_count == 1:
-                            self.stream_token_start_time = stream_first_token_start_time - stream_first_token_init_time
+                            self.stream_token_start_time = stream_first_token_start_time - hcx_sec.total_token_start_time
                             print('stream token latency')
                             print('%.2f (초)' %(self.stream_token_start_time))
                             start_token_count += 1
