@@ -748,7 +748,7 @@ hcx_memory = hcx_init_memory()
 # ConversationalRetrievalChain to LCEL !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 DEFAULT_DOCUMENT_PROMPT = PromptTemplate.from_template(template="{page_content}")
  
-_template = """Given the following conversation and a follow up question, rephrase the follow up question to be a standalone question, in its original language.
+_template = """Given the following conversation and a follow up question, rephrase the follow up question to be a standalone question, in Korean.
 Chat History:
 {chat_history}
 Follow Up Input: {question}
