@@ -56,7 +56,7 @@ if "gpt_messages" not in st.session_state:
 ahn_hcx, hcx_col, gpt_col = st.columns(3)
 
 with ahn_hcx:
-    st.subheader("AhnLab Savvy Assistant")
+    st.subheader("Cloud 특화 어시스턴트")
     with st.expander('Protocol Stack'):
         st.image(asa_image_path, caption='Protocol Stack', use_column_width=True)
 
