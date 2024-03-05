@@ -42,24 +42,38 @@ with st.expander('추천 질문'):
     - C5586769에 대해서 상세히 알려줘.<br>
     - window injection과 관련된 악성코드는 뭐가 있어?
     """, unsafe_allow_html=True)
-                          
+
+                            
 if "hcx_messages" not in st.session_state:
     st.session_state.hcx_messages = []
- 
+
 if "ahn_messages" not in st.session_state:
     st.session_state.ahn_messages = []
- 
-ahn_hcx, hcx_col = st.columns(2)
- 
+    
+if "gpt_messages" not in st.session_state:
+    st.session_state.gpt_messages = []
+
+ahn_hcx, hcx_col, gpt_col = st.columns(3)
+
 with ahn_hcx:
-    st.subheader("Cloud 특화 어시스턴트")
-    # st.image(image_path, caption='Protocol Stack', use_column_width=False)
- 
+    st.subheader("AhnLab Savvy Assistant")
+    with st.expander('Protocol Stack'):
+        st.image(asa_image_path, caption='Protocol Stack', use_column_width=True)
+
 with hcx_col:
     st.subheader("Hyper Clova X")
-    # st.image(image_path, caption='Protocol Stack', use_column_width=False)
- 
- 
+    with st.expander('No Protection'):
+        st.markdown('<br>', unsafe_allow_html=True)
+        # st.image(hcx_image_path, caption='No Protection', use_column_width=True)
+    # st.markdown('No Protection')
+
+with gpt_col:
+    st.subheader("GPT")
+    with st.expander('No Protection'):
+        st.markdown('<br>', unsafe_allow_html=True)
+    #     st.image(hcx_image_path, caption='No Protection', use_column_width=True)
+    # st.markdown('No Protection')
+
 for avatar_message in st.session_state.ahn_messages:
     with ahn_hcx:
         if avatar_message["role"] == "user":
@@ -76,8 +90,6 @@ for avatar_message in st.session_state.ahn_messages:
                 with st.expander('ASA'):
                     st.markdown("<b>ASA</b><br>" + avatar_message["content"], unsafe_allow_html=True)
  
-               
-               
 for avatar_message in st.session_state.hcx_messages:
     with hcx_col:
         if avatar_message["role"] == "user":
@@ -93,6 +105,23 @@ for avatar_message in st.session_state.hcx_messages:
                                
                 with st.expander('HCX'):
                     st.markdown("<b>HCX</b><br>" + avatar_message["content"], unsafe_allow_html=True) 
+
+for avatar_message in st.session_state.gpt_messages:
+    with gpt_col:
+        if avatar_message["role"] == "user":
+ 
+            # 사용자 메시지일 경우, 사용자 아바타 적용
+            avatar_icon = avatar_message.get("avatar", you_icon)
+            with st.chat_message(avatar_message["role"], avatar=avatar_icon):
+                st.markdown("<b>You</b><br>" + avatar_message["content"], unsafe_allow_html=True)
+        else:
+            # AI 응답 메시지일 경우, AI 아바타 적용
+            avatar_icon = avatar_message.get("avatar", gpt_icon)
+            with st.chat_message(avatar_message["role"], avatar=avatar_icon):
+                               
+                with st.expander('GPT'):
+                    st.markdown("<b>GPT</b><br>" + avatar_message["content"], unsafe_allow_html=True)  
+ 
  
 if prompt := st.chat_input(""):
     with ahn_hcx:          
@@ -116,9 +145,10 @@ if prompt := st.chat_input(""):
                 output_text_token = token_completion_executor.execute(output_token_json)
                 output_token_count = sum(token['count'] for token in output_text_token[:])
                 sec_inj_total_token = sec_inj_input_token + output_token_count
-
+                
                 if '보안 취약점이 우려되는 질문입니다.' not in full_response:
                     full_response = retrieval_qa_chain.invoke({"question":prompt})    
+
                     # full_response에서 <b>Assistant</b><br> 제거
                     full_response_for_token_cal = full_response.replace('<b>Assistant</b><br>', '').replace('<b>ASA</b><br>', '')
                     asa_input_token = hcx_general.init_input_token_count + hcx_stream.init_input_token_count
@@ -135,12 +165,12 @@ if prompt := st.chat_input(""):
                     asa_total_token = asa_input_token + output_token_count
                     
                     asa_total_token_final = sec_inj_total_token + asa_total_token
-                    with st.expander('토큰 정보'):
-                        st.markdown(f"""
-                        - 총 토큰 수: {asa_total_token_final}<br>
-                        - 총 토큰 비용: {round(asa_total_token_final * 0.005, 3)}(원)<br>
-                        - 첫 토큰 지연 시간: {round(hcx_stream.stream_token_start_time, 2)}(초)
-                        """, unsafe_allow_html=True)
+                    # with st.expander('토큰 정보'):
+                    #     st.markdown(f"""
+                    #     - 총 토큰 수: {asa_total_token_final}<br>
+                    #     - 총 토큰 비용: {round(asa_total_token_final * 0.005, 3)}(원)<br>
+                    #     - 첫 토큰 지연 시간: {round(hcx_stream.stream_token_start_time, 2)}(초)
+                    #     """, unsafe_allow_html=True)
 
                     asa_memory.save_context({"question": prompt}, {"answer": full_response_for_token_cal})
                    
@@ -151,15 +181,17 @@ if prompt := st.chat_input(""):
                 else:
                     message_placeholder = st.empty()
                     message_placeholder.markdown('<b>ASA</b><br>' + full_response, unsafe_allow_html=True)
-                    with st.expander('토큰 정보'):
-                        st.markdown(f"""
-                        - 총 토큰 수: {sec_inj_total_token}<br>
-                        - 총 토큰 비용: {round(sec_inj_total_token * 0.005, 3)}(원)<br>
-                        - 총 토큰 지연 시간: {round(hcx_sec.total_token_dur_time, 2)}(초)
-                        """, unsafe_allow_html=True)
+                    # with st.expander('토큰 정보'):
+                    #     st.markdown(f"""
+                    #     - 총 토큰 수: {sec_inj_total_token}<br>
+                    #     - 총 토큰 비용: {round(sec_inj_total_token * 0.005, 3)}(원)<br>
+                    #     - 총 토큰 지연 시간: {round(hcx_sec.total_token_dur_time, 2)}(초)
+                    #     """, unsafe_allow_html=True)
 
                     st.session_state.ahn_messages.append({"role": "assistant", "content": full_response})
-   
+        
+    # time.sleep(1)
+    
     with hcx_col:
         with st.chat_message("user", avatar=you_icon):
             st.markdown("<b>You</b><br>" + prompt, unsafe_allow_html=True)
@@ -168,8 +200,8 @@ if prompt := st.chat_input(""):
         with st.chat_message("assistant",  avatar=hcx_icon):    
             # HCX_stream 클래스에서 이미 stream 기능을 streamlit ui 에서 구현했으므로 별도의 langchain의 .stream() 필요없고 .invoke()만 호출하면 됨.        
             with st.spinner("검색 및 생성 중....."):
-                full_response = hcx_only_pipe.invoke({"question":prompt})            
-                
+                full_response = hcx_only_pipe.invoke({"question":prompt})                      
+
                 full_response_for_token_cal = full_response.replace('<b>Assistant</b><br>', '').replace('<b>HCX</b><br>', '')
                 hcx_input_token = hcx_only_2.init_input_token_count + hcx_only.init_input_token_count
                 output_token_json = {
@@ -183,18 +215,41 @@ if prompt := st.chat_input(""):
                 output_text_token = token_completion_executor.execute(output_token_json)
                 output_token_count = sum(token['count'] for token in output_text_token[:])
                 hcx_total_token = hcx_input_token + output_token_count
-                with st.expander('토큰 정보'):
-                    st.markdown(f"""
-                        - 총 토큰 수: {hcx_total_token}<br>
-                        - 총 토큰 비용: {round(hcx_total_token * 0.005, 3)}(원)<br>
-                        - 첫 토큰 지연 시간: {round(hcx_only.stream_token_start_time, 2)}(초)
-                        """, unsafe_allow_html=True)
+                # with st.expander('토큰 정보'):
+                #     st.markdown(f"""
+                #         - 총 토큰 수: {hcx_total_token}<br>
+                #         - 총 토큰 비용: {round(hcx_total_token * 0.005, 3)}(원)<br>
+                #         - 첫 토큰 지연 시간: {round(hcx_only.stream_token_start_time, 2)}(초)
+                #         """, unsafe_allow_html=True)
 
                 hcx_memory.save_context({"question": prompt}, {"answer": full_response_for_token_cal})
                
                 # print('######################################################################')
                 # print(hcx_memory)
                 st.session_state.hcx_messages.append({"role": "assistant", "content": full_response_for_token_cal})
+                
+    with gpt_col:
+        with st.chat_message("user", avatar=you_icon):
+            st.markdown("<b>You</b><br>" + prompt, unsafe_allow_html=True)
+            st.session_state.gpt_messages.append({"role": "user", "content": prompt})  
+ 
+        with st.chat_message("assistant",  avatar=gpt_icon):    
+            # HCX_stream 클래스에서 이미 stream 기능을 streamlit ui 에서 구현했으므로 별도의 langchain의 .stream() 필요없고 .invoke()만 호출하면 됨.        
+            with st.spinner("검색 및 생성 중....."):
+                # full_response = gpt_pipe.invoke({"question":prompt})
+                full_response = "<b>GPT</b><br>"
+                message_placeholder = st.empty()
+        
+                for chunk in gpt_pipe.stream({"question":prompt}):
+                            print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+                            print(chunk)
+                            full_response += chunk
+                            message_placeholder.markdown(full_response + "▌", unsafe_allow_html=True)
+                message_placeholder.markdown(full_response, unsafe_allow_html=True)
+
+                full_response_for_token_cal = full_response.replace('<b>Assistant</b><br>', '').replace('<b>GPT</b><br>', '')
+                gpt_memory.save_context({"question": prompt}, {"answer": full_response_for_token_cal})
+                st.session_state.gpt_messages.append({"role": "assistant", "content": full_response_for_token_cal})
    
     
 ################### Streamlit ###################
