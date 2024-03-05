@@ -195,16 +195,22 @@ class HCX_only(LLM):
         
         # stream_first_token_init_time = time.time()
         start_token_count = 1
-       
+
+        time.sleep(1)
+               
         with httpx.stream(method="POST",
                         url=llm_url,
                         json=request_data,
                         headers=stream_headers,
                         timeout=120) as res:
             for line in res.iter_lines():
+                # print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
+                # print(line)
                 if line.startswith("data:"):
                     split_line = line.split("data:")
                     line_json = json.loads(split_line[1])
+                    # print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+                    # print(line_json)
                     if "stopReason" in line_json and line_json["stopReason"] == None:
                         full_response += line_json["message"]["content"]
                         stream_first_token_start_time = time.time()
@@ -446,13 +452,15 @@ class HCX_stream(LLM):
        
         # streaming 형태로 최종 출력 도출
         # full_response = ""
-        full_response = "<b>ASA</b><br>"
+        full_response = "<b>ASA</ b><br>"
  
         message_placeholder = st.empty()
        
         # stream_first_token_init_time = time.time()
         start_token_count = 1
        
+        time.sleep(1)
+
         with httpx.stream(method="POST",
                         url=llm_url,
                         json=request_data,
@@ -477,6 +485,17 @@ class HCX_stream(LLM):
            
             return full_response
  
+ 
+
+gpt_model = ChatOpenAI(
+    # model="gpt-3.5-turbo",
+    # GPT-4 Turbo 
+    model="gpt-4-0125-preview",
+
+    max_tokens=512,
+    temperature=0.1
+)    
+
 hcx_only = HCX_only()
 hcx_only_2 = HCX_only_2()
  
@@ -484,8 +503,7 @@ hcx_sec = HCX_sec()
  
 hcx_general = HCX_general()
 hcx_stream = HCX_stream()
- 
- 
+
  
 # 오프라인 데이터 가공 ####################################################################################
 def offline_faiss_save(*pdf_path):
@@ -538,7 +556,7 @@ def offline_chroma_save(pdf_paths):
     vectorstore = Chroma.from_documents(
         documents=total_docs,
         embedding=embeddings,
-        persist_directory=os.path.join(db_save_path, "cloud_bot_20240225_chroma_db")
+        persist_directory=os.path.join(db_save_path, "cloud_bot_20240226_chroma_db")
         )
     vectorstore.persist()
  
@@ -703,7 +721,7 @@ def online_chroma_save(*urls):
 # '''임베딩 완료 시간: 1.62 (초)'''
 # print('임베딩 완료 시간: %.2f (초)' %(end-start))
  
-new_docsearch = Chroma(persist_directory=os.path.join(db_save_path, "cloud_bot_20240225_chroma_db"),
+new_docsearch = Chroma(persist_directory=os.path.join(db_save_path, "cloud_bot_20240226_chroma_db"),
                         embedding_function=embeddings)
  
 retriever = new_docsearch.as_retriever(
@@ -744,6 +762,15 @@ def hcx_init_memory():
         return_messages=True)
 hcx_memory = hcx_init_memory()
  
+@st.cache_resource
+def gpt_init_memory():
+    return ConversationBufferMemory(
+        input_key='question',
+        output_key='answer',
+        memory_key='chat_history',
+        return_messages=True)
+gpt_memory = gpt_init_memory()
+ 
 # 토큰 절약하기 위한
 # ConversationalRetrievalChain to LCEL !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 DEFAULT_DOCUMENT_PROMPT = PromptTemplate.from_template(template="{page_content}")
@@ -771,6 +798,9 @@ hcx_loaded_memory = RunnablePassthrough.assign(
     chat_history=RunnableLambda(hcx_memory.load_memory_variables) | itemgetter("chat_history"),
 )
  
+gpt_loaded_memory = RunnablePassthrough.assign(
+    chat_history=RunnableLambda(gpt_memory.load_memory_variables) | itemgetter("chat_history"),
+)
 # # Now we calculate the standalone question
 asa_standalone_question = {
     "standalone_question": {
@@ -789,6 +819,16 @@ hcx_standalone_question = {
     }
     | CONDENSE_QUESTION_PROMPT
     | hcx_only_2
+    | StrOutputParser()
+}
+
+gpt_standalone_question = {
+    "standalone_question": {
+        "question": lambda x: x["question"],
+        "chat_history": lambda x: get_buffer_string(x["chat_history"]),
+    }
+    | CONDENSE_QUESTION_PROMPT
+    | gpt_model
     | StrOutputParser()
 }
  
@@ -813,7 +853,10 @@ final_inputs = {
 # 따라서 stream으로 최종 출력을 뽑를 경우, 위 lcel의 answer 과정의 source_documents 를 추출 못하여 참조 문서를 표출 못하는거 같음.....
 hcx_sec_pipe = SEC_CHAIN_PROMPT | hcx_sec | StrOutputParser()
 retrieval_qa_chain = asa_loaded_memory | asa_standalone_question | retrieved_documents | final_inputs | QA_CHAIN_PROMPT | hcx_stream | StrOutputParser()
-hcx_only_pipe = hcx_loaded_memory | hcx_standalone_question | not_retrieved_documents |ONLY_CHAIN_PROMPT | hcx_only | StrOutputParser()
+hcx_only_pipe = hcx_loaded_memory | hcx_standalone_question | not_retrieved_documents | ONLY_CHAIN_PROMPT | hcx_only | StrOutputParser()
+
+# gpt_standalone_question의 hcx_only_2 => gpt 모델로 변경 필요 함 !!!!!!!!!!!!!!!!!!!!!!!!!!
+gpt_pipe = gpt_loaded_memory | gpt_standalone_question | not_retrieved_documents | ONLY_CHAIN_PROMPT | gpt_model | StrOutputParser()
 
 
 
