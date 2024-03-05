@@ -3,7 +3,7 @@ import os
 import time
 import streamlit as st
 # from streamlit_hcx_cloud_bot import cache_instance
-from streamlit_cloud_llm_bot import hcx_only, hcx_only_2, hcx_general, hcx_stream, retrieval_qa_chain, asa_memory, hcx_memory, hcx_sec, hcx_sec_pipe, hcx_only_pipe
+from streamlit_cloud_llm_bot import hcx_only, hcx_only_2, hcx_general, hcx_stream, retrieval_qa_chain, asa_memory, hcx_memory, gpt_memory, hcx_sec, hcx_sec_pipe, hcx_only_pipe, gpt_pipe
  
 # 초 당 1회만 요청할 수 있으므로 multi processing 는 안됨 (hcx 테스트 앱 경우)
 # from concurrent.futures import ThreadPoolExecutor
@@ -18,10 +18,12 @@ from hcx_token_cal import token_completion_executor
 you_icon = 'your icon !!!!!!!'
 hcx_icon = 'your icon !!!!!!!'
 ahn_icon = 'your icon !!!!!!!'
+gpt_icon = 'your icon !!!!!!!'
  
  
 # asa, hcx 별 프로토콜 스택 이미지 경로
-# image_path = 'your image path !!!!!!!!!!!!!!!!'
+asa_image_path = 'your image path !!!!!!!!!!!!!!!!'
+hcx_image_path = 'your image path !!!!!!!!!!!!!!!!'
 ##################################################################################
  
  
