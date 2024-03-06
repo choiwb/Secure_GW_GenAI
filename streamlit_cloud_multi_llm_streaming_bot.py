@@ -34,7 +34,6 @@ hcx_image_path = 'your image path !!!!!!!!!!!!!!!!'
 try:
     st.set_page_config(layout="wide")
 
-    # st.title("AhnLab Cloud")
     st.markdown("<h1 style='text-align: center;'>Cloud 특화 어시스턴트</h1>", unsafe_allow_html=True)
 
     with st.expander('추천 질문'):
