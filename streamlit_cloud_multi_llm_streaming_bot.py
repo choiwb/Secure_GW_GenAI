@@ -3,8 +3,12 @@ import os
 import time
 import streamlit as st
 # from streamlit_hcx_cloud_bot import cache_instance
-from streamlit_cloud_llm_bot import hcx_only, hcx_only_2, hcx_general, hcx_stream, retrieval_qa_chain, asa_memory, hcx_memory, gpt_memory, hcx_sec, hcx_sec_pipe, hcx_only_pipe, gpt_pipe
- 
+try:
+    from streamlit_cloud_llm_bot import hcx_only, hcx_only_2, hcx_general, hcx_stream, retrieval_qa_chain, asa_memory, hcx_memory, gpt_memory, hcx_sec, hcx_sec_pipe, hcx_only_pipe, gpt_pipe
+ except Exception as e:
+    # 페이지를 자동으로 다시 실행
+    st.experimental_rerun()
+  
 # 초 당 1회만 요청할 수 있으므로 multi processing 는 안됨 (hcx 테스트 앱 경우)
 # from concurrent.futures import ThreadPoolExecutor
 
@@ -29,8 +33,7 @@ hcx_image_path = 'your image path !!!!!!!!!!!!!!!!'
  
 try:
     st.set_page_config(layout="wide")
-except:
-    print('예외 처리 !')
+
  
 st.markdown("<h1 style='text-align: center;'>Cloud 특화 어시스턴트</h1>", unsafe_allow_html=True)
   
