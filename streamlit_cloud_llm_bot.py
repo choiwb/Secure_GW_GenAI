@@ -196,7 +196,7 @@ class HCX_only(LLM):
         # stream_first_token_init_time = time.time()
         start_token_count = 1
 
-        time.sleep(1)
+        # time.sleep(1)
                
         with httpx.stream(method="POST",
                         url=llm_url,
@@ -459,7 +459,7 @@ class HCX_stream(LLM):
         # stream_first_token_init_time = time.time()
         start_token_count = 1
        
-        time.sleep(1)
+        # time.sleep(1)
 
         with httpx.stream(method="POST",
                         url=llm_url,
