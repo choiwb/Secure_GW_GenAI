@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import uuid
 import base64
 import json
 import http.client
@@ -43,5 +44,5 @@ token_completion_executor = token_CompletionExecutor(
       host='HOST !!!!!!!!!!!!!!!!!!!!!!!!1',
       api_key='API KEY !!!!!!!!!!!!!!!!!!!!!!!!1',
       api_key_primary_val = 'API KEY PRIMARY VAL !!!!!!!!!!!!!!!!!!!!!!!!1',
-      request_id='REQUEST ID !!!!!!!!!!!!!!!!!!!!!'
+      request_id=str(uuid.uuid4())
 )
