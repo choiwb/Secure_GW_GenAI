@@ -452,7 +452,7 @@ class HCX_stream(LLM):
        
         # streaming 형태로 최종 출력 도출
         # full_response = ""
-        full_response = "<b>ASA</ b><br>"
+        full_response = "<b>ASA</b><br>"
  
         message_placeholder = st.empty()
        
