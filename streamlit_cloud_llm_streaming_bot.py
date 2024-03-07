@@ -78,7 +78,6 @@ try:
             with st.spinner("검색 및 생성 중....."):
                 with collect_runs() as cb:
 
-
                     full_response = hcx_sec_pipe.invoke({"question": prompt})
                     sec_inj_input_token = hcx_sec.init_input_token_count
                     output_token_json = {
