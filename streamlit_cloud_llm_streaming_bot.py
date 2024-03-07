@@ -125,8 +125,11 @@ try:
                         # print(asa_memory)
                         st.session_state.ahn_messages.append({"role": "assistant", "content": full_response_for_token_cal})
                         
-                        st.session_state.run_id = cb.traced_runs[0].id
-                    
+                        # injection llm 결과에 대한 피드백은 필요 없음!
+                        injection_llm_run_id = cb.traced_runs[0].id
+                        # 사용자 피드백이 필요한 질문에 대한 결과 !!
+                        st.session_state.run_id = cb.traced_runs[1].id    
+                        
                     else:
                         message_placeholder = st.empty()
                         message_placeholder.markdown('<b>ASA</b><br>' + full_response, unsafe_allow_html=True)
@@ -138,8 +141,6 @@ try:
                             """, unsafe_allow_html=True)
 
                         st.session_state.ahn_messages.append({"role": "assistant", "content": full_response})
-
-                        # st.session_state.run_id = cb.traced_runs[0].id
 
                     # one_dashboard_log = list(client.list_runs(
                     #     project_name='Cloud Chatbot - Monitoring 20240210',
