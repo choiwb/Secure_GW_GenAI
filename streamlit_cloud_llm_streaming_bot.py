@@ -209,10 +209,11 @@ try:
         # st.table(data = total_content)
         
         
-    feedback_option = "faces" if st.toggle(label="`Thumbs` ⇄ `Faces`", value=False) else "thumbs"
 
     if st.session_state.get("run_id"):
         run_id = st.session_state.run_id
+        feedback_option = "faces" if st.toggle(label="`Thumbs` ⇄ `Faces`", value=False) else "thumbs"
+
         feedback = streamlit_feedback(
             feedback_type=feedback_option,  # Apply the selected feedback style
             optional_text_label="[Optional] Please provide an explanation",  # Allow for additional comments
