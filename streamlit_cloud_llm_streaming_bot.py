@@ -139,7 +139,7 @@ try:
 
                         st.session_state.ahn_messages.append({"role": "assistant", "content": full_response})
 
-                        st.session_state.run_id = cb.traced_runs[0].id
+                        # st.session_state.run_id = cb.traced_runs[0].id
 
                     # one_dashboard_log = list(client.list_runs(
                     #     project_name='Cloud Chatbot - Monitoring 20240210',
