@@ -8,7 +8,7 @@ try:
     from streamlit_cloud_llm_bot import retrieval_qa_chain, asa_memory, hcx_general, hcx_stream, hcx_sec_pipe, hcx_sec
 except Exception as e:
     # 페이지를 자동으로 다시 실행
-    st.experimental_rerun()
+    st.rerun()
 
 from streamlit_feedback import streamlit_feedback
 from langsmith import Client
@@ -265,4 +265,4 @@ try:
                 
 except Exception as e:
     # 페이지를 자동으로 다시 실행
-    st.experimental_rerun()
+    st.rerun()
