@@ -7,7 +7,7 @@ try:
     from streamlit_cloud_llm_bot import hcx_only, hcx_only_2, hcx_general, hcx_stream, retrieval_qa_chain, asa_memory, hcx_memory, gpt_memory, hcx_sec, hcx_sec_pipe, hcx_only_pipe, gpt_pipe
 except Exception as e:
     # 페이지를 자동으로 다시 실행
-    st.experimental_rerun()
+    st.rerun()
   
 # 초 당 1회만 요청할 수 있으므로 multi processing 는 안됨 (hcx 테스트 앱 경우)
 # from concurrent.futures import ThreadPoolExecutor
@@ -257,7 +257,7 @@ try:
                     
 except Exception as e:
     # 페이지를 자동으로 다시 실행
-    st.experimental_rerun()
+    st.rerun()
    
     
 ################### Streamlit ###################
