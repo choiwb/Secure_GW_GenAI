@@ -342,15 +342,25 @@ class HCX_sec(LLM):
                
         response = requests.post(llm_url, json=request_data, headers=general_headers, verify=False)
         response.raise_for_status()
+
+        llm_result = response.json()['result']['message']['content']
+        
+        preset_text = [{"role": "system", "content": ""}, {"role": "user", "content": llm_result}]
+        
+        output_token_json = {
+            "messages": preset_text
+            }
+       
+        total_input_token_json = token_completion_executor.execute(output_token_json)
+        self.init_input_token_count += sum(token['count'] for token in total_input_token_json[:])
         
         total_token_end_time = time.time()
         self.total_token_dur_time = total_token_end_time - self.total_token_start_time
         print('total token latency')
         print('%.2f (초)' %(self.total_token_dur_time))
                   
-        return response.json()['result']['message']['content']
+        return llm_result
        
- 
 
 class HCX_general(LLM):        
    
