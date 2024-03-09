@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 
+import os
 import uuid
-import base64
 import json
 import http.client
-
-
+from dotenv import load_dotenv
 
 
 class token_CompletionExecutor:
@@ -40,9 +39,12 @@ class token_CompletionExecutor:
 
 
 
+# .env 파일 로드
+load_dotenv()
+
 token_completion_executor = token_CompletionExecutor(
-      host='HOST !!!!!!!!!!!!!!!!!!!!!!!!1',
-      api_key='API KEY !!!!!!!!!!!!!!!!!!!!!!!!1',
-      api_key_primary_val = 'API KEY PRIMARY VAL !!!!!!!!!!!!!!!!!!!!!!!!1',
+      host=os.getenv('HCX_TOKEN_HOST'),
+      api_key=os.getenv('HCX_TOKEN_API_KEY'),
+      api_key_primary_val=os.getenv('HCX_API_KEY_PRIMARY_VAL'),
       request_id=str(uuid.uuid4())
 )
