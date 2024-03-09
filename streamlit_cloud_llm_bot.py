@@ -8,6 +8,7 @@ import httpx
 import time
 import requests
 import ssl
+from dotenv import load_dotenv
 from pydantic import Extra, Field
 from typing import Any, List, Mapping, Optional
 from langchain.prompts import PromptTemplate
@@ -41,19 +42,20 @@ from hcx_token_cal import token_completion_executor
 
 
 ##################################################################################
-# HCX API 키
-API_KEY='YOUR API KEY !!!!!!!!!!!!!!!!!!!!!!!='
-API_KEY_PRIMARY_VAL='YOUR API KEY PRIMARY VAL !!!!!!!!!!!!!!!!!!!!!!!'
+# .env 파일 로드
+load_dotenv()
+
+API_KEY=os.getenv('HCX_API_KEY')
+API_KEY_PRIMARY_VAL=os.getenv('HCX_API_KEY_PRIMARY_VAL')
 REQUEST_ID=str(uuid.uuid4())
 
-# (개인) 유료 API 키!!!!!!!!
-os.environ['OPENAI_API_KEY'] = "YOUR OPENAI API KEY !!!!!!!!!!!!!!!!!!!!!!!"
+os.getenv('OPENAI_API_KEY')
 
 # 임베딩 벡터 DB 저장 & 호출
 db_save_path = "YOUR DB SAVE PATH !!!!!!!!!!!!!!!!!!!!!!!" 
 
 # HCX LLM 경로 !!!!!!!!!!!!!!!!!!!!!!!
-llm_url = 'your llm url !!!!!!!!!!'
+llm_url = os.getenv('HCX_LLM_URL')
 
 # pdf 형태 context 경로 !!!!!!!!
 pdf_path_1 = 'your pdf context rag data path !!!!!!!!!!!!!!!!!!'
