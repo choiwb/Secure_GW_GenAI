@@ -1,5 +1,6 @@
 
 import os
+from dotenv import load_dotenv
 import uuid
 import pandas as pd
 import streamlit as st
@@ -18,13 +19,16 @@ from langchain.callbacks.manager import collect_runs
 from hcx_token_cal import token_completion_executor
 
 ##################################################################################
+# .env 파일 로드
+load_dotenv()
+
 you_icon = 'your icon !!!!!!'
 ahn_icon = 'your icon !!!!!!'
 
-os.environ["LANGCHAIN_TRACING_V2"] = "true"
-os.environ["LANGCHAIN_PROJECT"] = f"your langsmith project name !!!!!!!!!!!!!!!!!!!"
-os.environ["LANGCHAIN_ENDPOINT"] = 'https://api.smith.langchain.com'
-os.environ["LANGCHAIN_API_KEY"] = 'your langsmith api key !!!!!!!!!!!!!!!!!!!!'
+os.getenv('LANGCHAIN_TRACING_V2')
+os.getenv('LANGCHAIN_PROJECT')
+os.getenv('LANGCHAIN_ENDPOINT')
+os.getenv('LANGCHAIN_API_KEY')
 ##################################################################################
 
 client = Client()
