@@ -7,7 +7,7 @@ NCP (Naver Cloud Platform) HCX (Hyper Clova X) Generative AI Application
 - Embedding: OpenAI
 - Vector DB: Chroma, FAISS
 - Backend: LangChain
-- Frontend: Streamlit, Gradio
+- Frontend: Streamlit
 - Production & Deployment: LangSmith
 -----
 - TO DO 1: LangSmith customizing - token count & price (OpenAI to HCX)
