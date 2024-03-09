@@ -23,7 +23,8 @@ you_icon = 'your icon !!!!!!!'
 hcx_icon = 'your icon !!!!!!!'
 ahn_icon = 'your icon !!!!!!!'
 gpt_icon = 'your icon !!!!!!!'
- 
+
+os.getenv('OPENAI_API_KEY')
  
 # asa, hcx 별 프로토콜 스택 이미지 경로
 asa_image_path = 'your image path !!!!!!!!!!!!!!!!'
