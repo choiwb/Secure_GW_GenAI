@@ -278,8 +278,20 @@ class HCX_only_2(LLM):
         response = requests.post(llm_url, json=request_data, headers=general_headers, verify=False)
         response.raise_for_status()
                    
-        return response.json()['result']['message']['content']
+        llm_result = response.json()['result']['message']['content']
+        
+        preset_text = [{"role": "system", "content": ""}, {"role": "user", "content": llm_result}]
+        
+        output_token_json = {
+            "messages": preset_text
+            }
        
+        total_input_token_json = token_completion_executor.execute(output_token_json)
+        self.init_input_token_count += sum(token['count'] for token in total_input_token_json[:])
+        
+        return llm_result
+
+
 class HCX_sec(LLM):        
    
     init_input_token_count: int = 0
