@@ -177,12 +177,12 @@ try:
                         asa_total_token = asa_input_token + output_token_count
                         
                         asa_total_token_final = sec_inj_total_token + asa_total_token
-                        # with st.expander('토큰 정보'):
-                        #     st.markdown(f"""
-                        #     - 총 토큰 수: {asa_total_token_final}<br>
-                        #     - 총 토큰 비용: {round(asa_total_token_final * 0.005, 3)}(원)<br>
-                        #     - 첫 토큰 지연 시간: {round(hcx_stream.stream_token_start_time, 2)}(초)
-                        #     """, unsafe_allow_html=True)
+                        with st.expander('토큰 정보'):
+                            st.markdown(f"""
+                            - 총 토큰 수: {asa_total_token_final}<br>
+                            - 총 토큰 비용: {round(asa_total_token_final * 0.005, 3)}(원)<br>
+                            - 첫 토큰 지연 시간: {round(hcx_stream.stream_token_start_time, 2)}(초)
+                            """, unsafe_allow_html=True)
 
                         asa_memory.save_context({"question": prompt}, {"answer": full_response_for_token_cal})
                     
@@ -193,12 +193,12 @@ try:
                     else:
                         message_placeholder = st.empty()
                         message_placeholder.markdown('<b>ASA</b><br>' + full_response, unsafe_allow_html=True)
-                        # with st.expander('토큰 정보'):
-                        #     st.markdown(f"""
-                        #     - 총 토큰 수: {sec_inj_total_token}<br>
-                        #     - 총 토큰 비용: {round(sec_inj_total_token * 0.005, 3)}(원)<br>
-                        #     - 총 토큰 지연 시간: {round(hcx_sec.total_token_dur_time, 2)}(초)
-                        #     """, unsafe_allow_html=True)
+                        with st.expander('토큰 정보'):
+                            st.markdown(f"""
+                            - 총 토큰 수: {sec_inj_total_token}<br>
+                            - 총 토큰 비용: {round(sec_inj_total_token * 0.005, 3)}(원)<br>
+                            - 총 토큰 지연 시간: {round(hcx_sec.total_token_dur_time, 2)}(초)
+                            """, unsafe_allow_html=True)
 
                         st.session_state.ahn_messages.append({"role": "assistant", "content": full_response})
             
@@ -227,12 +227,12 @@ try:
                     output_text_token = token_completion_executor.execute(output_token_json)
                     output_token_count = sum(token['count'] for token in output_text_token[:])
                     hcx_total_token = hcx_input_token + output_token_count
-                    # with st.expander('토큰 정보'):
-                    #     st.markdown(f"""
-                    #         - 총 토큰 수: {hcx_total_token}<br>
-                    #         - 총 토큰 비용: {round(hcx_total_token * 0.005, 3)}(원)<br>
-                    #         - 첫 토큰 지연 시간: {round(hcx_only.stream_token_start_time, 2)}(초)
-                    #         """, unsafe_allow_html=True)
+                    with st.expander('토큰 정보'):
+                        st.markdown(f"""
+                            - 총 토큰 수: {hcx_total_token}<br>
+                            - 총 토큰 비용: {round(hcx_total_token * 0.005, 3)}(원)<br>
+                            - 첫 토큰 지연 시간: {round(hcx_only.stream_token_start_time, 2)}(초)
+                            """, unsafe_allow_html=True)
 
                     hcx_memory.save_context({"question": prompt}, {"answer": full_response_for_token_cal})
                 
