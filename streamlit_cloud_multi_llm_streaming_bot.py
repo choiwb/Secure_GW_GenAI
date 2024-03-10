@@ -1,6 +1,7 @@
  
 import os
 import time
+from dotenv import load_dotenv
 import streamlit as st
 # from streamlit_hcx_cloud_bot import cache_instance
 try:
@@ -18,6 +19,9 @@ from hcx_token_cal import token_completion_executor
  
  
 ################################################################################## 
+# .env 파일 로드
+load_dotenv()
+
 # 챗봇 주요 아이콘 경로
 you_icon = 'your icon !!!!!!!'
 hcx_icon = 'your icon !!!!!!!'
