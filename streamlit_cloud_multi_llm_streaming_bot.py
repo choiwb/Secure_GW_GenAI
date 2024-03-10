@@ -140,8 +140,8 @@ try:
 
                     full_response = hcx_sec_pipe.invoke({"question": prompt})
                     sec_inj_input_token = hcx_sec.init_input_token_count
-                    if '보안 취약점이 우려되는 질문입니다.' not in full_response:
-                        print('RAG가 진행 되므로 HCX_sec 의 출력 토큰은 더해줘야 함.!!!!!!!!!!!!!!!!!!!!')
+                 
+                    if '보안 취약점이 우려되는 질문입니다' not in full_response:
                         output_token_json = {
                             "messages": [
                             {
@@ -153,12 +153,10 @@ try:
                         
                         output_text_token = token_completion_executor.execute(output_token_json)
                         output_token_count = sum(token['count'] for token in output_text_token[:])
+                        
+                        print('RAG가 진행 되므로 HCX_sec 의 출력 토큰은 더해줘야 함.!!!!!!!!!!!!!!!!!!!!')
                         sec_inj_total_token = sec_inj_input_token + output_token_count
-                    else:
-                        print('RAG가 진행 안 되므로 HCX_sec 의 출력 토큰은 안 더해도 됨.!!!!!!!!!!!!!!!!!!!!')
-                        sec_inj_total_token = sec_inj_input_token
-                    
-                    if '보안 취약점이 우려되는 질문입니다.' not in full_response:
+                     
                         full_response = retrieval_qa_chain.invoke({"question":prompt})    
 
                         # full_response에서 <b>Assistant</b><br> 제거
