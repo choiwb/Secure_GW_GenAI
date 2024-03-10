@@ -82,15 +82,15 @@ try:
             with st.spinner("검색 및 생성 중....."):
                 with collect_runs() as cb:
 
-                    full_response = hcx_sec_pipe.invoke({"question": prompt})
+                    inj_full_response = hcx_sec_pipe.invoke({"question": prompt})
                     sec_inj_input_token = hcx_sec.init_input_token_count
                     
-                    if '보안 취약점이 우려되는 질문입니다' not in full_response:
+                    if '보안 취약점이 우려되는 질문입니다' not in inj_full_response:
                         output_token_json = {
                             "messages": [
                             {
                                 "role": "assistant",
-                                "content": full_response
+                                "content": inj_full_response
                             }
                             ]
                             }
@@ -119,13 +119,7 @@ try:
                         asa_total_token = asa_input_token + output_token_count
                         
                         asa_total_token_final = sec_inj_total_token + asa_total_token
-                        with st.expander('토큰 정보'):
-                            st.markdown(f"""
-                            - 총 토큰 수: {asa_total_token_final}<br>
-                            - 총 토큰 비용: {round(asa_total_token_final * 0.005, 3)}(원)<br>
-                            - 첫 토큰 지연 시간: {round(hcx_stream.stream_token_start_time, 2)}(초)
-                            """, unsafe_allow_html=True)
-
+                        
                         asa_memory.save_context({"question": prompt}, {"answer": full_response_for_token_cal})
                     
                         # print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
@@ -135,19 +129,31 @@ try:
                         # injection llm 결과에 대한 피드백은 필요 없음!
                         injection_llm_run_id = cb.traced_runs[0].id
                         # 사용자 피드백이 필요한 질문에 대한 결과 !!
-                        st.session_state.run_id = cb.traced_runs[1].id    
-                        
-                    else:
-                        message_placeholder = st.empty()
-                        message_placeholder.markdown('<b>ASA</b><br>' + full_response, unsafe_allow_html=True)
-                        with st.expander('토큰 정보'):
-                            st.markdown(f"""
-                            - 총 토큰 수: {sec_inj_total_token}<br>
-                            - 총 토큰 비용: {round(sec_inj_total_token * 0.005, 3)}(원)<br>
-                            - 총 토큰 지연 시간: {round(hcx_sec.total_token_dur_time, 2)}(초)
-                            """, unsafe_allow_html=True)
+                        st.session_state.run_id = cb.traced_runs[1].id
 
-                        st.session_state.ahn_messages.append({"role": "assistant", "content": full_response})
+                    else:
+                        print('RAG가 진행 안 되므로 HCX_sec 의 출력 토큰은 안 더해도 됨.!!!!!!!!!!!!!!!!!!!!')
+                        sec_inj_total_token = sec_inj_input_token
+                        
+                        message_placeholder = st.empty()
+                        message_placeholder.markdown('<b>ASA</b><br>' + inj_full_response, unsafe_allow_html=True)
+
+                        st.session_state.ahn_messages.append({"role": "assistant", "content": inj_full_response})
+            
+            if '보안 취약점이 우려되는 질문입니다' not in inj_full_response:
+                with st.expander('토큰 정보'):
+                    st.markdown(f"""
+                    - 총 토큰 수: {asa_total_token_final}<br>
+                    - 총 토큰 비용: {round(asa_total_token_final * 0.005, 3)}(원)<br>
+                    - 첫 토큰 지연 시간: {round(hcx_stream.stream_token_start_time, 2)}(초)
+                    """, unsafe_allow_html=True)
+            else:
+                with st.expander('토큰 정보'):
+                    st.markdown(f"""
+                    - 총 토큰 수: {sec_inj_total_token}<br>
+                    - 총 토큰 비용: {round(sec_inj_total_token * 0.005, 3)}(원)<br>
+                    - 총 토큰 지연 시간: {round(hcx_sec.total_token_dur_time, 2)}(초)
+                    """, unsafe_allow_html=True)
 
                     # one_dashboard_log = list(client.list_runs(
                     #     project_name='Cloud Chatbot - Monitoring 20240210',
