@@ -85,7 +85,7 @@ try:
                     full_response = hcx_sec_pipe.invoke({"question": prompt})
                     sec_inj_input_token = hcx_sec.init_input_token_count
                     
-                    if '보안 취약점이 우려되는 질문입니다.' not in full_response:
+                    if '보안 취약점이 우려되는 질문입니다' not in full_response:
                         output_token_json = {
                             "messages": [
                             {
