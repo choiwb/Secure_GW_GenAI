@@ -29,6 +29,9 @@ os.getenv('LANGCHAIN_TRACING_V2')
 os.getenv('LANGCHAIN_PROJECT')
 os.getenv('LANGCHAIN_ENDPOINT')
 os.getenv('LANGCHAIN_API_KEY')
+
+# asa, hcx 별 프로토콜 스택 이미지 경로
+asa_image_path = 'your image path !!!!!!'
 ##################################################################################
 
 client = Client()
@@ -51,6 +54,9 @@ try:
                 
     if "ahn_messages" not in st.session_state:
         st.session_state.ahn_messages = []
+
+    with st.expander('Protocol Stack'):
+        st.image(asa_image_path, caption='Protocol Stack', use_column_width=True)
                                 
     # if st.sidebar.button("Clear message history"):
     #     print("Clearing message history")
