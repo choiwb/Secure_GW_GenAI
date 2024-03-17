@@ -13,6 +13,7 @@ from pydantic import Extra, Field
 from typing import Any, List, Mapping, Optional
 from langchain.prompts import PromptTemplate
 from langchain.embeddings.openai import OpenAIEmbeddings
+from ncp_embedding import HCXEmbedding
 from langchain.vectorstores import FAISS, Chroma
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.memory import ConversationBufferMemory
@@ -139,8 +140,9 @@ text_splitter_function_calling = RecursiveCharacterTextSplitter.from_tiktoken_en
     )
 
 # text-embedding-3-small or text-embedding-3-large
-embeddings = OpenAIEmbeddings(model = 'text-embedding-3-small')
- 
+# embeddings = OpenAIEmbeddings(model = 'text-embedding-3-small')
+embeddings = HCXEmbedding()
+
   
 class HCX_only(LLM):        
    
