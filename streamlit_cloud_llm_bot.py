@@ -15,6 +15,7 @@ from langchain.prompts import PromptTemplate
 from langchain.embeddings.openai import OpenAIEmbeddings
 from ncp_embedding import HCXEmbedding
 from langchain.vectorstores import FAISS, Chroma
+from langchain_community.vectorstores.pgvector import PGVector
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.memory import ConversationBufferMemory
 from langchain_community.document_loaders import PyPDFLoader
@@ -749,7 +750,12 @@ def online_chroma_save(*urls):
  
 # new_docsearch = Chroma(persist_directory=os.path.join(db_save_path, "cloud_bot_20240226_chroma_db"),
 #                         embedding_function=embeddings)
-new_docsearch = Chroma(persist_directory=os.path.join(db_save_path, "cloud_bot_20240317_chroma_db"),
+# new_docsearch = Chroma(persist_directory=os.path.join(db_save_path, "cloud_bot_20240317_chroma_db"),
+#                         embedding_function=embeddings)
+
+CONNECTION_STRING = "postgresql+psycopg2://ID:PW@localhost:5432/DB NAME"
+COLLECTION_NAME = "pgvector_db"
+new_docsearch = PGVector(collection_name=COLLECTION_NAME, connection_string=CONNECTION_STRING,
                         embedding_function=embeddings)
 
 retriever = new_docsearch.as_retriever(
