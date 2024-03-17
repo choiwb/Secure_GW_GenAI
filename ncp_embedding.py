@@ -57,5 +57,32 @@ class HCXEmbedding(EmbeddingFunction):
         else:
             print('Error retrieving embedding for query')
             return None
+        
+    def embed_documents(self, documents):
+        """여러 문서에 대해 임베딩을 생성하고 반환합니다.
+
+        Args:
+            documents (list of str): 임베딩을 생성할 문서들의 리스트.
+
+        Returns:
+            list of embeddings: 생성된 임베딩들의 리스트. 각 임베딩은 문서에 대응됩니다.
+        """
+        embeddings = []
+        for doc_text in documents:
+            try:
+                res = self._send_request(doc_text)
+                if res['status']['code'] == '20000':
+                    embedding = res['result']['embedding']
+                    embeddings.append(embedding)
+                else:
+                    print('Error retrieving embedding for document')
+                    embeddings.append(None)  # 임베딩 생성 실패시 None 추가
+            except Exception as e:
+                print(f"Error in embed_documents: {e}")
+                embeddings.append(None)
+        return embeddings
+
+
+
 
 
