@@ -747,9 +747,11 @@ def online_chroma_save(*urls):
 # '''임베딩 완료 시간: 1.62 (초)'''
 # print('임베딩 완료 시간: %.2f (초)' %(end-start))
  
-new_docsearch = Chroma(persist_directory=os.path.join(db_save_path, "cloud_bot_20240226_chroma_db"),
+# new_docsearch = Chroma(persist_directory=os.path.join(db_save_path, "cloud_bot_20240226_chroma_db"),
+#                         embedding_function=embeddings)
+new_docsearch = Chroma(persist_directory=os.path.join(db_save_path, "cloud_bot_20240317_chroma_db"),
                         embedding_function=embeddings)
- 
+
 retriever = new_docsearch.as_retriever(
                                         search_type="mmr",                                        
                                         search_kwargs={'k': 8, 'fetch_k': 32}
