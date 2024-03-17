@@ -32,7 +32,7 @@ class HCXEmbedding:
         }
 
         conn = http.client.HTTPSConnection(os.getenv("HCX_TOKEN_HOST"))
-        conn.request('POST', '/testapp/v1/api-tools/embedding/clir-emb-dolphin/266736b2551c43ff83fd1d18a524923b', json.dumps(completion_request), headers)
+        conn.request('POST', 'EMBEDDING MODEL PATH !!!!!!!!!!!!!!!!!!!!!', json.dumps(completion_request), headers)
         response = conn.getresponse()
         result = json.loads(response.read().decode(encoding='utf-8'))
         conn.close()
