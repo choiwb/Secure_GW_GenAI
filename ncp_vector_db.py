@@ -38,7 +38,7 @@ text_splitter = CharacterTextSplitter(
                             length_function = len,
                             )
 
-    
+
 def offline_chroma_save(pdf_paths):
 
     total_docs = []
@@ -52,11 +52,9 @@ def offline_chroma_save(pdf_paths):
         
         page_content = [doc.page_content for doc in doc]
         
-        for i in range(len(page_content)):
-            doc_json = {"text": page_content[i]}
-            # 1024 차원
-            # single_embed_query = embeddings.embed_query(doc_json)
-            single_embed_query = embeddings.embed_documents(doc_json)
+        for content in page_content:
+            single_embed_query = embeddings.embed_query(content)
+            # print(len(single_embed_query))
             total_embed_query.append(single_embed_query)
 
     print(len(total_embed_query))
@@ -68,7 +66,6 @@ def offline_chroma_save(pdf_paths):
         persist_directory=os.path.join(ROOT_DIR, db_save_path, "cloud_bot_20240317_chroma_db")
         )
     vectorstore.persist()
-
 
 
 
@@ -92,11 +89,9 @@ def offline_pgvector_save(pdf_paths):
         
         page_content = [doc.page_content for doc in doc]
         
-        for i in range(len(page_content)):
-            doc_json = {"text": page_content[i]}
-            # 1024 차원
-            # single_embed_query = embeddings.embed_query(doc_json)
-            single_embed_query = embeddings.embed_documents(doc_json)
+        for content in page_content:
+            single_embed_query = embeddings.embed_query(content)
+            # print(len(single_embed_query))
             total_embed_query.append(single_embed_query)
 
     print(len(total_embed_query))
@@ -112,7 +107,7 @@ def offline_pgvector_save(pdf_paths):
  
 start = time.time()
 total_content = offline_chroma_save(pdf_paths)
-# total_content = offline_pgvector_save(pdf_paths)
+total_content = offline_pgvector_save(pdf_paths)
 end = time.time()
 '''임베딩 완료 시간: 1.31 (초)'''
 print('임베딩 완료 시간: %.2f (초)' %(end-start))
