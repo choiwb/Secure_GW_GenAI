@@ -54,6 +54,7 @@ def offline_chroma_save(pdf_paths):
         
         for content in page_content:
             single_embed_query = embeddings.embed_query(content)
+            # 1024 차원
             # print(len(single_embed_query))
             total_embed_query.append(single_embed_query)
 
@@ -91,6 +92,7 @@ def offline_pgvector_save(pdf_paths):
         
         for content in page_content:
             single_embed_query = embeddings.embed_query(content)
+            # 1024 차원
             # print(len(single_embed_query))
             total_embed_query.append(single_embed_query)
 
