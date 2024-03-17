@@ -12,6 +12,7 @@ HCX_API_KEY_PRIMARY_VAL=os.getenv("HCX_API_KEY_PRIMARY_VAL")
 REQUEST_ID=str(uuid.uuid4())
 HCX_EMBEDDING_API_KEY=os.getenv("HCX_EMBEDDING_API_KEY")
 HCX_TOKEN_HOST=os.getenv("HCX_TOKEN_HOST")
+NCP_EMBEDDING_URL=os.getenv("NCP_EMBEDDING_URL")
 
 
 class HCXEmbedding(EmbeddingFunction):
@@ -25,7 +26,7 @@ class HCXEmbedding(EmbeddingFunction):
         }
         completion_request = {'text': text}  # 예제 요청 포맷, 실제 요청 포맷에 맞춰 수정 필요
         conn = http.client.HTTPSConnection(HCX_TOKEN_HOST)
-        conn.request('POST', '/testapp/v1/api-tools/embedding/clir-emb-dolphin/266736b2551c43ff83fd1d18a524923b', json.dumps(completion_request), headers)
+        conn.request('POST', NCP_EMBEDDING_URL, json.dumps(completion_request), headers)
         response = conn.getresponse()
         result = json.loads(response.read().decode('utf-8'))
         conn.close()
