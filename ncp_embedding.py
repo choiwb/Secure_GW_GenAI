@@ -5,72 +5,57 @@ import uuid
 from dotenv import load_dotenv
 import json
 import http.client
-
+from chromadb import Documents, EmbeddingFunction, Embeddings
 
 load_dotenv()
 HCX_API_KEY_PRIMARY_VAL=os.getenv("HCX_API_KEY_PRIMARY_VAL")
 REQUEST_ID=str(uuid.uuid4())
 HCX_EMBEDDING_API_KEY=os.getenv("HCX_EMBEDDING_API_KEY")
+HCX_TOKEN_HOST=os.getenv("HCX_TOKEN_HOST")
 
-class HCXEmbedding:
-    # def __init__(self, host, api_key, api_key_primary_val, request_id):
-    #     self._host = host
-    #     self._api_key = API_KEY
-    #     self._api_key_primary_val = api_key_primary_val
-    #     self._request_id = request_id
-    
-    def __init__(self):
-        self.documents = []
-        self.document_embeddings = []
-    
-    def _send_request(self, completion_request):
+
+class HCXEmbedding(EmbeddingFunction):
+
+    def _send_request(self, text):
         headers = {
             'Content-Type': 'application/json; charset=utf-8',
             'X-NCP-CLOVASTUDIO-API-KEY': HCX_EMBEDDING_API_KEY,
             'X-NCP-APIGW-API-KEY': HCX_API_KEY_PRIMARY_VAL,
             'X-NCP-CLOVASTUDIO-REQUEST-ID': REQUEST_ID
         }
-
-        conn = http.client.HTTPSConnection(os.getenv("HCX_TOKEN_HOST"))
-        conn.request('POST', 'EMBEDDING MODEL PATH !!!!!!!!!!!!!!!!!!!!!', json.dumps(completion_request), headers)
+        completion_request = {'text': text}  # 예제 요청 포맷, 실제 요청 포맷에 맞춰 수정 필요
+        conn = http.client.HTTPSConnection(HCX_TOKEN_HOST)
+        conn.request('POST', '/testapp/v1/api-tools/embedding/clir-emb-dolphin/266736b2551c43ff83fd1d18a524923b', json.dumps(completion_request), headers)
         response = conn.getresponse()
-        result = json.loads(response.read().decode(encoding='utf-8'))
+        result = json.loads(response.read().decode('utf-8'))
         conn.close()
         return result
 
-    def embed_query(self, completion_request):
-        res = self._send_request(completion_request)
+    def __call__(self, input: Documents) -> Embeddings:
+        embeddings = []
+        for text in input.documents:
+            try:
+                res = self._send_request(text)
+                if res['status']['code'] == '20000':
+                    embedding = res['result']['embedding']
+                    embeddings.append(embedding)
+                else:
+                    print('Error retrieving embedding')
+                    return None
+            except Exception as e:
+                print(f"Error in E5EmbeddingFunction: {e}")
+                return None
+
+        return Embeddings(embeddings)
+    
+    # embed_query 메서드 추가
+    def embed_query(self, query):
+        # 단일 쿼리에 대한 임베딩 생성
+        res = self._send_request(query)
         if res['status']['code'] == '20000':
             return res['result']['embedding']
         else:
-            return 'Error'
-        
-    def embed_documents(self, documents):
-        try:
-            self.documents = documents
-            self.document_embeddings = [self.embed_query({"text": doc}) for doc in documents]
-            return self.document_embeddings
-        except:
-            self.document_embeddings = [self.embed_query({"text": documents})]
-            return self.document_embeddings
-
-
-
-
-if __name__ == '__main__':
-    embeddings = HCXEmbedding()
-
-    request_data = json.loads("""{
-    "text" : "안녕"
-}""", strict=False)
-
-    # response_query = embeddings.embed_query(request_data)
-    # response_text = embeddings.embed_documents(request_data)
-    # print('***************************')
-    # print(response_text)
-    # print('***************************')
-    # print(response_query)
-
-
+            print('Error retrieving embedding for query')
+            return None
 
 
