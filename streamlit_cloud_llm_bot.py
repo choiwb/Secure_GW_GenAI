@@ -758,11 +758,15 @@ retriever = new_docsearch.as_retriever(
                                        )
  
 # # retriever의 compression 시도 !!!!!!!!!!!!!!!!!!!!!!!!!
-embeddings_filter = EmbeddingsFilter(embeddings=embeddings, similarity_threshold=0.3)
- 
-compression_retriever = ContextualCompressionRetriever(
-    base_compressor=embeddings_filter, base_retriever=retriever
-)
+'''
+ncp embedding의 경우
+ValidationError: 1 validation error for EmbeddingsFilter embeddings instance of Embeddings expected (type=type_error.arbitrary_type; expected_arbitrary_type=Embeddings)
+'''
+# embeddings_filter = EmbeddingsFilter(embeddings=embeddings, similarity_threshold=0.3) 
+
+# compression_retriever = ContextualCompressionRetriever(
+#     base_compressor=embeddings_filter, base_retriever=retriever
+# )
  
  
 # =langchain 기반 memory caching
@@ -862,8 +866,8 @@ gpt_standalone_question = {
  
 # Now we retrieve the documents
 retrieved_documents = {
-    # "source_documents": itemgetter("standalone_question") | retriever,
-    "source_documents": itemgetter("standalone_question") | compression_retriever,
+    "source_documents": itemgetter("standalone_question") | retriever,
+    # "source_documents": itemgetter("standalone_question") | compression_retriever,
     "question": lambda x: x["standalone_question"],
 }
  
