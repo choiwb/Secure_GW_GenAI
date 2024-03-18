@@ -141,8 +141,8 @@ text_splitter_function_calling = RecursiveCharacterTextSplitter.from_tiktoken_en
     )
 
 # text-embedding-3-small or text-embedding-3-large
-# embeddings = OpenAIEmbeddings(model = 'text-embedding-3-small')
-embeddings = HCXEmbedding()
+embeddings = OpenAIEmbeddings(model = 'text-embedding-3-small')
+# embeddings = HCXEmbedding()
 
   
 class HCX_only(LLM):        
@@ -748,15 +748,15 @@ def online_chroma_save(*urls):
 # '''임베딩 완료 시간: 1.62 (초)'''
 # print('임베딩 완료 시간: %.2f (초)' %(end-start))
  
-# new_docsearch = Chroma(persist_directory=os.path.join(db_save_path, "cloud_bot_20240226_chroma_db"),
-#                         embedding_function=embeddings)
+new_docsearch = Chroma(persist_directory=os.path.join(db_save_path, "cloud_bot_20240226_chroma_db"),
+                        embedding_function=embeddings)
 # new_docsearch = Chroma(persist_directory=os.path.join(db_save_path, "cloud_bot_20240317_chroma_db"),
 #                         embedding_function=embeddings)
 
-CONNECTION_STRING = "postgresql+psycopg2://ID:PW@localhost:5432/DB NAME"
-COLLECTION_NAME = "pgvector_db"
-new_docsearch = PGVector(collection_name=COLLECTION_NAME, connection_string=CONNECTION_STRING,
-                        embedding_function=embeddings)
+# CONNECTION_STRING = "postgresql+psycopg2://ID:PW@localhost:5432/DB NAME"
+# COLLECTION_NAME = "pgvector_db"
+# new_docsearch = PGVector(collection_name=COLLECTION_NAME, connection_string=CONNECTION_STRING,
+#                         embedding_function=embeddings)
 
 retriever = new_docsearch.as_retriever(
                                         search_type="mmr",                                        
@@ -768,11 +768,11 @@ retriever = new_docsearch.as_retriever(
 ncp embedding의 경우
 ValidationError: 1 validation error for EmbeddingsFilter embeddings instance of Embeddings expected (type=type_error.arbitrary_type; expected_arbitrary_type=Embeddings)
 '''
-# embeddings_filter = EmbeddingsFilter(embeddings=embeddings, similarity_threshold=0.3) 
+embeddings_filter = EmbeddingsFilter(embeddings=embeddings, similarity_threshold=0.3) 
 
-# compression_retriever = ContextualCompressionRetriever(
-#     base_compressor=embeddings_filter, base_retriever=retriever
-# )
+compression_retriever = ContextualCompressionRetriever(
+    base_compressor=embeddings_filter, base_retriever=retriever
+)
  
  
 # =langchain 기반 memory caching
@@ -872,8 +872,8 @@ gpt_standalone_question = {
  
 # Now we retrieve the documents
 retrieved_documents = {
-    "source_documents": itemgetter("standalone_question") | retriever,
-    # "source_documents": itemgetter("standalone_question") | compression_retriever,
+    # "source_documents": itemgetter("standalone_question") | retriever,
+    "source_documents": itemgetter("standalone_question") | compression_retriever,
     "question": lambda x: x["standalone_question"],
 }
  
