@@ -110,15 +110,10 @@ try:
                         
                         full_response = retrieval_qa_chain.invoke({"question":prompt})    
 
-                        # 대문자 C로 시작하고 그 뒤에 숫자가 오는 패턴 정의
-                        asec_pattern = r'C\d+'
-                        asec_list = re.findall(asec_pattern, full_response)
-                        asec_str = ', '.join(asec_list)
-                        
                         # 참조 문서 UI 표출
-                        if len(hcx_stream.source_documents) > 10:
+                        if len(hcx_stream.source_documents.strip()) > 0:
                             with st.expander('참조 문서'):
-                                st.markdown(f'AhnLab에서 제공하는 위협정보 입니다.<br>자세한 정보는 https://www.ahnlab.com/ko/contents/asec/info 에서 {asec_str}를 검색해주세요.', unsafe_allow_html=True)
+                                st.markdown(f'AhnLab에서 제공하는 위협정보 입니다.<br>자세한 정보는 https://www.ahnlab.com/ko/contents/asec/info 에서 참조해주세요.', unsafe_allow_html=True)
                         else:
                             with st.expander('참조 문서'):
                                 st.markdown('<br>', unsafe_allow_html=True)
