@@ -7,7 +7,7 @@ import pandas as pd
 import streamlit as st
 
 try:
-    from streamlit_cloud_llm_bot import retrieval_qa_chain, asa_memory, hcx_general, hcx_stream, hcx_sec_pipe, hcx_sec
+    from streamlit_cloud_llm_bot import retrieval_qa_chain, asa_memory, hcx_general, hcx_stream, hcx_sec_pipe, hcx_sec, reset_conversation
 except Exception as e:
     # 페이지를 자동으로 다시 실행
     st.rerun()
@@ -79,6 +79,9 @@ try:
                 # HCX_stream 클래스에서 "Assistant" 를 이미 bold 처리하여 생성하므로, 굳이 더할 필요는 없음! 하지만 unsafe_allow_html = True를 해야 함.
                 st.markdown("<b>ASA</b><br>" + avatar_message["content"],  unsafe_allow_html=True)
 
+    with st.sidebar:
+        st.button("대화 리셋", on_click=reset_conversation(), use_container_width=True)
+    
     if prompt := st.chat_input(""):
         with st.chat_message("user", avatar=you_icon):
             st.markdown("<b>You</b><br>" + prompt, unsafe_allow_html=True)
