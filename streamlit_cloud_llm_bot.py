@@ -808,7 +808,15 @@ def gpt_init_memory():
         memory_key='chat_history',
         return_messages=True)
 gpt_memory = gpt_init_memory()
- 
+
+# reset button
+def reset_conversation():
+  st.session_state.conversation = None
+  st.session_state.chat_history = None
+  asa_memory.clear()
+  hcx_memory.clear()
+  gpt_memory.clear()
+
 # 토큰 절약하기 위한
 # ConversationalRetrievalChain to LCEL !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 DEFAULT_DOCUMENT_PROMPT = PromptTemplate.from_template(template="{page_content}")
