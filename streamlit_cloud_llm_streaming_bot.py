@@ -77,7 +77,8 @@ try:
             avatar_icon = avatar_message.get("avatar", ahn_icon)
             with st.chat_message(avatar_message["role"], avatar=avatar_icon):
                 # HCX_stream 클래스에서 "Assistant" 를 이미 bold 처리하여 생성하므로, 굳이 더할 필요는 없음! 하지만 unsafe_allow_html = True를 해야 함.
-                st.markdown("<b>ASA</b><br>" + avatar_message["content"],  unsafe_allow_html=True)
+                with st.expander('ASA'):
+                    st.markdown("<b>ASA</b><br>" + avatar_message["content"],  unsafe_allow_html=True)
 
     with st.sidebar:
         st.button("대화 리셋", on_click=reset_conversation(), use_container_width=True)
