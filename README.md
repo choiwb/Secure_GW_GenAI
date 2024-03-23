@@ -1,9 +1,10 @@
-# NCP_HCX_GenAI
-NCP (Naver Cloud Platform) HCX (Hyper Clova X) Generative AI Application
+# Secure Gateway based GenAI
+HCX (Hyper Clova X) & GPT Generative AI Application
 
 [Generative AI app]
-- Scenario: auto review generation, Cloud LLM Bot
-- LLM: HCX
+- Scenario: auto review generation, Cloud based Assistant
+- Secure Gateway: LLM based Prompt Injection module
+- LLM: HCX, GPT
 - Embedding: OpenAI, NCP
 - Vector DB: Chroma, FAISS, PGVector
 - Backend: LangChain
@@ -11,4 +12,4 @@ NCP (Naver Cloud Platform) HCX (Hyper Clova X) Generative AI Application
 - Production & Deployment: LangSmith
 -----
 - TO DO 1: LangSmith customizing - token count & price (OpenAI to HCX)
-- TO DO 2: Cloud Architecture & Generative AI Scenario
+- TO DO 2: Multimodal RAG (GPT-4 Vision, Gemini Pro Vision, etc)
