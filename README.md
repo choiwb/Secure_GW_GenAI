@@ -12,5 +12,4 @@ HCX (Hyper Clova X) & GPT & Gemini Pro Vision Generative AI Application
 - Frontend: Streamlit
 - Production & Deployment: LangSmith
 -----
-- TO DO 1: LangSmith customizing - token count & price (OpenAI to HCX)
-- TO DO 2: Multimodal RAG (GPT-4 Vision, Gemini Pro Vision, etc)
+- TO DO: LangSmith customizing - token count & price (OpenAI to HCX)
