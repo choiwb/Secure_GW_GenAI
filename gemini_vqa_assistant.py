@@ -7,8 +7,8 @@ from streamlit_cloud_llm_bot import reset_conversation, gemini_memory, gemini_tx
 from langchain.schema import HumanMessage
 
 ########################################################################
-you_icon = os.path.join(os.getcwd(), 'image/you_icon.png')
-ahn_icon = os.path.join(os.getcwd(), 'image/ahn_icon.png')
+you_icon = 'your icon !!!!!!'
+ahn_icon = 'your icon !!!!!!'
 
 # asa, hcx 별 프로토콜 스택 이미지 경로
 asa_image_path = os.path.join(os.getcwd(), 'image/protocol_stack.png')
