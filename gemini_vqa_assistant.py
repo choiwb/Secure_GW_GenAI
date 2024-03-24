@@ -11,7 +11,7 @@ you_icon = 'your icon !!!!!!'
 ahn_icon = 'your icon !!!!!!'
 
 # asa, hcx 별 프로토콜 스택 이미지 경로
-asa_image_path = os.path.join(os.getcwd(), 'image/protocol_stack.png')
+asa_image_path = 'your image path !!!!!!'
 ########################################################################
 
 
