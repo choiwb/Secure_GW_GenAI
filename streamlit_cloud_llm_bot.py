@@ -6,8 +6,7 @@ import httpx
 import time
 import requests
 from dotenv import load_dotenv
-from pydantic import Extra, Field
-from typing import Any, List, Mapping, Optional
+from typing import Any, List, Optional
 from langchain.prompts import PromptTemplate
 from langchain.embeddings.openai import OpenAIEmbeddings
 from ncp_embedding import HCXEmbedding
@@ -18,23 +17,16 @@ from langchain.memory import ConversationBufferMemory
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.llms.base import LLM
 import streamlit as st
-from streamlit_chat import message
 from langchain.callbacks.manager import CallbackManagerForLLMRun
-import pandas as pd
 from langchain_core.runnables import RunnablePassthrough, RunnableLambda
 from langchain_core.output_parsers import StrOutputParser
 from operator import itemgetter
 from langchain_core.messages import get_buffer_string
 from langchain.schema import format_document
 from langchain.retrievers import ContextualCompressionRetriever
-from langchain.document_loaders import AsyncHtmlLoader
-from langchain.document_transformers import Html2TextTransformer
-from langchain.chains import create_extraction_chain
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.chat_models import ChatOpenAI  
 from langchain.retrievers.document_compressors import EmbeddingsFilter
-from multiprocessing import Pool
-import concurrent.futures
 
 # HCX 토큰 계산기 API 호출
 from hcx_token_cal import token_completion_executor
