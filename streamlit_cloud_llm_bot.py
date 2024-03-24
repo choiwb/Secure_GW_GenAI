@@ -27,9 +27,11 @@ from langchain.retrievers import ContextualCompressionRetriever
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.chat_models import ChatOpenAI  
 from langchain.retrievers.document_compressors import EmbeddingsFilter
+from langchain_google_genai import ChatGoogleGenerativeAI
 
 # HCX 토큰 계산기 API 호출
 from hcx_token_cal import token_completion_executor
+
 
 
 ##################################################################################
@@ -53,6 +55,10 @@ pdf_path_1 = 'your pdf context rag data path !!!!!!!!!!!!!!!!!!'
 pdf_path_2 = 'your pdf context rag data path !!!!!!!!!!!!!!!!!!'
 
 ahn_asec_path = 'pdf files dir !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
+
+# # Set Google API key
+os.getenv("GOOGLE_API_KEY")
+os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
 ##################################################################################
 
  
@@ -127,7 +133,6 @@ text_splitter_function_calling = RecursiveCharacterTextSplitter.from_tiktoken_en
 # text-embedding-3-small or text-embedding-3-large
 embeddings = OpenAIEmbeddings(model = 'text-embedding-3-small')
 # embeddings = HCXEmbedding()
-  
 
               
 class HCX_sec(LLM):        
@@ -421,6 +426,11 @@ gpt_model = ChatOpenAI(
     temperature=0.1
 )    
 
+gemini_txt_model = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.1, max_output_tokens=512)
+
+gemini_vis_model = ChatGoogleGenerativeAI(model="gemini-pro-vision", temperature=0.1, max_output_tokens=512)
+# gemini_vis_model = geminiai.GenerativeModel('gemini-pro-vision')
+
 hcx_sec = HCX_sec()
 hcx_general = HCX_general()
 hcx_stream = HCX_stream()
@@ -492,7 +502,8 @@ retriever = new_docsearch.as_retriever(
                                         search_type="mmr",                                        
                                         search_kwargs={'k': 8, 'fetch_k': 32}
                                        )
- 
+
+
 # retriever의 compression 시도 !!!!!!!!!!!!!!!!!!!!!!!!!
 '''
 ncp embedding의 경우
@@ -531,6 +542,14 @@ def gpt_init_memory():
         return_messages=True)
 gpt_memory = gpt_init_memory()
  
+@st.cache_resource
+def gemini_init_memory():
+    return ConversationBufferMemory(
+        input_key='question',
+        output_key='answer',
+        memory_key='chat_history',
+        return_messages=True)
+gemini_memory = gemini_init_memory()
  
 # reset button
 def reset_conversation():
@@ -539,6 +558,7 @@ def reset_conversation():
   asa_memory.clear()
   hcx_memory.clear()
   gpt_memory.clear()
+  gemini_memory.clear()
   
   
 
@@ -570,6 +590,10 @@ gpt_loaded_memory = RunnablePassthrough.assign(
     chat_history=RunnableLambda(gpt_memory.load_memory_variables) | itemgetter("chat_history"),
 )
 
+gemini_loaded_memory = RunnablePassthrough.assign(
+    chat_history=RunnableLambda(gemini_memory.load_memory_variables) | itemgetter("chat_history"),
+)
+
 standalone_question = {
     "standalone_question": {
         "question": lambda x: x["question"],
@@ -589,6 +613,11 @@ retrieved_documents = {
 not_retrieved_documents = {
     "question": lambda x: x["standalone_question"],
 }
+
+img_retrieved_documents = {
+    "information": lambda x: x["information"],
+    "question": lambda x: x["standalone_question"],
+}
  
 final_inputs = {
     "context": lambda x: _combine_documents(x["source_documents"]),
@@ -600,3 +629,7 @@ hcx_sec_pipe = SEC_CHAIN_PROMPT | hcx_sec | StrOutputParser()
 retrieval_qa_chain = asa_loaded_memory | standalone_question | retrieved_documents | final_inputs | QA_CHAIN_PROMPT | hcx_stream | StrOutputParser()
 hcx_only_pipe = hcx_loaded_memory | standalone_question | not_retrieved_documents | ONLY_CHAIN_PROMPT | hcx_only | StrOutputParser()
 gpt_pipe = gpt_loaded_memory | standalone_question | not_retrieved_documents | ONLY_CHAIN_PROMPT | gpt_model | StrOutputParser()
+
+gemini_txt_pipe = {"information": RunnablePassthrough(), "question": RunnablePassthrough()} | gemini_loaded_memory | standalone_question | img_retrieved_documents | ONLY_CHAIN_PROMPT | gemini_txt_model | StrOutputParser()
+gemini_vis_pipe = RunnablePassthrough() | gemini_vis_model | StrOutputParser() | gemini_txt_pipe
+
