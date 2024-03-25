@@ -603,21 +603,30 @@ standalone_question = {
     | hcx_general
     | StrOutputParser()
 }
+
+img_standalone_question = {
+    "context": lambda x: x["context"],
+    "standalone_question": {
+        "question": lambda x: x["question"],
+        "chat_history": lambda x: get_buffer_string(x["chat_history"]),
+    }
+    | CONDENSE_QUESTION_PROMPT
+    | hcx_general
+    | StrOutputParser()
+}
   
 retrieved_documents = {
     # "source_documents": itemgetter("standalone_question") | retriever,
     "source_documents": itemgetter("standalone_question") | compression_retriever,
     "question": lambda x: x["standalone_question"],
 }
-
-# image 데이터 기반 별도 vector db & retriever 생성 필요 함.!!!!!!!!!!!!!!!!!!!!
-img_retrieved_documents = {
-    "source_documents": itemgetter("standalone_question") | retriever,
-    "question": lambda x: x["standalone_question"],
-}
- 
  
 not_retrieved_documents = {
+    "question": lambda x: x["standalone_question"],
+}
+
+img_retrieved_documents = {
+    "context": lambda x: x["context"],
     "question": lambda x: x["standalone_question"],
 }
  
@@ -625,11 +634,7 @@ final_inputs = {
     "context": lambda x: _combine_documents(x["source_documents"]),
     "question": itemgetter("question"),
 }
-  
-img_final_inputs = {
-    "context": lambda x: x["source_documents"] | retriever,
-    "question": itemgetter("question"),
-}
+
 
 hcx_sec_pipe = SEC_CHAIN_PROMPT | hcx_sec | StrOutputParser()
 retrieval_qa_chain = asa_loaded_memory | standalone_question | retrieved_documents | final_inputs | QA_CHAIN_PROMPT | hcx_stream | StrOutputParser()
@@ -638,5 +643,5 @@ gpt_pipe = gpt_loaded_memory | standalone_question | not_retrieved_documents | O
 
 gemini_txt_pipe = gemini_loaded_memory | standalone_question | not_retrieved_documents | ONLY_CHAIN_PROMPT | gemini_txt_model | StrOutputParser()
 gemini_vis_pipe = RunnablePassthrough() | gemini_vis_model | StrOutputParser()
-gemini_vis_txt_pipe = gemini_loaded_memory | standalone_question | img_retrieved_documents | img_final_inputs | QA_CHAIN_PROMPT | gemini_txt_model | StrOutputParser()
+gemini_vis_txt_pipe = gemini_loaded_memory | img_standalone_question | img_retrieved_documents | QA_CHAIN_PROMPT | gemini_txt_model | StrOutputParser()
 
