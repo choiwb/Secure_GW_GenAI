@@ -3,7 +3,7 @@
 import os
 import streamlit as st
 from PIL import Image
-from streamlit_cloud_llm_bot import reset_conversation, gemini_memory, gemini_txt_pipe, gemini_vis_pipe
+from streamlit_cloud_llm_bot import reset_conversation, gemini_memory, gemini_txt_pipe, gemini_vis_pipe, gemini_vis_txt_pipe
 from langchain.schema import HumanMessage
 
 ########################################################################
@@ -94,8 +94,14 @@ if prompt := st.chat_input(""):
                             {"type": "image_url", "image_url": image},
                         ]
                         )
-                                                                   
-                        for chunk in gemini_vis_pipe.stream([img_message]):
+                        
+                        img_context = gemini_vis_pipe.invoke([img_message])
+                        print('########################################################################')
+                        print(img_context)
+                        print('########################################################################')
+
+                                                       
+                        for chunk in gemini_vis_txt_pipe.stream({"context":img_context, "question":prompt}):
                                     print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
                                     print(uploaded_image)
                                     print(chunk)
