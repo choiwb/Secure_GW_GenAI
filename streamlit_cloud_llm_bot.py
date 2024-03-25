@@ -609,13 +609,15 @@ retrieved_documents = {
     "source_documents": itemgetter("standalone_question") | compression_retriever,
     "question": lambda x: x["standalone_question"],
 }
- 
-not_retrieved_documents = {
+
+# image 데이터 기반 별도 vector db & retriever 생성 필요 함.!!!!!!!!!!!!!!!!!!!!
+img_retrieved_documents = {
+    "source_documents": itemgetter("standalone_question") | retriever,
     "question": lambda x: x["standalone_question"],
 }
-
-img_retrieved_documents = {
-    "information": lambda x: x["information"],
+ 
+ 
+not_retrieved_documents = {
     "question": lambda x: x["standalone_question"],
 }
  
@@ -624,12 +626,17 @@ final_inputs = {
     "question": itemgetter("question"),
 }
   
+img_final_inputs = {
+    "context": lambda x: x["source_documents"] | retriever,
+    "question": itemgetter("question"),
+}
 
 hcx_sec_pipe = SEC_CHAIN_PROMPT | hcx_sec | StrOutputParser()
 retrieval_qa_chain = asa_loaded_memory | standalone_question | retrieved_documents | final_inputs | QA_CHAIN_PROMPT | hcx_stream | StrOutputParser()
 hcx_only_pipe = hcx_loaded_memory | standalone_question | not_retrieved_documents | ONLY_CHAIN_PROMPT | hcx_only | StrOutputParser()
 gpt_pipe = gpt_loaded_memory | standalone_question | not_retrieved_documents | ONLY_CHAIN_PROMPT | gpt_model | StrOutputParser()
 
-gemini_txt_pipe = {"information": RunnablePassthrough(), "question": RunnablePassthrough()} | gemini_loaded_memory | standalone_question | img_retrieved_documents | ONLY_CHAIN_PROMPT | gemini_txt_model | StrOutputParser()
-gemini_vis_pipe = RunnablePassthrough() | gemini_vis_model | StrOutputParser() | gemini_txt_pipe
+gemini_txt_pipe = gemini_loaded_memory | standalone_question | not_retrieved_documents | ONLY_CHAIN_PROMPT | gemini_txt_model | StrOutputParser()
+gemini_vis_pipe = RunnablePassthrough() | gemini_vis_model | StrOutputParser()
+gemini_vis_txt_pipe = gemini_loaded_memory | standalone_question | img_retrieved_documents | img_final_inputs | QA_CHAIN_PROMPT | gemini_txt_model | StrOutputParser()
 
