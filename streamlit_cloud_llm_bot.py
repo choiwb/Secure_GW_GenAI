@@ -1,10 +1,12 @@
 
 import os
 import uuid
+import random
 import json
 import httpx
 import time
 import requests
+import pandas as pd
 from dotenv import load_dotenv
 from typing import Any, List, Optional
 from langchain.prompts import PromptTemplate
@@ -263,6 +265,7 @@ class HCX_stream(LLM):
    
     init_input_token_count: int = 0
     source_documents: str = ""
+    sample_src_doc_df = pd.DataFrame()
     stream_token_start_time: float = 0.0
 
     @property
@@ -283,6 +286,12 @@ class HCX_stream(LLM):
        
         # prompt 변수의 context for answer: 부터 question: 이전 text를 source_documents 선언
         self.source_documents = prompt.split("context for answer: ")[1].split("question: ")[0]
+        if len(self.source_documents.strip()) > 0:
+            source_documents_list = self.source_documents.split('\n\n')
+            sample_src_doc = random.sample(source_documents_list, 2)
+            sample_src_doc = [[i+1, doc[:100] + '.....(이하 생략)'] for i, doc in enumerate(sample_src_doc)] 
+            self.sample_src_doc_df = pd.DataFrame(sample_src_doc,  columns=['No', '참조 문서'])
+            self.sample_src_doc_df = self.sample_src_doc_df.set_index('No')
        
         output_token_json = {
             "messages": preset_text
