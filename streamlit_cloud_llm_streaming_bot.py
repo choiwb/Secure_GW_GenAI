@@ -112,8 +112,7 @@ if prompt := st.chat_input(""):
                         # 참조 문서 UI 표출
                         if len(hcx_stream.source_documents.strip()) > 0:
                             with st.expander('참조 문서'):
-                                st.markdown(hcx_stream.source_documents[:100], unsafe_allow_html=True)
-                                st.markdown(".....(이하 생략)<br><br>" , unsafe_allow_html=True)
+                                st.table(hcx_stream.sample_src_doc_df)
                                 st.markdown("AhnLab에서 제공하는 위협정보 입니다.<br>자세한 정보는 https://www.ahnlab.com/ko/contents/asec/info 에서 참조해주세요.", unsafe_allow_html=True)
 
                         # full_response에서 <b>Assistant</b><br> 제거
