@@ -12,8 +12,7 @@ from typing import Any, List, Optional
 from langchain.prompts import PromptTemplate
 from langchain.embeddings.openai import OpenAIEmbeddings
 from ncp_embedding import HCXEmbedding
-from langchain.vectorstores import FAISS, Chroma
-from langchain_community.vectorstores.pgvector import PGVector
+from langchain.vectorstores import Chroma
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.memory import ConversationBufferMemory
 from langchain_community.document_loaders import PyPDFLoader
@@ -447,30 +446,6 @@ hcx_only = HCX_only()
 
  
 # 오프라인 데이터 가공 ####################################################################################
-def offline_faiss_save(*pdf_path):
- 
-    total_docs = []
-   
-    for pdf_url in pdf_path:
-        pdfreader =  PyPDFLoader(pdf_url)
-        pdf_doc = pdfreader.load_and_split()
-        doc = text_splitter.split_documents(pdf_doc)
-        total_docs = total_docs + doc
- 
-    total_content = [str(item) for item in total_docs]
- 
-    docsearch = FAISS.from_texts(total_content, embeddings)
- 
-    docsearch.embedding_function
-    docsearch.save_local(os.path.join(db_save_path, "cloud_bot_20240208_faiss_db"))
- 
- 
-# start = time.time()
-# total_content = offline_faiss_save(pdf_path_1, pdf_path_2)
-# end = time.time()
-# '''임베딩 완료 시간: 1.62 (초)'''
-# print('임베딩 완료 시간: %.2f (초)' %(end-start))
- 
 def offline_chroma_save(pdf_paths):
  
     total_docs = []
