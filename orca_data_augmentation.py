@@ -7,6 +7,9 @@ from dotenv import load_dotenv
 from multiprocessing import Pool
 import pandas as pd
 import openai
+from langchain.prompts import PromptTemplate
+from langchain.chat_models import ChatOpenAI
+from langchain_core.output_parsers import StrOutputParser
 
 
 # .env 파일 로드
@@ -33,11 +36,24 @@ orca_prompt_list = ['You are an cyber security analyst. Provide a detailed answe
 'Given a definition of a task and a sample input, break the definition into small parts. Each of those parts will have some instruction. Explain their meaning by showing an example that meets the criteria in the instruction. Use the following format: Part #: a key part of the definition. Usage: Sample response that meets the criteria from the key part. Explain why you think it meets the criteria.',
 'You are an cyber security analyst that helps people find information.']
 
+not_rag_template = """
+    SYSTEMPROMPT: {systemprompt}
+    question: {question}
+    answer: """
+CHAIN_PROMPT = PromptTemplate(input_variables=["systemprompt", "question"],template=not_rag_template)
+
+llm = ChatOpenAI(model_name='gpt-3.5-turbo-16k', temperature=0, max_tokens=8192)
+
+llm_pipe = CHAIN_PROMPT | llm | StrOutputParser()
+llm_result = llm_pipe.invoke({"systemprompt" : 'orca 프롬프트', "question": '개별 질문'})
+
+
+
 orca_prompt_df = pd.DataFrame(orca_prompt_list, columns=['orca_system_prompt'])
 orca_prompt_aug_df = pd.concat([orca_prompt_df] * len(df), ignore_index=True)
 
 # df를 orca_prompt_list 만큼 곱하기
-# df의 각 행 별로 5번씩 복붙하기
+# df의 각 행 별로 15번씩 복붙하기
 df = pd.concat([df] * len(orca_prompt_list), ignore_index=True)
 df = df.sort_values(by = 'input', ascending = True, ignore_index=True)
 
@@ -57,6 +73,8 @@ for i in range(num_dataframes):
     end_idx = min((i + 1) * each_sampling_df_len, len(df))
     globals()[f'df{i+1}'] = df[start_idx:end_idx].copy()
     print(globals()[f'df{i+1}'].shape)
+
+
 
 
 def chatgpt_orca_answer(row):
