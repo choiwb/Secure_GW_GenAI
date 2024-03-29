@@ -7,10 +7,6 @@ from dotenv import load_dotenv
 from multiprocessing import Pool
 import pandas as pd
 import openai
-from langchain.prompts import PromptTemplate
-from langchain.chat_models import ChatOpenAI
-from langchain_core.output_parsers import StrOutputParser
-
 
 # .env 파일 로드
 load_dotenv()
@@ -35,17 +31,6 @@ orca_prompt_list = ['You are an cyber security analyst. Provide a detailed answe
 'You are an cyber security analyst, who knows every language and how to translate one language to another. Given a task, you explain in simple steps what the task is asking, any guidelines that it provides. You solve the task and show how you used the guidelines to solve the task.',
 'Given a definition of a task and a sample input, break the definition into small parts. Each of those parts will have some instruction. Explain their meaning by showing an example that meets the criteria in the instruction. Use the following format: Part #: a key part of the definition. Usage: Sample response that meets the criteria from the key part. Explain why you think it meets the criteria.',
 'You are an cyber security analyst that helps people find information.']
-
-not_rag_template = """
-    SYSTEMPROMPT: {systemprompt}
-    question: {question}
-    answer: """
-CHAIN_PROMPT = PromptTemplate(input_variables=["systemprompt", "question"],template=not_rag_template)
-
-llm = ChatOpenAI(model_name='gpt-3.5-turbo-16k', temperature=0, max_tokens=8192)
-
-llm_pipe = CHAIN_PROMPT | llm | StrOutputParser()
-llm_result = llm_pipe.invoke({"systemprompt" : 'orca 프롬프트', "question": '개별 질문'})
 
 
 
