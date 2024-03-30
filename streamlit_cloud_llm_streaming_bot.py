@@ -1,5 +1,7 @@
 
+
 import os
+import time
 from dotenv import load_dotenv
 import streamlit as st
 
@@ -16,6 +18,7 @@ from langchain.callbacks.manager import collect_runs
 # HCX 토큰 계산기 API 호출
 from hcx_token_cal import token_completion_executor
 
+
 ##################################################################################
 # .env 파일 로드
 load_dotenv()
@@ -31,6 +34,7 @@ os.getenv('LANGCHAIN_API_KEY')
 # asa, hcx 별 프로토콜 스택 이미지 경로
 asa_image_path = 'your image path !!!!!!'
 ##################################################################################
+
 
 client = Client()
 
@@ -88,7 +92,12 @@ if prompt := st.chat_input(""):
             with st.spinner("검색 및 생성 중....."):
                 with collect_runs() as cb:
 
+                    start = time.time()
                     inj_full_response = hcx_sec_pipe.invoke({"question": prompt})
+                    end = time.time()
+                    inj_dur_time = end - start
+                    inj_dur_time = round(inj_dur_time, 2)
+                    
                     sec_inj_input_token = hcx_sec.init_input_token_count
                     
                     if '보안 취약점이 우려되는 질문입니다' not in inj_full_response:
@@ -107,8 +116,11 @@ if prompt := st.chat_input(""):
                         print('RAG가 진행 되므로 HCX_sec 의 출력 토큰은 더해줘야 함.!!!!!!!!!!!!!!!!!!!!')
                         sec_inj_total_token = sec_inj_input_token + output_token_count
                         
+                        srart = time.time()             
                         full_response = retrieval_qa_chain.invoke({"question":prompt})    
-                        
+                        asa_dur_time = hcx_stream.stream_token_start_time - start
+                        asa_dur_time = round(asa_dur_time, 2)
+                                                
                         # 참조 문서 UI 표출
                         if len(hcx_stream.source_documents.strip()) > 0:
                             with st.expander('참조 문서'):
@@ -149,20 +161,21 @@ if prompt := st.chat_input(""):
 
                         st.session_state.ahn_messages.append({"role": "assistant", "content": inj_full_response})
             
-            if '보안 취약점이 우려되는 질문입니다' not in inj_full_response:
-                with st.expander('토큰 정보'):
-                    st.markdown(f"""
-                    - 총 토큰 수: {asa_total_token_final}<br>
-                    - 총 토큰 비용: {round(asa_total_token_final * 0.005, 3)}(원)<br>
-                    - 첫 토큰 지연 시간: {round(hcx_stream.stream_token_start_time, 2)}(초)
-                    """, unsafe_allow_html=True)
-            else:
-                with st.expander('토큰 정보'):
-                    st.markdown(f"""
-                    - 총 토큰 수: {sec_inj_total_token}<br>
-                    - 총 토큰 비용: {round(sec_inj_total_token * 0.005, 3)}(원)<br>
-                    - 총 토큰 지연 시간: {round(hcx_sec.total_token_dur_time, 2)}(초)
-                    """, unsafe_allow_html=True)
+                if '보안 취약점이 우려되는 질문입니다' not in inj_full_response:
+                    with st.expander('토큰 정보 및 답변 시간'):
+                        st.markdown(f"""
+                        - 총 토큰 수: {asa_total_token_final}<br>
+                        - 총 토큰 비용: {round(asa_total_token_final * 0.005, 3)}(원)<br>
+                        - 프롬프트 인젝션 답변 시간: {inj_dur_time}(초)<br>
+                        - RAG 첫 토큰 답변 시간: {asa_dur_time}(초)
+                        """, unsafe_allow_html=True)
+                else:
+                    with st.expander('토큰 정보 및 답변 시간'):
+                        st.markdown(f"""
+                        - 총 토큰 수: {sec_inj_total_token}<br>
+                        - 총 토큰 비용: {round(sec_inj_total_token * 0.005, 3)}(원)<br>
+                        - 프롬프트 인젝션 답변 시간: {inj_dur_time}(초)
+                        """, unsafe_allow_html=True)
                             
         except Exception as e:
             st.error(e, icon="🚨")
