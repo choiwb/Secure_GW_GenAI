@@ -2,7 +2,6 @@
 
 import os
 import time
-import asyncio
 from dotenv import load_dotenv
 import streamlit as st
 
@@ -32,21 +31,14 @@ os.getenv('OPENAI_API_KEY')
 asa_image_path = 'your image path !!!!!!!!!!!!!!!!'
 ################################################################################## 
 
- 
+
 try:
     st.set_page_config(layout="wide")
 except Exception as e:
     # 페이지를 자동으로 다시 실행
     st.rerun()
 
-
-async def asyncio_hcx_sec_pipe():
-    await hcx_sec_pipe.ainvoke({"question": prompt})
-
-async def asyncio_hcx_only_pipe():
-    await hcx_only_pipe.ainvoke({"question": prompt})
-
-
+     
 st.markdown("<h1 style='text-align: center;'>Cloud 특화 어시스턴트</h1>", unsafe_allow_html=True)
 
 with st.expander('추천 질문'):
@@ -139,7 +131,6 @@ for avatar_message in st.session_state.gpt_messages:
 with st.sidebar:
     st.button("대화 리셋", on_click=reset_conversation(), use_container_width=True)
     
-
 if prompt := st.chat_input(""):            
     with ahn_hcx:          
         with st.chat_message("user", avatar=you_icon):
@@ -148,17 +139,21 @@ if prompt := st.chat_input(""):
 
         with st.chat_message("assistant",  avatar=ahn_icon):    
             try:
-                with st.spinner("검색 및 생성 중....."):
+                with st.spinner("보안 검사 중....."):
                     start = time.time()
-                    # inj_full_response = hcx_sec_pipe.invoke({"question": prompt})                    
-                    inj_full_response = asyncio.run(asyncio_hcx_sec_pipe())
-                                        
+                    inj_full_response = hcx_sec_pipe.invoke({"question": prompt})                                        
                     end = time.time()
                     inj_dur_time = end - start
                     inj_dur_time = round(inj_dur_time, 2)
 
                     sec_inj_input_token = hcx_sec.init_input_token_count
                     
+                if '보안 취약점이 우려되는 질문입니다' not in inj_full_response:
+                    st.success('안전!')
+                else:
+                    st.error('위험!')
+                    
+                with st.spinner("검색 및 생성 중....."):
                     if '보안 취약점이 우려되는 질문입니다' not in inj_full_response:
                         output_token_json = {
                             "messages": [
@@ -230,9 +225,11 @@ if prompt := st.chat_input(""):
                         - 총 토큰 비용: {round(sec_inj_total_token * 0.005, 3)}(원)<br>
                         - 프롬프트 인젝션 답변 시간: {inj_dur_time}(초)
                         """, unsafe_allow_html=True)
+                        
             except Exception as e:
                 st.error(e, icon="🚨")
-                    
+    
+                            
     with hcx_col:
         with st.chat_message("user", avatar=you_icon):
             st.markdown("<b>You</b><br>" + prompt, unsafe_allow_html=True)
@@ -242,13 +239,13 @@ if prompt := st.chat_input(""):
             try:
                 with st.spinner("검색 및 생성 중....."):
                     start = time.time()
-                    # full_response = hcx_only_pipe.invoke({"question":prompt})        
-                    full_response = asyncio.run(asyncio_hcx_only_pipe())
+                    full_response = hcx_only_pipe.invoke({"question":prompt})        
                     
                     hcx_dur_time = hcx_only.stream_token_start_time - start
                     hcx_dur_time = round(hcx_dur_time, 2)
 
                     full_response_for_token_cal = full_response.replace('<b>Assistant</b><br>', '').replace('<b>HCX</b><br>', '')
+
                     hcx_input_token = hcx_general.init_input_token_count + hcx_only.init_input_token_count
                     output_token_json = {
                         "messages": [
@@ -308,6 +305,7 @@ if prompt := st.chat_input(""):
             except Exception as e:
                 st.error(e, icon="🚨")
                         
+
 
 
                         
