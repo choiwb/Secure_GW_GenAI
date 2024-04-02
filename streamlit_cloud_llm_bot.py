@@ -265,7 +265,7 @@ class HCX_stream(LLM):
     init_input_token_count: int = 0
     source_documents: str = ""
     sample_src_doc_df = pd.DataFrame()
-    stream_token_start_time: float = 0.0
+    stream_token_start_time = time.time()
 
     @property
     def _llm_type(self) -> str:
@@ -282,6 +282,9 @@ class HCX_stream(LLM):
             raise ValueError("stop kwargs are not permitted.")
        
         preset_text = [{"role": "system", "content": SYSTEMPROMPT}, {"role": "user", "content": prompt}]
+        
+        qa_st_write = st.empty()
+        qa_st_write.write('대화 기반 문서 추출 완료!')
        
         # prompt 변수의 context for answer: 부터 question: 이전 text를 source_documents 선언
         self.source_documents = prompt.split("context for answer: ")[1].split("question: ")[0]
@@ -291,7 +294,7 @@ class HCX_stream(LLM):
             sample_src_doc = [[i+1, doc[:100] + '.....(이하 생략)'] for i, doc in enumerate(sample_src_doc)] 
             self.sample_src_doc_df = pd.DataFrame(sample_src_doc,  columns=['No', '참조 문서'])
             self.sample_src_doc_df = self.sample_src_doc_df.set_index('No')
-       
+
         output_token_json = {
             "messages": preset_text
             }
@@ -325,7 +328,7 @@ class HCX_stream(LLM):
  
         message_placeholder = st.empty()
         start_token_count = 1
-       
+        
         with httpx.stream(method="POST",
                         url=llm_url,
                         json=request_data,
@@ -337,17 +340,15 @@ class HCX_stream(LLM):
                     line_json = json.loads(split_line[1])
                     if "stopReason" in line_json and line_json["stopReason"] == None:
                         full_response += line_json["message"]["content"]
-                        stream_first_token_start_time = time.time()
                         if start_token_count == 1:
-                            self.stream_token_start_time = stream_first_token_start_time - hcx_sec.total_token_start_time
-                            print('stream token latency')
-                            print('%.2f (초)' %(self.stream_token_start_time))
+                            self.stream_token_start_time = time.time()
                             start_token_count += 1
                         message_placeholder.markdown(full_response + "▌", unsafe_allow_html=True)
             message_placeholder.markdown(full_response, unsafe_allow_html=True)
-           
+
+            qa_st_write.empty()
+            
             return full_response
- 
  
 class HCX_only(LLM):        
     
