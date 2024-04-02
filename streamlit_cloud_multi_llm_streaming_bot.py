@@ -129,7 +129,7 @@ for avatar_message in st.session_state.gpt_messages:
 
 
 with st.sidebar:
-    st.button("대화 리셋", on_click=reset_conversation(), use_container_width=True)
+    st.button("대화 리셋", on_click=reset_conversation, use_container_width=True)
     
 if prompt := st.chat_input(""):            
     with ahn_hcx:          
