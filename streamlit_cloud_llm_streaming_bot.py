@@ -1,5 +1,4 @@
 
-
 import os
 import time
 from dotenv import load_dotenv
@@ -34,7 +33,6 @@ os.getenv('LANGCHAIN_API_KEY')
 # asa, hcx 별 프로토콜 스택 이미지 경로
 asa_image_path = 'your image path !!!!!!'
 ##################################################################################
-
 
 client = Client()
 
@@ -81,7 +79,7 @@ for avatar_message in st.session_state.ahn_messages:
 
 with st.sidebar:
     st.button("대화 리셋", on_click=reset_conversation, use_container_width=True)
-        
+
 if prompt := st.chat_input(""):
     with st.chat_message("user", avatar=you_icon):
         st.markdown("<b>You</b><br>" + prompt, unsafe_allow_html=True)
@@ -89,18 +87,24 @@ if prompt := st.chat_input(""):
 
     with st.chat_message("assistant",  avatar=ahn_icon):    
         try:     
-            with st.spinner("검색 및 생성 중....."):
+            with st.status("답변 생성 요청", expanded=True) as status:
                 with collect_runs() as cb:
-
+                    sec_st_write = st.empty()
+                    sec_st_write.write('보안 검사.....')
                     start = time.time()
                     inj_full_response = hcx_sec_pipe.invoke({"question": prompt})
                     end = time.time()
+                    sec_st_write.empty()
                     inj_dur_time = end - start
                     inj_dur_time = round(inj_dur_time, 2)
                     
                     sec_inj_input_token = hcx_sec.init_input_token_count
                     
                     if '보안 취약점이 우려되는 질문입니다' not in inj_full_response:
+                        st.success('안전!')
+                        rag_st_write = st.empty()
+                        rag_st_write.write('검색 및 생성.....')
+
                         output_token_json = {
                             "messages": [
                             {
@@ -116,17 +120,12 @@ if prompt := st.chat_input(""):
                         print('RAG가 진행 되므로 HCX_sec 의 출력 토큰은 더해줘야 함.!!!!!!!!!!!!!!!!!!!!')
                         sec_inj_total_token = sec_inj_input_token + output_token_count
                         
-                        srart = time.time()             
+                        start = time.time()             
                         full_response = retrieval_qa_chain.invoke({"question":prompt})    
                         asa_dur_time = hcx_stream.stream_token_start_time - start
                         asa_dur_time = round(asa_dur_time, 2)
-                                                
-                        # 참조 문서 UI 표출
-                        if len(hcx_stream.source_documents.strip()) > 0:
-                            with st.expander('참조 문서'):
-                                st.table(hcx_stream.sample_src_doc_df)
-                                st.markdown("AhnLab에서 제공하는 위협정보 입니다.<br>자세한 정보는 https://www.ahnlab.com/ko/contents/asec/info 에서 참조해주세요.", unsafe_allow_html=True)
-
+                        rag_st_write.empty()
+                        
                         # full_response에서 <b>Assistant</b><br> 제거
                         full_response_for_token_cal = full_response.replace('<b>Assistant</b><br>', '').replace('<b>ASA</b><br>', '')
                         asa_input_token = hcx_general.init_input_token_count + hcx_stream.init_input_token_count
@@ -151,8 +150,10 @@ if prompt := st.chat_input(""):
                         injection_llm_run_id = cb.traced_runs[0].id
                         # 사용자 피드백이 필요한 질문에 대한 결과 !!
                         st.session_state.run_id = cb.traced_runs[1].id
-
+                        
                     else:
+                        st.error('위험!')
+
                         print('RAG가 진행 안 되므로 HCX_sec 의 출력 토큰은 안 더해도 됨.!!!!!!!!!!!!!!!!!!!!')
                         sec_inj_total_token = sec_inj_input_token
                         
@@ -160,22 +161,30 @@ if prompt := st.chat_input(""):
                         message_placeholder.markdown('<b>ASA</b><br>' + inj_full_response, unsafe_allow_html=True)
 
                         st.session_state.ahn_messages.append({"role": "assistant", "content": inj_full_response})
-            
-                if '보안 취약점이 우려되는 질문입니다' not in inj_full_response:
-                    with st.expander('토큰 정보 및 답변 시간'):
-                        st.markdown(f"""
-                        - 총 토큰 수: {asa_total_token_final}<br>
-                        - 총 토큰 비용: {round(asa_total_token_final * 0.005, 3)}(원)<br>
-                        - 프롬프트 인젝션 답변 시간: {inj_dur_time}(초)<br>
-                        - RAG 첫 토큰 답변 시간: {asa_dur_time}(초)
-                        """, unsafe_allow_html=True)
-                else:
-                    with st.expander('토큰 정보 및 답변 시간'):
-                        st.markdown(f"""
-                        - 총 토큰 수: {sec_inj_total_token}<br>
-                        - 총 토큰 비용: {round(sec_inj_total_token * 0.005, 3)}(원)<br>
-                        - 프롬프트 인젝션 답변 시간: {inj_dur_time}(초)
-                        """, unsafe_allow_html=True)
+                        
+                status.update(label="답변 생성 완료!", state="complete", expanded=True)
+                        
+            # 참조 문서 UI 표출
+            if len(hcx_stream.source_documents.strip()) > 0:
+                with st.expander('참조 문서'):
+                    st.table(hcx_stream.sample_src_doc_df)
+                    st.markdown("AhnLab에서 제공하는 위협정보 입니다.<br>자세한 정보는 https://www.ahnlab.com/ko/contents/asec/info 에서 참조해주세요.", unsafe_allow_html=True)
+        
+            if '보안 취약점이 우려되는 질문입니다' not in inj_full_response:
+                with st.expander('토큰 정보 및 답변 시간'):
+                    st.markdown(f"""
+                    - 총 토큰 수: {asa_total_token_final}<br>
+                    - 총 토큰 비용: {round(asa_total_token_final * 0.005, 3)}(원)<br>
+                    - 프롬프트 인젝션 답변 시간: {inj_dur_time}(초)<br>
+                    - RAG 첫 토큰 답변 시간: {asa_dur_time}(초)
+                    """, unsafe_allow_html=True)
+            else:
+                with st.expander('토큰 정보 및 답변 시간'):
+                    st.markdown(f"""
+                    - 총 토큰 수: {sec_inj_total_token}<br>
+                    - 총 토큰 비용: {round(sec_inj_total_token * 0.005, 3)}(원)<br>
+                    - 프롬프트 인젝션 답변 시간: {inj_dur_time}(초)
+                    """, unsafe_allow_html=True)
                             
         except Exception as e:
             st.error(e, icon="🚨")
