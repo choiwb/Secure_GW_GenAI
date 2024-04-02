@@ -80,7 +80,7 @@ for avatar_message in st.session_state.ahn_messages:
 
 
 with st.sidebar:
-    st.button("대화 리셋", on_click=reset_conversation(), use_container_width=True)
+    st.button("대화 리셋", on_click=reset_conversation, use_container_width=True)
         
 if prompt := st.chat_input(""):
     with st.chat_message("user", avatar=you_icon):
