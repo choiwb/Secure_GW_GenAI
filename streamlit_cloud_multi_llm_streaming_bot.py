@@ -106,7 +106,7 @@ for avatar_message in st.session_state.hcx_messages:
             with st.chat_message(avatar_message["role"], avatar=avatar_icon):
                             
                 with st.expander('HCX'):
-                    st.markdown("<b>HCX</b><br>" + avatar_message["content"], unsafe_allow_html=True) 
+                    st.markdown(avatar_message["content"], unsafe_allow_html=True) 
 
 for avatar_message in st.session_state.gpt_messages:
     with gpt_col:
