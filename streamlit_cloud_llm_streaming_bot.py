@@ -141,8 +141,8 @@ if prompt := st.chat_input(""):
                         
                         asa_total_token_final = sec_inj_total_token + asa_total_token
                         
-                        asa_memory.save_context({"question": prompt}, {"answer": full_response_for_token_cal})
-                        st.session_state.ahn_messages.append({"role": "assistant", "content": full_response_for_token_cal})
+                        asa_memory.save_context({"question": prompt}, {"answer": full_response})
+                        st.session_state.ahn_messages.append({"role": "assistant", "content": full_response})
                         
                         # injection llm 결과에 대한 피드백은 필요 없음!
                         injection_llm_run_id = cb.traced_runs[0].id
