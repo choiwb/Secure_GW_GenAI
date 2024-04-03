@@ -282,10 +282,7 @@ class HCX_stream(LLM):
             raise ValueError("stop kwargs are not permitted.")
        
         preset_text = [{"role": "system", "content": SYSTEMPROMPT}, {"role": "user", "content": prompt}]
-        
-        rag_st_write = st.empty()
-        rag_st_write.write('대화 기반 문서 추출 완료!')
-       
+               
         # prompt 변수의 context for answer: 부터 question: 이전 text를 source_documents 선언
         self.source_documents = prompt.split("context for answer: ")[1].split("question: ")[0]
         if len(self.source_documents.strip()) > 0:
@@ -344,10 +341,7 @@ class HCX_stream(LLM):
                             self.stream_token_start_time = time.time()
                             start_token_count += 1
                         message_placeholder.markdown(full_response + "▌", unsafe_allow_html=True)
-            message_placeholder.markdown(full_response, unsafe_allow_html=True)
-
-            rag_st_write.empty()
-            
+            message_placeholder.markdown(full_response, unsafe_allow_html=True)            
             return full_response
  
 class HCX_only(LLM):        
