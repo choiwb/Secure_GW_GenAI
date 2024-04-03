@@ -174,14 +174,12 @@ if prompt := st.chat_input(""):
                         asa_dur_time = round(asa_dur_time, 2)
                         rag_st_write.empty()
 
-                        # full_response에서 <b>Assistant</b><br> 제거
-                        full_response_for_token_cal = full_response.replace('<b>Assistant</b><br>', '').replace('<b>ASA</b><br>', '')
                         asa_input_token = hcx_general.init_input_token_count + hcx_stream.init_input_token_count
                         output_token_json = {
                             "messages": [
                             {
                                 "role": "assistant",
-                                "content": full_response_for_token_cal
+                                "content": full_response
                             }
                             ]
                             }
@@ -191,8 +189,8 @@ if prompt := st.chat_input(""):
                         
                         asa_total_token_final = sec_inj_total_token + asa_total_token
                         
-                        asa_memory.save_context({"question": prompt}, {"answer": full_response_for_token_cal})
-                        st.session_state.ahn_messages.append({"role": "assistant", "content": full_response_for_token_cal})
+                        asa_memory.save_context({"question": prompt}, {"answer": full_response})
+                        st.session_state.ahn_messages.append({"role": "assistant", "content": full_response})
                     
                     else:
                         st.error('위험!')
@@ -250,14 +248,12 @@ if prompt := st.chat_input(""):
                     hcx_dur_time = hcx_only.stream_token_start_time - start
                     hcx_dur_time = round(hcx_dur_time, 2)
 
-                    full_response_for_token_cal = full_response.replace('<b>Assistant</b><br>', '').replace('<b>HCX</b><br>', '')
-
                     hcx_input_token = hcx_general.init_input_token_count + hcx_only.init_input_token_count
                     output_token_json = {
                         "messages": [
                         {
                             "role": "assistant",
-                            "content": full_response_for_token_cal
+                            "content": full_response
                         }
                         ]
                         }
@@ -265,8 +261,8 @@ if prompt := st.chat_input(""):
                     output_token_count = sum(token['count'] for token in output_text_token[:])
                     hcx_total_token = hcx_input_token + output_token_count
                     
-                    hcx_memory.save_context({"question": prompt}, {"answer": full_response_for_token_cal})
-                    st.session_state.hcx_messages.append({"role": "assistant", "content": full_response_for_token_cal})
+                    hcx_memory.save_context({"question": prompt}, {"answer": full_response})
+                    st.session_state.hcx_messages.append({"role": "assistant", "content": full_response})
                     status.update(label="답변 생성 완료!", state="complete", expanded=True)
 
                 with st.expander('토큰 정보 및 답변 시간'):
@@ -289,7 +285,7 @@ if prompt := st.chat_input(""):
                 with st.status("답변 생성 요청", expanded=True) as status:
                     qa_st_write = st.empty()
                     qa_st_write.write('답변 생성.....')
-                    full_response = "<b>GPT</b><br>"
+                    full_response = ""
                     message_placeholder = st.empty()
                     
                     start_token_count = 1
@@ -305,9 +301,8 @@ if prompt := st.chat_input(""):
                     message_placeholder.markdown(full_response, unsafe_allow_html=True)
                     qa_st_write.empty()
                     
-                    full_response_for_token_cal = full_response.replace('<b>Assistant</b><br>', '').replace('<b>GPT</b><br>', '')
-                    gpt_memory.save_context({"question": prompt}, {"answer": full_response_for_token_cal})
-                    st.session_state.gpt_messages.append({"role": "assistant", "content": full_response_for_token_cal})
+                    gpt_memory.save_context({"question": prompt}, {"answer": full_response})
+                    st.session_state.gpt_messages.append({"role": "assistant", "content": full_response})
                     status.update(label="답변 생성 완료!", state="complete", expanded=True)
 
                 with st.expander('답변 시간'):
