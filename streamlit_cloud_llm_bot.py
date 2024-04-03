@@ -615,10 +615,22 @@ final_inputs = {
 }
 
 
+def api_result_st(_):
+    st.write('API 요청 완료!')
+    return _
+
+def stand_ques_result_st(_):
+    st.write('대화 기반 질문 의역 완료!')
+    return _
+
+def context_result_st(_):
+    st.write('대화 기반 문서 추출 완료!')
+    return _
+
 hcx_sec_pipe = SEC_CHAIN_PROMPT | hcx_sec | StrOutputParser()
-retrieval_qa_chain = asa_loaded_memory | standalone_question | retrieved_documents | final_inputs | QA_CHAIN_PROMPT | hcx_stream | StrOutputParser()
-hcx_only_pipe = hcx_loaded_memory | standalone_question | not_retrieved_documents | ONLY_CHAIN_PROMPT | hcx_only | StrOutputParser()
-gpt_pipe = gpt_loaded_memory | standalone_question | not_retrieved_documents | ONLY_CHAIN_PROMPT | gpt_model | StrOutputParser()
+retrieval_qa_chain = api_result_st | asa_loaded_memory | standalone_question | stand_ques_result_st | retrieved_documents | context_result_st | final_inputs | QA_CHAIN_PROMPT | hcx_stream | StrOutputParser()
+hcx_only_pipe = api_result_st | hcx_loaded_memory | standalone_question | stand_ques_result_st | not_retrieved_documents | ONLY_CHAIN_PROMPT | hcx_only | StrOutputParser()
+gpt_pipe = api_result_st | gpt_loaded_memory | standalone_question | stand_ques_result_st | not_retrieved_documents | ONLY_CHAIN_PROMPT | gpt_model | StrOutputParser()
 
 gemini_txt_pipe = gemini_loaded_memory | standalone_question | not_retrieved_documents | ONLY_CHAIN_PROMPT | gemini_txt_model | StrOutputParser()
 gemini_vis_pipe = RunnablePassthrough() | gemini_vis_model | StrOutputParser()
