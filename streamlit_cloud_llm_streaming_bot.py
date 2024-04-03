@@ -126,14 +126,12 @@ if prompt := st.chat_input(""):
                         asa_dur_time = round(asa_dur_time, 2)
                         rag_st_write.empty()
                         
-                        # full_response에서 <b>Assistant</b><br> 제거
-                        full_response_for_token_cal = full_response.replace('<b>Assistant</b><br>', '').replace('<b>ASA</b><br>', '')
                         asa_input_token = hcx_general.init_input_token_count + hcx_stream.init_input_token_count
                         output_token_json = {
                             "messages": [
                             {
                                 "role": "assistant",
-                                "content": full_response_for_token_cal
+                                "content": full_response
                             }
                             ]
                             }
@@ -158,7 +156,7 @@ if prompt := st.chat_input(""):
                         sec_inj_total_token = sec_inj_input_token
                         
                         message_placeholder = st.empty()
-                        message_placeholder.markdown('<b>ASA</b><br>' + inj_full_response, unsafe_allow_html=True)
+                        message_placeholder.markdown(inj_full_response, unsafe_allow_html=True)
 
                         st.session_state.ahn_messages.append({"role": "assistant", "content": inj_full_response})
                         
