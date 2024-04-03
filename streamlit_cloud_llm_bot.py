@@ -324,7 +324,7 @@ class HCX_stream(LLM):
         }
        
         # streaming 형태로 최종 출력 도출
-        full_response = "<b>ASA</b><br>"
+        full_response = ""
  
         message_placeholder = st.empty()
         start_token_count = 1
@@ -397,7 +397,7 @@ class HCX_only(LLM):
         }
         
         # streaming 형태로 최종 출력 도출
-        full_response = "<b>HCX</b><br>"
+        full_response = ""
  
         message_placeholder = st.empty()
         
