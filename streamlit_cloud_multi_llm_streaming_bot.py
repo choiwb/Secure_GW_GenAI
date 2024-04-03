@@ -106,7 +106,7 @@ for avatar_message in st.session_state.hcx_messages:
             with st.chat_message(avatar_message["role"], avatar=avatar_icon):
                             
                 with st.expander('HCX'):
-                    st.markdown(avatar_message["content"], unsafe_allow_html=True) 
+                    st.markdown("<b>HCX</b><br>" + avatar_message["content"], unsafe_allow_html=True)  
 
 for avatar_message in st.session_state.gpt_messages:
     with gpt_col:
@@ -199,7 +199,7 @@ if prompt := st.chat_input(""):
                         sec_inj_total_token = sec_inj_input_token
                         
                         message_placeholder = st.empty()
-                        message_placeholder.markdown('<b>ASA</b><br>' + inj_full_response, unsafe_allow_html=True)
+                        message_placeholder.markdown(inj_full_response, unsafe_allow_html=True)
                     
                         st.session_state.ahn_messages.append({"role": "assistant", "content": inj_full_response})
 
