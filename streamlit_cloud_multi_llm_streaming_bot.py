@@ -294,7 +294,6 @@ if prompt := st.chat_input(""):
                     
                     start_token_count = 1
                     start = time.time()
-                    qa_st_write = st.empty()
                     for chunk in gpt_pipe.stream({"question":prompt}):
                         full_response += chunk
                         if start_token_count == 1:
