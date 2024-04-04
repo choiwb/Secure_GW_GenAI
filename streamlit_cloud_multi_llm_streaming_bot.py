@@ -1,11 +1,11 @@
 
+
 import os
-import time
 from dotenv import load_dotenv
 import streamlit as st
 
 try:
-    from streamlit_cloud_llm_bot import hcx_only, hcx_general, hcx_stream, retrieval_qa_chain, asa_memory, hcx_memory, gpt_memory, hcx_sec, hcx_sec_pipe, hcx_only_pipe, gpt_pipe, reset_conversation
+    from streamlit_cloud_llm_bot import hcx_only, hcx_stream, retrieval_qa_chain, asa_memory, hcx_memory, gpt_memory, hcx_sec, hcx_sec_pipe, hcx_only_pipe, gpt_pipe, reset_conversation
 except Exception as e:
     # 페이지를 자동으로 다시 실행
     st.rerun()
@@ -28,9 +28,10 @@ os.getenv('OPENAI_API_KEY')
 # asa, hcx 별 프로토콜 스택 이미지 경로
 asa_image_path = 'your image path !!!!!!!!!!!!!!!!'
 ################################################################################## 
- 
+
+
 try:
-    st.set_page_config(layout="wide")
+    st.set_page_config(page_title="Cloud_Assistant", layout="wide", initial_sidebar_state="collapsed")
 except Exception as e:
     # 페이지를 자동으로 다시 실행
     st.rerun()
@@ -49,13 +50,17 @@ with st.expander('추천 질문'):
     - window injection과 관련된 악성코드는 뭐가 있어?
     """, unsafe_allow_html=True)
 
-                            
-if "hcx_messages" not in st.session_state:
-    st.session_state.hcx_messages = []
+
+if "rerun_tab" not in st.session_state:
+    reset_conversation()
+    st.session_state.retun_tab = 'rerun_tab'
 
 if "ahn_messages" not in st.session_state:
     st.session_state.ahn_messages = []
-    
+                                    
+if "hcx_messages" not in st.session_state:
+    st.session_state.hcx_messages = []
+
 if "gpt_messages" not in st.session_state:
     st.session_state.gpt_messages = []
 
@@ -79,51 +84,50 @@ with gpt_col:
 for avatar_message in st.session_state.ahn_messages:
     with ahn_hcx:
         if avatar_message["role"] == "user":
-
             # 사용자 메시지일 경우, 사용자 아바타 적용
             avatar_icon = avatar_message.get("avatar", you_icon)
             with st.chat_message(avatar_message["role"], avatar=avatar_icon):
-                st.markdown("<b>You</b><br>" + avatar_message["content"], unsafe_allow_html=True)
+                st.markdown("<b>You</b><br>", unsafe_allow_html=True)
+                st.markdown(avatar_message["content"], unsafe_allow_html=True)
         else:
             # AI 응답 메시지일 경우, AI 아바타 적용
             avatar_icon = avatar_message.get("avatar", ahn_icon)
             with st.chat_message(avatar_message["role"], avatar=avatar_icon):
-            
                 with st.expander('ASA'):
-                    st.markdown("<b>ASA</b><br>" + avatar_message["content"], unsafe_allow_html=True)
+                    st.markdown("<b>ASA</b><br>", unsafe_allow_html=True)
+                    st.markdown(avatar_message["content"], unsafe_allow_html=True)
 
 for avatar_message in st.session_state.hcx_messages:
     with hcx_col:
         if avatar_message["role"] == "user":
-
             # 사용자 메시지일 경우, 사용자 아바타 적용
             avatar_icon = avatar_message.get("avatar", you_icon)
             with st.chat_message(avatar_message["role"], avatar=avatar_icon):
-                st.markdown("<b>You</b><br>" + avatar_message["content"], unsafe_allow_html=True)
+                st.markdown("<b>You</b><br>", unsafe_allow_html=True)
+                st.markdown(avatar_message["content"], unsafe_allow_html=True)
         else:
             # AI 응답 메시지일 경우, AI 아바타 적용
             avatar_icon = avatar_message.get("avatar", hcx_icon)
-            with st.chat_message(avatar_message["role"], avatar=avatar_icon):
-                            
+            with st.chat_message(avatar_message["role"], avatar=avatar_icon):        
                 with st.expander('HCX'):
-                    st.markdown("<b>HCX</b><br>" + avatar_message["content"], unsafe_allow_html=True)  
-
+                    st.markdown("<b>HCX</b><br>", unsafe_allow_html=True)
+                    st.markdown(avatar_message["content"], unsafe_allow_html=True)
+                    
 for avatar_message in st.session_state.gpt_messages:
     with gpt_col:
         if avatar_message["role"] == "user":
-
             # 사용자 메시지일 경우, 사용자 아바타 적용
             avatar_icon = avatar_message.get("avatar", you_icon)
             with st.chat_message(avatar_message["role"], avatar=avatar_icon):
-                st.markdown("<b>You</b><br>" + avatar_message["content"], unsafe_allow_html=True)
+                st.markdown("<b>You</b><br>", unsafe_allow_html=True)
+                st.markdown(avatar_message["content"], unsafe_allow_html=True)
         else:
             # AI 응답 메시지일 경우, AI 아바타 적용
             avatar_icon = avatar_message.get("avatar", gpt_icon)
             with st.chat_message(avatar_message["role"], avatar=avatar_icon):
-                            
                 with st.expander('GPT'):
-                    st.markdown("<b>GPT</b><br>" + avatar_message["content"], unsafe_allow_html=True)  
-
+                    st.markdown("<b>GPT</b><br>", unsafe_allow_html=True)
+                    st.markdown(avatar_message["content"], unsafe_allow_html=True)
 
 with st.sidebar:
     st.button("대화 리셋", on_click=reset_conversation, use_container_width=True)
@@ -131,50 +135,24 @@ with st.sidebar:
 if prompt := st.chat_input(""):            
     with ahn_hcx:          
         with st.chat_message("user", avatar=you_icon):
-            st.markdown("<b>You</b><br>" + prompt, unsafe_allow_html=True)
+            st.markdown("<b>You</b><br>", unsafe_allow_html=True)
+            st.markdown(prompt, unsafe_allow_html=True)
             st.session_state.ahn_messages.append({"role": "user", "content": prompt})
 
         with st.chat_message("assistant",  avatar=ahn_icon):    
+            st.markdown("<b>ASA</b><br>", unsafe_allow_html=True)
             try:
-                with st.status("답변 생성 요청", expanded=True) as status:
-                    sec_st_write = st.empty()
-                    sec_st_write.write('보안 검사.....')
-                    start = time.time()
+                with st.spinner("답변 생성 중....."):
                     inj_full_response = hcx_sec_pipe.invoke({"question": prompt})       
-                    end = time.time()
-                    sec_st_write.empty()
-                    inj_dur_time = end - start
-                    inj_dur_time = round(inj_dur_time, 2)
-
-                    sec_inj_input_token = hcx_sec.init_input_token_count
                     
+                    sec_inj_total_token = hcx_sec.init_input_token_count
+                    
+                    sec_st_write = st.empty()
                     if '보안 취약점이 우려되는 질문입니다' not in inj_full_response:
-                        st.success('안전!')
-                        rag_st_write = st.empty()
-                        rag_st_write.write('검색 및 생성.....')
-                        output_token_json = {
-                        "messages": [
-                        {
-                            "role": "assistant",
-                            "content": inj_full_response
-                        }
-                        ]
-                        }
-                    
-                        output_text_token = token_completion_executor.execute(output_token_json)
-                        output_token_count = sum(token['count'] for token in output_text_token[:])
-                        
-                        print('RAG가 진행 되므로 HCX_sec 의 출력 토큰은 더해줘야 함.!!!!!!!!!!!!!!!!!!!!')
-                        sec_inj_total_token = sec_inj_input_token + output_token_count
-                        
-                        start = time.time()
+                        sec_st_write.success('보안 검사 결과, 안전한 질문 입니다.')                        
                         full_response = retrieval_qa_chain.invoke({"question":prompt})    
 
-                        asa_dur_time = hcx_stream.stream_token_start_time - start
-                        asa_dur_time = round(asa_dur_time, 2)
-                        rag_st_write.empty()
-
-                        asa_input_token = hcx_general.init_input_token_count + hcx_stream.init_input_token_count
+                        asa_input_token = hcx_stream.init_input_token_count
                         output_token_json = {
                             "messages": [
                             {
@@ -193,17 +171,12 @@ if prompt := st.chat_input(""):
                         st.session_state.ahn_messages.append({"role": "assistant", "content": full_response})
                     
                     else:
-                        st.error('위험!')
-
-                        print('RAG가 진행 안 되므로 HCX_sec 의 출력 토큰은 안 더해도 됨.!!!!!!!!!!!!!!!!!!!!')
-                        sec_inj_total_token = sec_inj_input_token
+                        sec_st_write.error('보안 검사 결과, 위험한 질문 입니다.')
                         
                         message_placeholder = st.empty()
                         message_placeholder.markdown(inj_full_response, unsafe_allow_html=True)
                     
                         st.session_state.ahn_messages.append({"role": "assistant", "content": inj_full_response})
-
-                    status.update(label="답변 생성 완료!", state="complete", expanded=True)
                             
                 # 참조 문서 UI 표출
                 if len(hcx_stream.source_documents.strip()) > 0:
@@ -212,19 +185,16 @@ if prompt := st.chat_input(""):
                         st.markdown("AhnLab에서 제공하는 위협정보 입니다.<br>자세한 정보는 https://www.ahnlab.com/ko/contents/asec/info 에서 참조해주세요.", unsafe_allow_html=True)
             
                 if '보안 취약점이 우려되는 질문입니다' not in inj_full_response:
-                    with st.expander('토큰 정보 및 답변 시간'):
+                    with st.expander('토큰 정보'):
                         st.markdown(f"""
                         - 총 토큰 수: {asa_total_token_final}<br>
-                        - 총 토큰 비용: {round(asa_total_token_final * 0.005, 3)}(원)<br>
-                        - 프롬프트 인젝션 답변 시간: {inj_dur_time}(초)<br>
-                        - RAG 첫 토큰 답변 시간: {asa_dur_time}(초)
+                        - 총 토큰 비용: {round(asa_total_token_final * 0.005, 3)}(원)
                         """, unsafe_allow_html=True)
                 else:
-                    with st.expander('토큰 정보 및 답변 시간'):
+                    with st.expander('토큰 정보'):
                         st.markdown(f"""
                         - 총 토큰 수: {sec_inj_total_token}<br>
-                        - 총 토큰 비용: {round(sec_inj_total_token * 0.005, 3)}(원)<br>
-                        - 프롬프트 인젝션 답변 시간: {inj_dur_time}(초)
+                        - 총 토큰 비용: {round(sec_inj_total_token * 0.005, 3)}(원)
                         """, unsafe_allow_html=True)
                         
             except Exception as e:
@@ -233,22 +203,17 @@ if prompt := st.chat_input(""):
                             
     with hcx_col:
         with st.chat_message("user", avatar=you_icon):
-            st.markdown("<b>You</b><br>" + prompt, unsafe_allow_html=True)
+            st.markdown("<b>You</b><br>", unsafe_allow_html=True)
+            st.markdown(prompt, unsafe_allow_html=True)
             st.session_state.hcx_messages.append({"role": "user", "content": prompt})  
 
         with st.chat_message("assistant",  avatar=hcx_icon):    
+            st.markdown("<b>HCX</b><br>", unsafe_allow_html=True)
             try:
-                with st.status("답변 생성 요청", expanded=True) as status:
-                    qa_st_write = st.empty()
-                    qa_st_write.write('답변 생성.....')
-                    start = time.time()
+                with st.spinner("답변 생성 중....."):
                     full_response = hcx_only_pipe.invoke({"question":prompt})        
-                    qa_st_write.empty()
                     
-                    hcx_dur_time = hcx_only.stream_token_start_time - start
-                    hcx_dur_time = round(hcx_dur_time, 2)
-
-                    hcx_input_token = hcx_general.init_input_token_count + hcx_only.init_input_token_count
+                    hcx_input_token = hcx_only.init_input_token_count
                     output_token_json = {
                         "messages": [
                         {
@@ -263,13 +228,11 @@ if prompt := st.chat_input(""):
                     
                     hcx_memory.save_context({"question": prompt}, {"answer": full_response})
                     st.session_state.hcx_messages.append({"role": "assistant", "content": full_response})
-                    status.update(label="답변 생성 완료!", state="complete", expanded=True)
 
-                with st.expander('토큰 정보 및 답변 시간'):
+                with st.expander('토큰 정보'):
                     st.markdown(f"""
                         - 총 토큰 수: {hcx_total_token}<br>
-                        - 총 토큰 비용: {round(hcx_total_token * 0.005, 3)}(원)<br>
-                        - 첫 토큰 답변 시간: {hcx_dur_time}(초)
+                        - 총 토큰 비용: {round(hcx_total_token * 0.005, 3)}(원)
                         """, unsafe_allow_html=True)
 
             except Exception as e:
@@ -277,45 +240,28 @@ if prompt := st.chat_input(""):
                     
     with gpt_col:
         with st.chat_message("user", avatar=you_icon):
-            st.markdown("<b>You</b><br>" + prompt, unsafe_allow_html=True)
+            st.markdown("<b>You</b><br>", unsafe_allow_html=True)
+            st.markdown(prompt, unsafe_allow_html=True)
             st.session_state.gpt_messages.append({"role": "user", "content": prompt})  
 
         with st.chat_message("assistant",  avatar=gpt_icon):    
+            st.markdown("<b>GPT</b><br>", unsafe_allow_html=True)
             try:
-                with st.status("답변 생성 요청", expanded=True) as status:
-                    qa_st_write = st.empty()
-                    qa_st_write.write('답변 생성.....')
+                with st.spinner("답변 생성 중....."):
                     full_response = ""
                     message_placeholder = st.empty()
                     
-                    start_token_count = 1
-                    start = time.time()
                     for chunk in gpt_pipe.stream({"question":prompt}):
                         full_response += chunk
-                        if start_token_count == 1:
-                            end = time.time()
-                            gpt_dur_time = end - start
-                            gpt_dur_time = round(gpt_dur_time, 2)
-                            start_token_count += 1
                         message_placeholder.markdown(full_response + "▌", unsafe_allow_html=True)
                     message_placeholder.markdown(full_response, unsafe_allow_html=True)
-                    qa_st_write.empty()
                     
                     gpt_memory.save_context({"question": prompt}, {"answer": full_response})
                     st.session_state.gpt_messages.append({"role": "assistant", "content": full_response})
-                    status.update(label="답변 생성 완료!", state="complete", expanded=True)
-
-                with st.expander('답변 시간'):
-                    st.markdown(f"""
-                        - 첫 토큰 답변 시간:: {gpt_dur_time}(초)
-                        """, unsafe_allow_html=True)
 
             except Exception as e:
                 st.error(e, icon="🚨")
-                        
-
-
-
-
+            
+            sec_st_write.empty()
                         
 
