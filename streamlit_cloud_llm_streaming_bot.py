@@ -60,7 +60,7 @@ with st.expander('Protocol Stack'):
     st.image(asa_image_path, caption='Protocol Stack', use_column_width=True)
     
 if "rerun_tab" not in st.session_state:
-    reset_conversation()ㅌ
+    reset_conversation()
     st.session_state.retun_tab = 'rerun_tab'
     
 if "ahn_messages" not in st.session_state:
