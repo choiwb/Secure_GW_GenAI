@@ -1,10 +1,10 @@
 
+
 import os
 import uuid
 import random
 import json
 import httpx
-import time
 import requests
 import pandas as pd
 from dotenv import load_dotenv
@@ -34,7 +34,6 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from hcx_token_cal import token_completion_executor
 
 
-
 ##################################################################################
 # .env 파일 로드
 load_dotenv()
@@ -61,7 +60,6 @@ ahn_asec_path = 'pdf files dir !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
 os.getenv("GOOGLE_API_KEY")
 os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
 ##################################################################################
-
  
 pdf_paths = []
 for filename in os.listdir(ahn_asec_path):
@@ -135,12 +133,25 @@ text_splitter_function_calling = RecursiveCharacterTextSplitter.from_tiktoken_en
 embeddings = OpenAIEmbeddings(model = 'text-embedding-3-small')
 # embeddings = HCXEmbedding()
 
+
+def hcx_stream_process(res):
+    full_response = ""
+    message_placeholder = st.empty()       
+
+    for line in res.iter_lines():
+        if line.startswith("data:"):
+            split_line = line.split("data:")
+            line_json = json.loads(split_line[1])
+            if "stopReason" in line_json and line_json["stopReason"] == None:
+                full_response += line_json["message"]["content"]
+                message_placeholder.markdown(full_response + "▌", unsafe_allow_html=True)
+    message_placeholder.markdown(full_response, unsafe_allow_html=True)  
+    return full_response
+              
               
 class HCX_sec(LLM):        
    
     init_input_token_count: int = 0
-    total_token_dur_time: float = 0.0
-    total_token_start_time = time.time()
 
     @property
     def _llm_type(self) -> str:
@@ -181,8 +192,6 @@ class HCX_sec(LLM):
             'X-NCP-CLOVASTUDIO-REQUEST-ID': REQUEST_ID,
             'Content-Type': 'application/json; charset=utf-8',
         }
-
-        self.total_token_start_time = time.time()
                
         response = requests.post(llm_url, json=request_data, headers=general_headers, verify=False)
         response.raise_for_status()
@@ -197,75 +206,15 @@ class HCX_sec(LLM):
        
         total_input_token_json = token_completion_executor.execute(output_token_json)
         self.init_input_token_count += sum(token['count'] for token in total_input_token_json[:])
-        
-        total_token_end_time = time.time()
-        self.total_token_dur_time = total_token_end_time - self.total_token_start_time
-        print('total token latency')
-        print('%.2f (초)' %(self.total_token_dur_time))
-                  
+                          
         return llm_result
        
- 
-
-class HCX_general(LLM):        
-   
-    init_input_token_count: int = 0
-    first_token_init_time = time.time()
-
-    @property
-    def _llm_type(self) -> str:
-        return "hcx-003"
-   
-    def _call(
-        self,
-        prompt: str,
-        run_manager: Optional[CallbackManagerForLLMRun] = None,
-        **kwargs: Any,
-    ) -> str:
-       
-        preset_text = [{"role": "system", "content": SYSTEMPROMPT}, {"role": "user", "content": prompt}]
-       
-        output_token_json = {
-            "messages": preset_text
-            }
-       
-        total_input_token_json = token_completion_executor.execute(output_token_json)
-        self.init_input_token_count = sum(token['count'] for token in total_input_token_json[:])
-               
-        request_data = {
-        'messages': preset_text,
-        'topP': 0.8,
-        'topK': 0,
-        'maxTokens': 256,
-        'temperature': 0.1,
-        'repeatPenalty': 5.0,
-        'stopBefore': [],
-        'includeAiFilters': True,
-        "seed": 4595
-        }
-       
-        general_headers = {
-            'X-NCP-CLOVASTUDIO-API-KEY': API_KEY,
-            'X-NCP-APIGW-API-KEY': API_KEY_PRIMARY_VAL,
-            'X-NCP-CLOVASTUDIO-REQUEST-ID': REQUEST_ID,
-            'Content-Type': 'application/json; charset=utf-8',
-        }
-        
-        self.first_token_init_time = time.time()
-               
-        response = requests.post(llm_url, json=request_data, headers=general_headers, verify=False)
-        response.raise_for_status()
-                   
-        return response.json()['result']['message']['content']
-       
- 
  
 class HCX_stream(LLM):      
    
     init_input_token_count: int = 0
     source_documents: str = ""
     sample_src_doc_df = pd.DataFrame()
-    stream_token_start_time = time.time()
 
     @property
     def _llm_type(self) -> str:
@@ -319,35 +268,18 @@ class HCX_stream(LLM):
             # streaming 옵션 !!!!!
             'Accept': 'text/event-stream'
         }
-       
-        # streaming 형태로 최종 출력 도출
-        full_response = ""
- 
-        message_placeholder = st.empty()
-        start_token_count = 1
         
         with httpx.stream(method="POST",
                         url=llm_url,
                         json=request_data,
                         headers=stream_headers,
-                        timeout=120) as res:
-            for line in res.iter_lines():
-                if line.startswith("data:"):
-                    split_line = line.split("data:")
-                    line_json = json.loads(split_line[1])
-                    if "stopReason" in line_json and line_json["stopReason"] == None:
-                        full_response += line_json["message"]["content"]
-                        if start_token_count == 1:
-                            self.stream_token_start_time = time.time()
-                            start_token_count += 1
-                        message_placeholder.markdown(full_response + "▌", unsafe_allow_html=True)
-            message_placeholder.markdown(full_response, unsafe_allow_html=True)            
+                        timeout=10) as res:
+            full_response = hcx_stream_process(res)
             return full_response
  
 class HCX_only(LLM):        
     
     init_input_token_count: int = 0
-    stream_token_start_time: float = 0.0
  
     @property
     def _llm_type(self) -> str:
@@ -390,33 +322,12 @@ class HCX_only(LLM):
             'Accept': 'text/event-stream'
         }
         
-        # streaming 형태로 최종 출력 도출
-        full_response = ""
- 
-        message_placeholder = st.empty()
-        
-        start_token_count = 1
-               
         with httpx.stream(method="POST",
                         url=llm_url,
                         json=request_data,
                         headers=stream_headers,
-                        timeout=120) as res:
-            for line in res.iter_lines():
-                if line.startswith("data:"):
-                    split_line = line.split("data:")
-                    line_json = json.loads(split_line[1])
-                    if "stopReason" in line_json and line_json["stopReason"] == None:
-                        full_response += line_json["message"]["content"]
-                        stream_first_token_start_time = time.time()
-                        if start_token_count == 1:
-                            self.stream_token_start_time = stream_first_token_start_time - hcx_general.first_token_init_time
-                            print('stream token latency')
-                            print('%.2f (초)' %(self.stream_token_start_time))
-                            start_token_count += 1
-                        message_placeholder.markdown(full_response + "▌", unsafe_allow_html=True)
-            message_placeholder.markdown(full_response, unsafe_allow_html=True)
-           
+                        timeout=10) as res:
+            full_response = hcx_stream_process(res)
             return full_response
  
 
@@ -430,12 +341,9 @@ gpt_model = ChatOpenAI(
 )    
 
 gemini_txt_model = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.1, max_output_tokens=512)
-
 gemini_vis_model = ChatGoogleGenerativeAI(model="gemini-pro-vision", temperature=0.1, max_output_tokens=512)
-# gemini_vis_model = geminiai.GenerativeModel('gemini-pro-vision')
 
 hcx_sec = HCX_sec()
-hcx_general = HCX_general()
 hcx_stream = HCX_stream()
 hcx_only = HCX_only() 
 
@@ -532,6 +440,7 @@ gemini_memory = gemini_init_memory()
  
 # reset button
 def reset_conversation():
+  print('대화 리셋!')
   st.session_state.conversation = None
   st.session_state.chat_history = None
   asa_memory.clear()
@@ -542,14 +451,7 @@ def reset_conversation():
   
 
 DEFAULT_DOCUMENT_PROMPT = PromptTemplate.from_template(template="{page_content}")
- 
-_template = """Given the following conversation and a follow up question, rephrase the follow up question to be a standalone question, in Korean.
-Chat History:
-{chat_history}
-Follow Up Input: {question}
-Standalone question: """
-CONDENSE_QUESTION_PROMPT = PromptTemplate.from_template(_template)
- 
+  
 def _combine_documents(
     docs, document_prompt=DEFAULT_DOCUMENT_PROMPT, document_separator="\n\n"
 ):
@@ -572,67 +474,35 @@ gpt_loaded_memory = RunnablePassthrough.assign(
 gemini_loaded_memory = RunnablePassthrough.assign(
     chat_history=RunnableLambda(gemini_memory.load_memory_variables) | itemgetter("chat_history"),
 )
-
-standalone_question = {
-    "standalone_question": {
-        "question": lambda x: x["question"],
-        "chat_history": lambda x: get_buffer_string(x["chat_history"]),
-    }
-    | CONDENSE_QUESTION_PROMPT
-    | hcx_general
-    | StrOutputParser()
-}
-
-img_standalone_question = {
-    "context": lambda x: x["context"],
-    "standalone_question": {
-        "question": lambda x: x["question"],
-        "chat_history": lambda x: get_buffer_string(x["chat_history"]),
-    }
-    | CONDENSE_QUESTION_PROMPT
-    | hcx_general
-    | StrOutputParser()
-}
   
 retrieved_documents = {
-    # "source_documents": itemgetter("standalone_question") | retriever,
-    "source_documents": itemgetter("standalone_question") | compression_retriever,
-    "question": lambda x: x["standalone_question"],
+    "question": lambda x: x["question"],
+    "source_documents": itemgetter("question") | compression_retriever,
+    "chat_history": lambda x: get_buffer_string(x["chat_history"]),
 }
  
 not_retrieved_documents = {
-    "question": lambda x: x["standalone_question"],
+    "question": lambda x: x["question"],
+    "chat_history": lambda x: get_buffer_string(x["chat_history"]),
 }
 
 img_retrieved_documents = {
     "context": lambda x: x["context"],
-    "question": lambda x: x["standalone_question"],
+    "question": lambda x: x["question"],
 }
  
 final_inputs = {
     "context": lambda x: _combine_documents(x["source_documents"]),
     "question": itemgetter("question"),
+    "chat_history": lambda x: get_buffer_string(x["chat_history"]),
 }
 
 
-def api_result_st(_):
-    st.write('API 요청 완료!')
-    return _
-
-def stand_ques_result_st(_):
-    st.write('대화 기반 질문 의역 완료!')
-    return _
-
-def context_result_st(_):
-    st.write('대화 기반 문서 추출 완료!')
-    return _
-
 hcx_sec_pipe = SEC_CHAIN_PROMPT | hcx_sec | StrOutputParser()
-retrieval_qa_chain = api_result_st | asa_loaded_memory | standalone_question | stand_ques_result_st | retrieved_documents | context_result_st | final_inputs | QA_CHAIN_PROMPT | hcx_stream | StrOutputParser()
-hcx_only_pipe = api_result_st | hcx_loaded_memory | standalone_question | stand_ques_result_st | not_retrieved_documents | ONLY_CHAIN_PROMPT | hcx_only | StrOutputParser()
-gpt_pipe =  gpt_loaded_memory | standalone_question | not_retrieved_documents | ONLY_CHAIN_PROMPT | gpt_model | StrOutputParser()
+retrieval_qa_chain =  asa_loaded_memory | retrieved_documents | final_inputs | QA_CHAIN_PROMPT | hcx_stream | StrOutputParser()
+hcx_only_pipe =  hcx_loaded_memory | not_retrieved_documents | ONLY_CHAIN_PROMPT | hcx_only | StrOutputParser()
+gpt_pipe =  gpt_loaded_memory | not_retrieved_documents | ONLY_CHAIN_PROMPT | gpt_model | StrOutputParser()
 
-gemini_txt_pipe = gemini_loaded_memory | standalone_question | not_retrieved_documents | ONLY_CHAIN_PROMPT | gemini_txt_model | StrOutputParser()
+gemini_txt_pipe = gemini_loaded_memory | not_retrieved_documents | ONLY_CHAIN_PROMPT | gemini_txt_model | StrOutputParser()
 gemini_vis_pipe = RunnablePassthrough() | gemini_vis_model | StrOutputParser()
-gemini_vis_txt_pipe = gemini_loaded_memory | img_standalone_question | img_retrieved_documents | QA_CHAIN_PROMPT | gemini_txt_model | StrOutputParser()
-
+gemini_vis_txt_pipe = gemini_loaded_memory | img_retrieved_documents | QA_CHAIN_PROMPT | gemini_txt_model | StrOutputParser()
