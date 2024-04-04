@@ -49,7 +49,7 @@ for avatar_message in st.session_state.ahn_messages:
 
         
 with st.sidebar:
-    st.button("대화 리셋", on_click=reset_conversation(), use_container_width=True)
+    st.button("대화 리셋", on_click=reset_conversation, use_container_width=True)
 
     uploaded_image = st.file_uploader("이미지 업로드", type=["png", "jpg", "jpeg"])
     if uploaded_image is not None:
