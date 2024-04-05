@@ -478,23 +478,23 @@ gemini_loaded_memory = RunnablePassthrough.assign(
 retrieved_documents = {
     "question": lambda x: x["question"],
     "source_documents": itemgetter("question") | compression_retriever,
-    "chat_history": lambda x: get_buffer_string(x["chat_history"]),
+    "chat_history": lambda x: get_buffer_string(x["chat_history"])
 }
  
 not_retrieved_documents = {
     "question": lambda x: x["question"],
-    "chat_history": lambda x: get_buffer_string(x["chat_history"]),
+    "chat_history": lambda x: get_buffer_string(x["chat_history"])
 }
 
 img_retrieved_documents = {
     "context": lambda x: x["context"],
-    "question": lambda x: x["question"],
+    "question": lambda x: x["question"]
 }
  
 final_inputs = {
     "context": lambda x: _combine_documents(x["source_documents"]),
     "question": itemgetter("question"),
-    "chat_history": lambda x: get_buffer_string(x["chat_history"]),
+    "chat_history": itemgetter("chat_history")
 }
 
 
