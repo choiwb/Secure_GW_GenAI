@@ -8,9 +8,10 @@ from config import asa_image_path, you_icon, ahn_icon
 from LCEL import reset_conversation, gemini_memory, gemini_txt_pipe, gemini_vis_pipe, gemini_vis_txt_pipe
 
 
-
-
-st.set_page_config(layout="wide")
+try:
+    st.set_page_config(layout="wide")
+except:
+    st.rerun()
     
 st.markdown("<h1 style='text-align: center;'>Visual Question Answering Assistant</h1>", unsafe_allow_html=True)
 
