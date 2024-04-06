@@ -137,8 +137,7 @@ class HCX_stream(LLM):
         self.source_documents = prompt.split("context for answer: ")[1].split("question: ")[0]
         if len(self.source_documents.strip()) > 0:
             source_documents_list = self.source_documents.split('\n\n')
-            sample_src_doc = random.sample(source_documents_list, 2)
-            sample_src_doc = [[i+1, doc[:100] + '.....(이하 생략)'] for i, doc in enumerate(sample_src_doc)] 
+            sample_src_doc = [[i+1, doc[:100] + '.....(이하 생략)'] for i, doc in enumerate(source_documents_list)] 
             self.sample_src_doc_df = pd.DataFrame(sample_src_doc,  columns=['No', '참조 문서'])
             self.sample_src_doc_df = self.sample_src_doc_df.set_index('No')
 
