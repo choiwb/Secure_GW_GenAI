@@ -36,7 +36,7 @@ new_docsearch = Chroma(persist_directory=os.path.join(db_save_path, "cloud_assis
 
 retriever = new_docsearch.as_retriever(
                                         search_type="mmr",                                        
-                                        search_kwargs={'k': 8, 'fetch_k': 32}
+                                        search_kwargs={'k': 4, 'fetch_k': 16}
                                        )
 
 
