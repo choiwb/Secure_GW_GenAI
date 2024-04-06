@@ -71,6 +71,10 @@ for avatar_message in st.session_state.ahn_messages:
 
 with st.sidebar:
     st.button("대화 리셋", on_click=reset_conversation, use_container_width=True)
+    st.markdown('<br>', unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: center;'>피드백 방법</h3>", unsafe_allow_html=True)
+    feedback_option = "faces" if st.toggle(label="`thumbs` ⇄ `faces`", value=False) else "thumbs"
+
 
 if prompt := st.chat_input(""):
     with st.chat_message("user", avatar=you_icon):
@@ -148,11 +152,10 @@ if prompt := st.chat_input(""):
     
 if st.session_state.get("run_id"):
     run_id = st.session_state.run_id
-    feedback_option = "faces" if st.toggle(label="`Thumbs` ⇄ `Faces`", value=False) else "thumbs"
 
     feedback = streamlit_feedback(
         feedback_type=feedback_option,  # Apply the selected feedback style
-        optional_text_label="[Optional] Please provide an explanation",  # Allow for additional comments
+        optional_text_label="[선택] 피드백을 작성해주세요.",  # Allow for additional comments
         key=f"feedback_{st.session_state.run_id}",
     )
         
@@ -180,6 +183,6 @@ if st.session_state.get("run_id"):
                 "feedback_id": str(feedback_record.id),
                 "score": score,
             }
-            st.toast("Feedback recorded!", icon="📝")
+            st.toast("피드백 등록!", icon="📝")
         else:
-            st.warning("Invalid feedback score.")
+            st.warning("부적절한 피드백.")
