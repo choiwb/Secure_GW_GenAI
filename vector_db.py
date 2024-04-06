@@ -1,7 +1,6 @@
 
 import os
 from langchain_community.document_loaders import PyPDFLoader
-from langchain.text_splitter import CharacterTextSplitter
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores import Chroma
 from langchain.embeddings.openai import OpenAIEmbeddings
@@ -14,15 +13,10 @@ from config import db_save_path
 embeddings = OpenAIEmbeddings(model = 'text-embedding-3-small')
 # embeddings = HCXEmbedding()
 
-text_splitter = CharacterTextSplitter(        
-                            separator = "\n",
-                            chunk_size = 200,
-                            chunk_overlap  = 50,
-                            length_function = len,
-                            )
  
-text_splitter_function_calling = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
-        chunk_size=200, chunk_overlap=50
+text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
+        chunk_size=100, chunk_overlap=20,
+        is_separator_regex=False,
     )
 
 # 오프라인 데이터 가공 ####################################################################################
