@@ -17,3 +17,8 @@ ahn_icon = os.path.join(os.getcwd(), 'YOUR PATH !!!!!!!')
 gpt_icon = os.path.join(os.getcwd(), 'YOUR PATH !!!!!!!')
 
 ROOT_DIR = 'YOUR PATH !!!!!!!'
+
+# PostgreSQL 접속 정보
+DB_CONNECTION_STRING = "DB_CONNECTION_STRING !!!!!!!"
+DB_COLLECTION_NAME = "DB_COLLECTION_NAME !!!!!!!"
+
