@@ -6,8 +6,8 @@ from langchain_community.document_loaders import PyPDFLoader
 from langchain.vectorstores import Chroma
 from langchain_community.vectorstores.pgvector import PGVector
 from langchain.text_splitter import CharacterTextSplitter
-from ncp_embedding import  HCXEmbedding
 
+from ncp_embedding import  HCXEmbedding
 from config import db_save_path, pdf_folder_path, ROOT_DIR
 
 
