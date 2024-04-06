@@ -12,4 +12,6 @@ HCX (Hyper Clova X) & GPT & Gemini Pro Vision Generative AI Application
 - Frontend: Streamlit
 - Production & Deployment: LangSmith
 -----
-- TO DO: LangSmith customizing - token count & price (OpenAI to HCX)
+- TO DO 1: Prompt INjection model R&D (https://huggingface.co/protectai/deberta-v3-base-prompt-injection)
+- TO DO 2: sLLM R&D (https://huggingface.co/yanolja/EEVE-Korean-Instruct-2.8B-v1.0)
+- TO DO 3: LangSmith customizing - token count & price (OpenAI to HCX)
