@@ -3,9 +3,11 @@ import os
 from langchain.chains import create_extraction_chain
 from multiprocessing import Pool
 from langchain.chat_models import ChatOpenAI
-from streamlit_cloud_llm_bot import pdf_paths, embeddings, db_save_path, text_splitter
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.vectorstores import FAISS
+
+from vector_db import embeddings, db_save_path, text_splitter
+from vector_db_update import pdf_paths
 
 
 scraping_llm = ChatOpenAI(model_name='gpt-3.5-turbo-16k', temperature=0, max_tokens=8192)
