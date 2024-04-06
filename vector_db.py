@@ -14,9 +14,8 @@ embeddings = OpenAIEmbeddings(model = 'text-embedding-3-small')
 # embeddings = HCXEmbedding()
 
  
-text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
-        chunk_size=100, chunk_overlap=20,
-        is_separator_regex=False,
+text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=100, chunk_overlap=20, is_separator_regex=False
     )
 
 # 오프라인 데이터 가공 ####################################################################################
