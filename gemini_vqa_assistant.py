@@ -1,26 +1,16 @@
 
 
-import os
 import streamlit as st
 from PIL import Image
-from streamlit_cloud_llm_bot import reset_conversation, gemini_memory, gemini_txt_pipe, gemini_vis_pipe, gemini_vis_txt_pipe
 from langchain.schema import HumanMessage
 
-########################################################################
-you_icon = 'your icon !!!!!!'
-ahn_icon = 'your icon !!!!!!'
-
-# asa, hcx 별 프로토콜 스택 이미지 경로
-asa_image_path = 'your image path !!!!!!'
-########################################################################
+from config import asa_image_path, you_icon, ahn_icon
+from LCEL import reset_conversation, gemini_memory, gemini_txt_pipe, gemini_vis_pipe, gemini_vis_txt_pipe
 
 
-try:
-    st.set_page_config(layout="wide")
-except Exception as e:
-    # 페이지를 자동으로 다시 실행
-    st.rerun()
-    
+
+
+st.set_page_config(layout="wide")
     
 st.markdown("<h1 style='text-align: center;'>Visual Question Answering Assistant</h1>", unsafe_allow_html=True)
 
@@ -94,7 +84,7 @@ if prompt := st.chat_input(""):
                             {"type": "image_url", "image_url": image},
                         ]
                         )
-                        
+                                                                   
                         img_context = gemini_vis_pipe.invoke([img_message])
                         print('########################################################################')
                         print(img_context)
