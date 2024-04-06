@@ -9,7 +9,7 @@ from LCEL import reset_conversation, gemini_memory, gemini_txt_pipe, gemini_vis_
 
 
 try:
-    st.set_page_config(layout="wide")
+    st.set_page_config(page_title="VQA_Assistant", layout="wide")
 except:
     st.rerun()
     
