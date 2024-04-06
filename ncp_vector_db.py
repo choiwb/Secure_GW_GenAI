@@ -1,35 +1,25 @@
 
+
 import os
-import json
 import time
 from langchain_community.document_loaders import PyPDFLoader
-from langchain.vectorstores import Chroma, FAISS
+from langchain.vectorstores import Chroma
 from langchain_community.vectorstores.pgvector import PGVector
 from langchain.text_splitter import CharacterTextSplitter
 from ncp_embedding import  HCXEmbedding
-from langchain.embeddings.openai import OpenAIEmbeddings
 
+from config import db_save_path, pdf_folder_path, ROOT_DIR
 
-
-# __import__('pysqlite3')
-# import sys
-# sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
-
-
-ahn_asec_path = 'pdf data path'
-db_save_path = "vector db save folder path" 
-ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 pdf_paths = []
-for filename in os.listdir(ahn_asec_path):
+for filename in os.listdir(pdf_folder_path):
     if filename.endswith(".pdf"):
         # 완전한 파일 경로 생성
-        globals()[f'pdf_path_{filename}']  = os.path.join(ahn_asec_path, filename)
+        globals()[f'pdf_path_{filename}']  = os.path.join(pdf_folder_path, filename)
         # print(globals()[f'pdf_path_{filename}'])
         pdf_paths.append(globals()[f'pdf_path_{filename}'])
 
 embeddings = HCXEmbedding()
-# embeddings = OpenAIEmbeddings(model = 'text-embedding-3-small')
  
 text_splitter = CharacterTextSplitter(        
                             separator = "\n",
@@ -38,7 +28,7 @@ text_splitter = CharacterTextSplitter(
                             length_function = len,
                             )
 
-
+    
 def offline_chroma_save(pdf_paths):
 
     total_docs = []
@@ -67,6 +57,7 @@ def offline_chroma_save(pdf_paths):
         persist_directory=os.path.join(ROOT_DIR, db_save_path, "cloud_bot_20240317_chroma_db")
         )
     vectorstore.persist()
+
 
 
 
@@ -113,3 +104,4 @@ total_content = offline_pgvector_save(pdf_paths)
 end = time.time()
 '''임베딩 완료 시간: 1.31 (초)'''
 print('임베딩 완료 시간: %.2f (초)' %(end-start))
+
