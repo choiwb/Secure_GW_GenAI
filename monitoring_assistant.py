@@ -44,6 +44,12 @@ with st.expander('추천 질문'):
 
 with st.expander('Protocol Stack'):
     st.image(asa_image_path, caption='Protocol Stack', use_column_width=True)
+
+st.markdown('''
+<script>
+    window.scrollTo(0, document.body.scrollHeight);
+</script>
+''', unsafe_allow_html=True)
     
 if "rerun_tab" not in st.session_state:
     reset_conversation()
