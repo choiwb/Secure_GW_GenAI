@@ -57,6 +57,14 @@ with gpt_col:
     with st.expander('No Protection'):
         st.markdown('<br>', unsafe_allow_html=True)
 
+def scroll_bottom() -> None:
+    js = '''
+    <script>
+        window.scrollTo(0, document.body.scrollHeight);
+    </script>
+    '''
+    st.components.v1.html(js, width=0, height=0)
+    
 for avatar_message in st.session_state.ahn_messages:
     with ahn_hcx:
         if avatar_message["role"] == "user":
@@ -109,11 +117,7 @@ with st.sidebar:
     st.button("대화 리셋", on_click=reset_conversation, use_container_width=True)
 
 if prompt := st.chat_input(""):    
-    st.markdown('''
-    <script>
-        window.scrollTo(0, document.body.scrollHeight);
-    </script>
-    ''', unsafe_allow_html=True)
+    scroll_bottom()
     with ahn_hcx:          
         with st.chat_message("user", avatar=you_icon):
             st.markdown("<b>You</b><br>", unsafe_allow_html=True)
