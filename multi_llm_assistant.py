@@ -57,12 +57,6 @@ with gpt_col:
     with st.expander('No Protection'):
         st.markdown('<br>', unsafe_allow_html=True)
 
-st.markdown('''
-<script>
-    window.scrollTo(0, document.body.scrollHeight);
-</script>
-''', unsafe_allow_html=True)
-
 for avatar_message in st.session_state.ahn_messages:
     with ahn_hcx:
         if avatar_message["role"] == "user":
@@ -114,7 +108,12 @@ for avatar_message in st.session_state.gpt_messages:
 with st.sidebar:
     st.button("대화 리셋", on_click=reset_conversation, use_container_width=True)
 
-if prompt := st.chat_input(""):            
+if prompt := st.chat_input(""):    
+    st.markdown('''
+    <script>
+        window.scrollTo(0, document.body.scrollHeight);
+    </script>
+    ''', unsafe_allow_html=True)
     with ahn_hcx:          
         with st.chat_message("user", avatar=you_icon):
             st.markdown("<b>You</b><br>", unsafe_allow_html=True)
