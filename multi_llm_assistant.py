@@ -57,6 +57,12 @@ with gpt_col:
     with st.expander('No Protection'):
         st.markdown('<br>', unsafe_allow_html=True)
 
+st.markdown('''
+<script>
+    window.scrollTo(0, document.body.scrollHeight);
+</script>
+''', unsafe_allow_html=True)
+
 for avatar_message in st.session_state.ahn_messages:
     with ahn_hcx:
         if avatar_message["role"] == "user":
