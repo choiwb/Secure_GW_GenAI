@@ -44,6 +44,14 @@ with st.expander('추천 질문'):
 
 with st.expander('Protocol Stack'):
     st.image(asa_image_path, caption='Protocol Stack', use_column_width=True)
+
+def scroll_bottom() -> None:
+    js = '''
+    <script>
+        window.scrollTo(0, document.body.scrollHeight);
+    </script>
+    '''
+    st.components.v1.html(js, width=0, height=0)
     
 if "rerun_tab" not in st.session_state:
     reset_conversation()
@@ -77,11 +85,7 @@ with st.sidebar:
 
 
 if prompt := st.chat_input(""):
-    st.markdown('''
-    <script>
-        window.scrollTo(0, document.body.scrollHeight);
-    </script>
-    ''', unsafe_allow_html=True)
+    scroll_bottom()
     with st.chat_message("user", avatar=you_icon):
         st.markdown("<b>You</b><br>", unsafe_allow_html=True)
         st.markdown(prompt, unsafe_allow_html=True)
