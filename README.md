@@ -4,9 +4,9 @@ HCX (Hyper Clova X) & GPT & Gemini Pro Vision Generative AI Application
 [Generative AI app]
 - Scenario: auto review generation, Cloud based Assistant
 - Secure Gateway: LLM based Prompt Injection module
-- LLM: HCX, GPT, Gemini Pro Vision
+- LLM: HCX, GPT, sLLM (EEVE), Gemini Pro Vision
 - Process: RAG, Multimodal RAG
-- Embedding: OpenAI, NCP
+- Embedding: OpenAI, NCP, HuggingFace (nomic embed text_
 - Vector DB: Chroma, FAISS, PGVector
 - Backend: LangChain
 - Frontend: Streamlit
