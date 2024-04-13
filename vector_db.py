@@ -4,13 +4,15 @@ from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores import Chroma
 from langchain.embeddings.openai import OpenAIEmbeddings
+from langchain_community.embeddings import LlamaCppEmbeddings
 
 from ncp_embedding import HCXEmbedding
-from config import db_save_path
+from config import db_save_path, sllm_embed_model_path
 
 
 # text-embedding-3-small or text-embedding-3-large
-embeddings = OpenAIEmbeddings(model = 'text-embedding-3-small')
+# embeddings = OpenAIEmbeddings(model = 'text-embedding-3-small')
+embeddings = LlamaCppEmbeddings(model_path = sllm_embed_model_path)
 # embeddings = HCXEmbedding()
 
  
@@ -28,11 +30,11 @@ def offline_chroma_save(pdf_paths):
         pdf_doc = pdfreader.load_and_split()
         doc = text_splitter.split_documents(pdf_doc)
         total_docs = total_docs + doc
-          
+
     vectorstore = Chroma.from_documents(
         documents=total_docs,
         embedding=embeddings,
-        persist_directory=os.path.join(db_save_path, "cloud_assistant_v1")
+        persist_directory=os.path.join(db_save_path, "cloud_assistant_v2")
         )
     vectorstore.persist()
  #######################################################################################################
