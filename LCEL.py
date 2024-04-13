@@ -1,6 +1,7 @@
 
 
 import os
+import pandas as pd
 from langchain.prompts import PromptTemplate
 from langchain.memory import ConversationBufferMemory
 import streamlit as st
@@ -109,6 +110,24 @@ def reset_conversation():
   gpt_memory.clear()
   sllm_memory.clear()
   gemini_memory.clear()
+
+
+def src_doc(prompt):
+    prompt_str = str(prompt)
+    source_documents = prompt_str.split("context for answer: ")[1].split("question: ")[0]
+    if len(source_documents.strip()) > 0:
+        source_documents_list = source_documents.split('\\n\\n')
+        sample_src_doc = [[i+1, doc[:100] + '.....(이하 생략)'] for i, doc in enumerate(source_documents_list)] 
+        sample_src_doc_df = pd.DataFrame(sample_src_doc,  columns=['No', '참조 문서'])
+        sample_src_doc_df = sample_src_doc_df.set_index('No')
+        
+        # 참조 문서 UI 표출
+        if sample_src_doc_df.shape[0] > 0:
+            with st.expander('참조 문서'):
+                st.table(sample_src_doc_df)
+                st.markdown("AhnLab에서 제공하는 위협정보 입니다.<br>자세한 정보는 https://www.ahnlab.com/ko/contents/asec/info 에서 참조해주세요.", unsafe_allow_html=True)
+    
+    return prompt
   
   
 
@@ -165,10 +184,10 @@ final_inputs = {
 
 
 hcx_sec_pipe = SEC_CHAIN_PROMPT | hcx_sec | StrOutputParser()
-retrieval_qa_chain =  asa_loaded_memory | retrieved_documents | final_inputs | QA_CHAIN_PROMPT | hcx_stream | StrOutputParser()
+retrieval_qa_chain =  asa_loaded_memory | retrieved_documents | final_inputs | QA_CHAIN_PROMPT | src_doc | hcx_stream | StrOutputParser()
 hcx_only_pipe =  hcx_loaded_memory | not_retrieved_documents | ONLY_CHAIN_PROMPT | hcx_only | StrOutputParser()
 gpt_pipe =  gpt_loaded_memory | not_retrieved_documents | ONLY_CHAIN_PROMPT | gpt_model | StrOutputParser()
-sllm_pipe = sllm_loaded_memory | retrieved_documents | final_inputs | SLLM_CHAIN_PROMPT | sllm | StrOutputParser()
+sllm_pipe = sllm_loaded_memory | retrieved_documents | final_inputs | SLLM_CHAIN_PROMPT |src_doc | sllm | StrOutputParser()
 
 gemini_txt_pipe = gemini_loaded_memory | not_retrieved_documents | ONLY_CHAIN_PROMPT | gemini_txt_model | StrOutputParser()
 gemini_vis_pipe = RunnablePassthrough() | gemini_vis_model | StrOutputParser()
