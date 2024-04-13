@@ -1,5 +1,6 @@
 
 
+
 import os
 import uuid
 import random
@@ -7,7 +8,6 @@ import json
 import httpx
 from dotenv import load_dotenv
 import requests
-import pandas as pd
 from typing import Any, List, Optional
 from langchain.llms.base import LLM
 import streamlit as st
@@ -21,7 +21,6 @@ from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 from hcx_token_cal import token_completion_executor
 from prompt import PROMPT_INJECTION_PROMPT, SYSTEMPROMPT
 from config import sllm_model_path, sllm_n_batch, sllm_n_gpu_layers
-
 
 ##################################################################################
 # .env 파일 로드
@@ -40,7 +39,6 @@ llm_url = os.getenv('HCX_LLM_URL')
 os.getenv("GOOGLE_API_KEY")
 os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
 ##################################################################################
-
 
 
 def hcx_stream_process(res):
@@ -120,8 +118,6 @@ class HCX_sec(LLM):
 class HCX_stream(LLM):      
    
     init_input_token_count: int = 0
-    source_documents: str = ""
-    sample_src_doc_df = pd.DataFrame()
 
     @property
     def _llm_type(self) -> str:
@@ -138,14 +134,6 @@ class HCX_stream(LLM):
             raise ValueError("stop kwargs are not permitted.")
        
         preset_text = [{"role": "system", "content": SYSTEMPROMPT}, {"role": "user", "content": prompt}]
-               
-        # prompt 변수의 context for answer: 부터 question: 이전 text를 source_documents 선언
-        self.source_documents = prompt.split("context for answer: ")[1].split("question: ")[0]
-        if len(self.source_documents.strip()) > 0:
-            source_documents_list = self.source_documents.split('\n\n')
-            sample_src_doc = [[i+1, doc[:100] + '.....(이하 생략)'] for i, doc in enumerate(source_documents_list)] 
-            self.sample_src_doc_df = pd.DataFrame(sample_src_doc,  columns=['No', '참조 문서'])
-            self.sample_src_doc_df = self.sample_src_doc_df.set_index('No')
 
         output_token_json = {
             "messages": preset_text
@@ -266,5 +254,8 @@ sllm = LlamaCpp(model_path=sllm_model_path, temperature=0, max_tokens=512,
     n_gpu_layers=sllm_n_gpu_layers,
     n_batch=sllm_n_batch,
     use_mlock=True)
+
+
+
 
 
