@@ -14,9 +14,13 @@ import streamlit as st
 from langchain.callbacks.manager import CallbackManagerForLLMRun
 from langchain.chat_models import ChatOpenAI  
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain.llms import LlamaCpp
+from langchain.callbacks.manager import CallbackManager
+from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 
 from hcx_token_cal import token_completion_executor
 from prompt import PROMPT_INJECTION_PROMPT, SYSTEMPROMPT
+from config import sllm_model_path, sllm_n_batch, sllm_n_gpu_layers
 
 
 ##################################################################################
@@ -37,10 +41,12 @@ os.getenv("GOOGLE_API_KEY")
 os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
 ##################################################################################
 
+
+
 def hcx_stream_process(res):
     full_response = ""
     message_placeholder = st.empty()       
-
+    
     for line in res.iter_lines():
         if line.startswith("data:"):
             split_line = line.split("data:")
@@ -242,3 +248,21 @@ gpt_model = ChatOpenAI(
 
 gemini_txt_model = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.1, max_output_tokens=512)
 gemini_vis_model = ChatGoogleGenerativeAI(model="gemini-pro-vision", temperature=0.1, max_output_tokens=512)
+
+
+
+callback_manager = CallbackManager([StreamingStdOutCallbackHandler()])
+
+sllm = LlamaCpp(model_path=sllm_model_path, temperature=0, max_tokens=512,
+    # context windows
+    # n_ctx: 모델이 한 번에 처리할 수 있는 최대 컨텍스트 길이
+    n_ctx=8192,
+    top_p=1,
+    callback_manager=callback_manager, 
+    streaming=True, # Streaming is required to pass to the callback manager
+    verbose=True, # Verbose is required to pass to the callback manager
+    # apple silicon
+    f16_kv=True,  # MUST set to True, otherwise you will run into problem after a couple of calls
+    n_gpu_layers=sllm_n_gpu_layers,
+    n_batch=sllm_n_batch,
+    use_mlock=True)
