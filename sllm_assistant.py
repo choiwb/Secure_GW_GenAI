@@ -103,13 +103,7 @@ if prompt := st.chat_input(""):
 
                 sllm_memory.save_context({"question": prompt}, {"answer": full_response})
                 st.session_state.ahn_messages.append({"role": "assistant", "content": full_response})
-                
-            # 참조 문서 UI 표출
-            # if len(hcx_stream.source_documents.strip()) > 0:
-            #     with st.expander('참조 문서'):
-            #         st.table(hcx_stream.sample_src_doc_df)
-            #         st.markdown("AhnLab에서 제공하는 위협정보 입니다.<br>자세한 정보는 https://www.ahnlab.com/ko/contents/asec/info 에서 참조해주세요.", unsafe_allow_html=True)
-        
+
         except Exception as e:
             st.error(e, icon="🚨")
     
