@@ -135,8 +135,8 @@ for avatar_message in st.session_state.gpt_messages:
 with st.sidebar:
     st.button("대화 리셋", on_click=reset_conversation, use_container_width=True)
 
-if prompt := st.chat_input(""):    
-    scroll_bottom()
+if prompt := st.chat_input(""):      
+    scroll_bottom()      
     with ahn_hcx:          
         with st.chat_message("user", avatar=you_icon):
             st.markdown("<b>You</b><br>", unsafe_allow_html=True)
@@ -154,7 +154,8 @@ if prompt := st.chat_input(""):
                     sec_st_write = st.empty()
                     if '보안 취약점이 우려되는 질문입니다' not in inj_full_response:
                         sec_st_write.success('보안 검사 결과, 안전한 질문 입니다.', icon='✅')
-                        full_response = retrieval_qa_chain.invoke({"question":prompt})    
+                        
+                        full_response = retrieval_qa_chain.invoke({"question":prompt}) 
 
                         asa_input_token = hcx_stream.init_input_token_count
                         output_token_json = {
@@ -182,12 +183,6 @@ if prompt := st.chat_input(""):
                     
                         st.session_state.ahn_messages.append({"role": "assistant", "content": inj_full_response})
                             
-                # 참조 문서 UI 표출
-                if len(hcx_stream.source_documents.strip()) > 0:
-                    with st.expander('참조 문서'):
-                        st.table(hcx_stream.sample_src_doc_df)
-                        st.markdown("AhnLab에서 제공하는 위협정보 입니다.<br>자세한 정보는 https://www.ahnlab.com/ko/contents/asec/info 에서 참조해주세요.", unsafe_allow_html=True)
-            
                 if '보안 취약점이 우려되는 질문입니다' not in inj_full_response:
                     with st.expander('토큰 정보'):
                         st.markdown(f"""
