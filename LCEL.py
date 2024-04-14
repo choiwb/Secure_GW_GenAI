@@ -129,7 +129,6 @@ def src_doc(prompt):
     
     return prompt
   
-  
 
 DEFAULT_DOCUMENT_PROMPT = PromptTemplate.from_template(template="{page_content}")
   
@@ -187,7 +186,7 @@ hcx_sec_pipe = SEC_CHAIN_PROMPT | hcx_sec | StrOutputParser()
 retrieval_qa_chain =  asa_loaded_memory | retrieved_documents | final_inputs | QA_CHAIN_PROMPT | src_doc | hcx_stream | StrOutputParser()
 hcx_only_pipe =  hcx_loaded_memory | not_retrieved_documents | ONLY_CHAIN_PROMPT | hcx_only | StrOutputParser()
 gpt_pipe =  gpt_loaded_memory | not_retrieved_documents | ONLY_CHAIN_PROMPT | gpt_model | StrOutputParser()
-sllm_pipe = sllm_loaded_memory | retrieved_documents | final_inputs | SLLM_CHAIN_PROMPT |src_doc | sllm | StrOutputParser()
+sllm_pipe = sllm_loaded_memory | retrieved_documents | final_inputs | SLLM_CHAIN_PROMPT | src_doc | sllm | StrOutputParser()
 
 gemini_txt_pipe = gemini_loaded_memory | not_retrieved_documents | ONLY_CHAIN_PROMPT | gemini_txt_model | StrOutputParser()
 gemini_vis_pipe = RunnablePassthrough() | gemini_vis_model | StrOutputParser()
