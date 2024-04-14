@@ -1,10 +1,26 @@
 
+import os
+from dotenv import load_dotenv
 import streamlit as st
+from streamlit_feedback import streamlit_feedback
+from langsmith import Client
+from langchain.callbacks.manager import collect_runs
 
 from config import you_icon, ahn_icon, asa_image_path
 from LCEL import sllm_pipe, sllm_memory, reset_conversation
 
 
+##################################################################################
+# .env 파일 로드
+load_dotenv()
+
+os.getenv('LANGCHAIN_TRACING_V2')
+os.getenv('LANGCHAIN_PROJECT')
+os.getenv('LANGCHAIN_ENDPOINT')
+os.getenv('LANGCHAIN_API_KEY')
+##################################################################################
+
+client = Client()
 
 try:
     st.set_page_config(page_icon="🚀", page_title="Cloud_Assistant", layout="wide", initial_sidebar_state="collapsed")
@@ -81,6 +97,8 @@ for avatar_message in st.session_state.ahn_messages:
 with st.sidebar:
     st.button("대화 리셋", on_click=reset_conversation, use_container_width=True)
     st.markdown('<br>', unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: center;'>피드백 방법</h3>", unsafe_allow_html=True)
+    feedback_option = "faces" if st.toggle(label="`thumbs` ⇄ `faces`", value=False) else "thumbs"
 
 
 if prompt := st.chat_input(""):
@@ -94,17 +112,58 @@ if prompt := st.chat_input(""):
         st.markdown("<b>ASA</b><br>", unsafe_allow_html=True)
         try:
             with st.spinner("답변 생성 중....."):
-                full_response = ""
-                message_placeholder = st.empty()
-                
-                for chunk in sllm_pipe.stream({"question":prompt}):
-                    full_response += chunk
-                    message_placeholder.markdown(full_response, unsafe_allow_html=True)
+                with collect_runs() as cb:
+                    full_response = ""
+                    message_placeholder = st.empty()
+                    
+                    for chunk in sllm_pipe.stream({"question":prompt}):
+                        full_response += chunk
+                        message_placeholder.markdown(full_response, unsafe_allow_html=True)
+                        
+                    sllm_memory.save_context({"question": prompt}, {"answer": full_response})
+                    st.session_state.ahn_messages.append({"role": "assistant", "content": full_response})
 
-                sllm_memory.save_context({"question": prompt}, {"answer": full_response})
-                st.session_state.ahn_messages.append({"role": "assistant", "content": full_response})
+                    st.session_state.run_id = cb.traced_runs[0].id
 
         except Exception as e:
             st.error(e, icon="🚨")
+            
+
+if st.session_state.get("run_id"):
+    run_id = st.session_state.run_id
+
+    feedback = streamlit_feedback(
+        feedback_type=feedback_option,  # Apply the selected feedback style
+        optional_text_label="[선택] 피드백을 작성해주세요.",  # Allow for additional comments
+        key=f"feedback_{st.session_state.run_id}",
+    )
+        
+    score_mappings = {
+        "thumbs": {"👍": 1, "👎": 0},
+        "faces": {"😀": 1, "🙂": 0.75, "😐": 0.5, "🙁": 0.25, "😞": 0},
+    }
+
+    scores = score_mappings[feedback_option]
+
+    if feedback:
+        score = scores.get(feedback["score"])
+
+        if score is not None:
+            feedback_type_str = f"{feedback_option} {feedback['score']}"
+
+            feedback_record = client.create_feedback(
+                run_id,
+                feedback_type_str,
+                score=score,
+                comment=feedback.get("text")
+                )
+        
+            st.session_state.feedback = {
+                "feedback_id": str(feedback_record.id),
+                "score": score,
+            }
+            st.toast("피드백 등록!", icon="📝")
+        else:
+            st.warning("부적절한 피드백.")
     
     
