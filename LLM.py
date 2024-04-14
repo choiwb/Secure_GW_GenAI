@@ -1,6 +1,5 @@
 
 
-
 import os
 import uuid
 import random
@@ -19,7 +18,7 @@ from langchain.callbacks.manager import CallbackManager
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 
 from hcx_token_cal import token_completion_executor
-from prompt import PROMPT_INJECTION_PROMPT, SYSTEMPROMPT
+from prompt import PROMPT_INJECTION_PROMPT, SYSTEMPROMPT, sllm_inj_rag_prompt
 from config import sllm_model_path, sllm_n_batch, sllm_n_gpu_layers
 
 ##################################################################################
@@ -238,7 +237,6 @@ gemini_txt_model = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.1, m
 gemini_vis_model = ChatGoogleGenerativeAI(model="gemini-pro-vision", temperature=0.1, max_output_tokens=512)
 
 
-
 callback_manager = CallbackManager([StreamingStdOutCallbackHandler()])
 
 sllm = LlamaCpp(model_path=sllm_model_path, temperature=0, max_tokens=512,
@@ -253,7 +251,10 @@ sllm = LlamaCpp(model_path=sllm_model_path, temperature=0, max_tokens=512,
     f16_kv=True,  # MUST set to True, otherwise you will run into problem after a couple of calls
     n_gpu_layers=sllm_n_gpu_layers,
     n_batch=sllm_n_batch,
-    use_mlock=True)
+    use_mlock=True,
+    prompt = sllm_inj_rag_prompt)
+
+
 
 
 
