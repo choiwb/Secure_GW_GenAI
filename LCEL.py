@@ -16,15 +16,13 @@ from langchain.vectorstores import Chroma
 
 from config import db_save_path, DB_COLLECTION_NAME, DB_CONNECTION_STRING
 from vector_db import embeddings
-from prompt import not_rag_template, rag_template, sllm_inj_rag_prompt
+from prompt import not_rag_template, rag_template
 from LLM import HCX_sec, HCX_only, HCX_stream, gpt_model, sllm, gemini_vis_model, gemini_txt_model
 
 
  
 ONLY_CHAIN_PROMPT = PromptTemplate(input_variables=["question"],template=not_rag_template)
-SEC_CHAIN_PROMPT = PromptTemplate(input_variables=["question"],template=not_rag_template)
 QA_CHAIN_PROMPT = PromptTemplate(input_variables=["context", "question"],template=rag_template)
-SLLM_CHAIN_PROMPT = PromptTemplate(input_variables=["question"],template=sllm_inj_rag_prompt)
  
 hcx_sec = HCX_sec()
 hcx_stream = HCX_stream()
@@ -182,11 +180,11 @@ final_inputs = {
 }
 
 
-hcx_sec_pipe = SEC_CHAIN_PROMPT | hcx_sec | StrOutputParser()
+hcx_sec_pipe = ONLY_CHAIN_PROMPT | hcx_sec | StrOutputParser()
 retrieval_qa_chain =  asa_loaded_memory | retrieved_documents | final_inputs | QA_CHAIN_PROMPT | src_doc | hcx_stream | StrOutputParser()
 hcx_only_pipe =  hcx_loaded_memory | not_retrieved_documents | ONLY_CHAIN_PROMPT | hcx_only | StrOutputParser()
 gpt_pipe =  gpt_loaded_memory | not_retrieved_documents | ONLY_CHAIN_PROMPT | gpt_model | StrOutputParser()
-sllm_pipe = sllm_loaded_memory | retrieved_documents | final_inputs | SLLM_CHAIN_PROMPT | src_doc | sllm | StrOutputParser()
+sllm_pipe = sllm_loaded_memory | retrieved_documents | final_inputs | QA_CHAIN_PROMPT | src_doc | sllm | StrOutputParser()
 
 gemini_txt_pipe = gemini_loaded_memory | not_retrieved_documents | ONLY_CHAIN_PROMPT | gemini_txt_model | StrOutputParser()
 gemini_vis_pipe = RunnablePassthrough() | gemini_vis_model | StrOutputParser()
