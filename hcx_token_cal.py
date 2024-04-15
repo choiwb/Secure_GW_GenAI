@@ -19,7 +19,12 @@ class token_CompletionExecutor:
             'Content-Type': 'application/json; charset=utf-8',
             'X-NCP-CLOVASTUDIO-API-KEY': self._api_key,
             'X-NCP-APIGW-API-KEY': self._api_key_primary_val,
-            'X-NCP-CLOVASTUDIO-REQUEST-ID': self._request_id
+            'X-NCP-CLOVASTUDIO-REQUEST-ID': self._request_id,
+            # 응답에 보안 헤더 추가
+            'Strict-Transport-Security': 'max-age=63072000; includeSubdomains; preload',
+            'X-Content-Type-Options': 'nosniff',
+            'Content-Security-Policy': "default-src 'none'; img-src 'self'; script-src 'self'; style-src 'self'; object-src 'none'; frame-ancestors 'none'",
+            'referrer-policy': 'same-origin'
         }
 
         conn = http.client.HTTPSConnection(self._host)
