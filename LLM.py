@@ -1,8 +1,6 @@
 
 
 import os
-import uuid
-import random
 import json
 import httpx
 from dotenv import load_dotenv
@@ -17,17 +15,14 @@ from langchain.llms import LlamaCpp
 from langchain.callbacks.manager import CallbackManager
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 
-from hcx_token_cal import token_completion_executor
+from hcx_token_cal import token_CompletionExecutor
 from prompt import PROMPT_INJECTION_PROMPT, SYSTEMPROMPT, sllm_inj_rag_prompt
-from config import sllm_model_path, sllm_n_batch, sllm_n_gpu_layers
+from config import sllm_model_path, sllm_n_batch, sllm_n_gpu_layers, hcx_general_headers, hcx_stream_header, sec_headers
+
 
 ##################################################################################
 # .env 파일 로드
 load_dotenv()
-
-API_KEY=os.getenv('HCX_API_KEY')
-API_KEY_PRIMARY_VAL=os.getenv('HCX_API_KEY_PRIMARY_VAL')
-REQUEST_ID=str(uuid.uuid4())
 
 os.getenv('OPENAI_API_KEY')
 
@@ -38,6 +33,7 @@ llm_url = os.getenv('HCX_LLM_URL')
 os.getenv("GOOGLE_API_KEY")
 os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
 ##################################################################################
+
 
 
 def hcx_stream_process(res):
@@ -52,6 +48,8 @@ def hcx_stream_process(res):
                 full_response += line_json["message"]["content"]
                 message_placeholder.markdown(full_response, unsafe_allow_html=True)
     return full_response
+
+token_completion_executor = token_CompletionExecutor()
 
 class HCX_sec(LLM):        
    
@@ -89,20 +87,8 @@ class HCX_sec(LLM):
         "seed": 4595
         }
        
-       
-        general_headers = {
-            'X-NCP-CLOVASTUDIO-API-KEY': API_KEY,
-            'X-NCP-APIGW-API-KEY': API_KEY_PRIMARY_VAL,
-            'X-NCP-CLOVASTUDIO-REQUEST-ID': REQUEST_ID,
-            'Content-Type': 'application/json; charset=utf-8',
-            # 응답에 보안 헤더 추가
-            'Strict-Transport-Security': 'max-age=63072000; includeSubdomains; preload',
-            'X-Content-Type-Options': 'nosniff',
-            'Content-Security-Policy': "default-src 'none'; img-src 'self'; script-src 'self'; style-src 'self'; object-src 'none'; frame-ancestors 'none'",
-            'referrer-policy': 'same-origin'
-        }
-               
-        response = requests.post(llm_url, json=request_data, headers=general_headers, verify=False)
+        general_sec_headers = hcx_general_headers | sec_headers       
+        response = requests.post(llm_url, json=request_data, headers=general_sec_headers, verify=False)
         response.raise_for_status()
         
         llm_result = response.json()['result']['message']['content']
@@ -158,24 +144,12 @@ class HCX_stream(LLM):
         "seed": 4595
         }
                        
-        stream_headers = {
-            'X-NCP-CLOVASTUDIO-API-KEY': API_KEY,
-            'X-NCP-APIGW-API-KEY': API_KEY_PRIMARY_VAL,
-            'X-NCP-CLOVASTUDIO-REQUEST-ID': REQUEST_ID,
-            'Content-Type': 'application/json; charset=utf-8',
-            # streaming 옵션 !!!!!
-            'Accept': 'text/event-stream',
-            # 응답에 보안 헤더 추가
-            'Strict-Transport-Security': 'max-age=63072000; includeSubdomains; preload',
-            'X-Content-Type-Options': 'nosniff',
-            'Content-Security-Policy': "default-src 'none'; img-src 'self'; script-src 'self'; style-src 'self'; object-src 'none'; frame-ancestors 'none'",
-            'referrer-policy': 'same-origin'
-        }
-        
+        stream_sec_headers = hcx_stream_header | sec_headers       
+
         with httpx.stream(method="POST",
                         url=llm_url,
                         json=request_data,
-                        headers=stream_headers,
+                        headers=stream_sec_headers,
                         timeout=10) as res:
             full_response = hcx_stream_process(res)
             return full_response
@@ -216,24 +190,12 @@ class HCX_only(LLM):
         "seed": 4595
         }
                        
-        stream_headers = {
-            'X-NCP-CLOVASTUDIO-API-KEY': API_KEY,
-            'X-NCP-APIGW-API-KEY': API_KEY_PRIMARY_VAL,
-            'X-NCP-CLOVASTUDIO-REQUEST-ID': REQUEST_ID,
-            'Content-Type': 'application/json; charset=utf-8',
-            # streaming 옵션 !!!!!
-            'Accept': 'text/event-stream',
-            # 응답에 보안 헤더 추가
-            'Strict-Transport-Security': 'max-age=63072000; includeSubdomains; preload',
-            'X-Content-Type-Options': 'nosniff',
-            'Content-Security-Policy': "default-src 'none'; img-src 'self'; script-src 'self'; style-src 'self'; object-src 'none'; frame-ancestors 'none'",
-            'referrer-policy': 'same-origin'
-        }
+        stream_sec_headers = hcx_stream_header | sec_headers       
         
         with httpx.stream(method="POST",
                         url=llm_url,
                         json=request_data,
-                        headers=stream_headers,
+                        headers=stream_sec_headers,
                         timeout=10) as res:
             full_response = hcx_stream_process(res)
             return full_response
@@ -246,13 +208,7 @@ gpt_model = ChatOpenAI(
 
     max_tokens=512,
     temperature=0.1,
-    default_headers = {
-    # 응답에 보안 헤더 추가
-    'Strict-Transport-Security': 'max-age=63072000; includeSubdomains; preload',
-    'X-Content-Type-Options': 'nosniff',
-    'Content-Security-Policy': "default-src 'none'; img-src 'self'; script-src 'self'; style-src 'self'; object-src 'none'; frame-ancestors 'none'",
-    'referrer-policy': 'same-origin'
-    }
+    default_headers = sec_headers
 )    
 
 gemini_txt_model = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.1, max_output_tokens=512)
@@ -275,6 +231,8 @@ sllm = LlamaCpp(model_path=sllm_model_path, temperature=0, max_tokens=512,
     n_batch=sllm_n_batch,
     use_mlock=True,
     prompt = sllm_inj_rag_prompt)
+
+
 
 
 
