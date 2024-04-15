@@ -95,6 +95,11 @@ class HCX_sec(LLM):
             'X-NCP-APIGW-API-KEY': API_KEY_PRIMARY_VAL,
             'X-NCP-CLOVASTUDIO-REQUEST-ID': REQUEST_ID,
             'Content-Type': 'application/json; charset=utf-8',
+            # 응답에 보안 헤더 추가
+            'Strict-Transport-Security': 'max-age=63072000; includeSubdomains; preload',
+            'X-Content-Type-Options': 'nosniff',
+            'Content-Security-Policy': "default-src 'none'; img-src 'self'; script-src 'self'; style-src 'self'; object-src 'none'; frame-ancestors 'none'",
+            'referrer-policy': 'same-origin'
         }
                
         response = requests.post(llm_url, json=request_data, headers=general_headers, verify=False)
@@ -159,7 +164,12 @@ class HCX_stream(LLM):
             'X-NCP-CLOVASTUDIO-REQUEST-ID': REQUEST_ID,
             'Content-Type': 'application/json; charset=utf-8',
             # streaming 옵션 !!!!!
-            'Accept': 'text/event-stream'
+            'Accept': 'text/event-stream',
+            # 응답에 보안 헤더 추가
+            'Strict-Transport-Security': 'max-age=63072000; includeSubdomains; preload',
+            'X-Content-Type-Options': 'nosniff',
+            'Content-Security-Policy': "default-src 'none'; img-src 'self'; script-src 'self'; style-src 'self'; object-src 'none'; frame-ancestors 'none'",
+            'referrer-policy': 'same-origin'
         }
         
         with httpx.stream(method="POST",
@@ -212,7 +222,12 @@ class HCX_only(LLM):
             'X-NCP-CLOVASTUDIO-REQUEST-ID': REQUEST_ID,
             'Content-Type': 'application/json; charset=utf-8',
             # streaming 옵션 !!!!!
-            'Accept': 'text/event-stream'
+            'Accept': 'text/event-stream',
+            # 응답에 보안 헤더 추가
+            'Strict-Transport-Security': 'max-age=63072000; includeSubdomains; preload',
+            'X-Content-Type-Options': 'nosniff',
+            'Content-Security-Policy': "default-src 'none'; img-src 'self'; script-src 'self'; style-src 'self'; object-src 'none'; frame-ancestors 'none'",
+            'referrer-policy': 'same-origin'
         }
         
         with httpx.stream(method="POST",
@@ -230,7 +245,14 @@ gpt_model = ChatOpenAI(
     # model="gpt-4-0125-preview",
 
     max_tokens=512,
-    temperature=0.1
+    temperature=0.1,
+    default_headers = {
+    # 응답에 보안 헤더 추가
+    'Strict-Transport-Security': 'max-age=63072000; includeSubdomains; preload',
+    'X-Content-Type-Options': 'nosniff',
+    'Content-Security-Policy': "default-src 'none'; img-src 'self'; script-src 'self'; style-src 'self'; object-src 'none'; frame-ancestors 'none'",
+    'referrer-policy': 'same-origin'
+    }
 )    
 
 gemini_txt_model = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.1, max_output_tokens=512)
