@@ -1,34 +1,23 @@
 # -*- coding: utf-8 -*-
 
 import os
-import uuid
 import json
 import http.client
 from dotenv import load_dotenv
 
+from config import token_headers, sec_headers
+
+# .env 파일 로드
+load_dotenv()
+
 
 class token_CompletionExecutor:
-    def __init__(self, host, api_key, api_key_primary_val, request_id):
-        self._host = host
-        self._api_key = api_key
-        self._api_key_primary_val = api_key_primary_val
-        self._request_id = request_id
-
     def _send_request(self, completion_request):
-        headers = {
-            'Content-Type': 'application/json; charset=utf-8',
-            'X-NCP-CLOVASTUDIO-API-KEY': self._api_key,
-            'X-NCP-APIGW-API-KEY': self._api_key_primary_val,
-            'X-NCP-CLOVASTUDIO-REQUEST-ID': self._request_id,
-            # 응답에 보안 헤더 추가
-            'Strict-Transport-Security': 'max-age=63072000; includeSubdomains; preload',
-            'X-Content-Type-Options': 'nosniff',
-            'Content-Security-Policy': "default-src 'none'; img-src 'self'; script-src 'self'; style-src 'self'; object-src 'none'; frame-ancestors 'none'",
-            'referrer-policy': 'same-origin'
-        }
-
-        conn = http.client.HTTPSConnection(self._host)
-        conn.request('POST', 'MODEL PATH !!!!!!!!!!!!!', json.dumps(completion_request), headers)
+        token_sec_headers = token_headers | sec_headers
+        token_host = os.getenv('HCX_TOKEN_HOST')
+        
+        conn = http.client.HTTPSConnection(token_host)
+        conn.request('POST', '/testapp/v1/api-tools/chat-tokenize/HCX-003/ef4a9bf4b9ce463ca0c143bac31baca7', json.dumps(completion_request), token_sec_headers)
 
         response = conn.getresponse()
         result = json.loads(response.read().decode(encoding='utf-8'))
@@ -43,13 +32,3 @@ class token_CompletionExecutor:
             return 'Error'
 
 
-
-# .env 파일 로드
-load_dotenv()
-
-token_completion_executor = token_CompletionExecutor(
-      host=os.getenv('HCX_TOKEN_HOST'),
-      api_key=os.getenv('HCX_TOKEN_API_KEY'),
-      api_key_primary_val=os.getenv('HCX_API_KEY_PRIMARY_VAL'),
-      request_id=str(uuid.uuid4())
-)
