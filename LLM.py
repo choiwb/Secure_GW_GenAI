@@ -15,7 +15,7 @@ from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 
 from hcx_token_cal import token_CompletionExecutor
 from prompt import PROMPT_INJECTION_PROMPT, SYSTEMPROMPT, sllm_inj_rag_prompt
-from config import sllm_model_path, sllm_n_batch, sllm_n_gpu_layers, hcx_general_headers, hcx_stream_headers, sec_headers, hcx_llm_params
+from config import sllm_model_path, sllm_n_batch, sllm_n_gpu_layers, hcx_general_headers, hcx_stream_headers, sec_headers, hcx_llm_params, llm_maxtokens, llm_temperature
 from streamlit_custom_func import hcx_stream_process
 
 
@@ -107,9 +107,9 @@ gpt_model = ChatOpenAI(
     # GPT-4 Turbo 
     # model="gpt-4-0125-preview",
 
-    max_tokens=512,
-    temperature=0.1,
-    default_headers = sec_headers
+    max_tokens=llm_maxtokens,
+    temperature=;lm_temperature,
+    default_headers=sec_headers
 )    
 
 gemini_txt_model = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.1, max_output_tokens=512)
