@@ -13,7 +13,7 @@ from langchain.retrievers import ContextualCompressionRetriever
 from langchain.retrievers.document_compressors import EmbeddingsFilter
 from langchain.vectorstores import Chroma
 
-from config import db_save_path, DB_COLLECTION_NAME, DB_CONNECTION_STRING
+from config import db_save_path, DB_COLLECTION_NAME, DB_CONNECTION_STRING, db_search_type, db_doc_k, db_doc_fetch_k, db_similarity_threshold
 from vector_db import embeddings
 from prompt import not_rag_template, rag_template, PROMPT_INJECTION_PROMPT, SYSTEMPROMPT
 from LLM import HCX, gpt_model, sllm, gemini_vis_model, gemini_txt_model
@@ -35,8 +35,8 @@ new_docsearch = Chroma(persist_directory=os.path.join(db_save_path, "cloud_assis
 #                         embedding_function=embeddings)
 
 retriever = new_docsearch.as_retriever(
-                                        search_type="mmr",                                        
-                                        search_kwargs={'k': 8, 'fetch_k': 32}
+                                        search_type=db_search_type,                                        
+                                        search_kwargs={'k': db_doc_k, 'fetch_k': db_doc_fetch_k}
                                        )
 
 
@@ -44,7 +44,7 @@ retriever = new_docsearch.as_retriever(
 ncp embedding의 경우
 ValidationError: 1 validation error for EmbeddingsFilter embeddings instance of Embeddings expected (type=type_error.arbitrary_type; expected_arbitrary_type=Embeddings)
 '''
-embeddings_filter = EmbeddingsFilter(embeddings=embeddings, similarity_threshold=0.1) 
+embeddings_filter = EmbeddingsFilter(embeddings=embeddings, similarity_threshold=db_similarity_threshold) 
 
 compression_retriever = ContextualCompressionRetriever(
     base_compressor=embeddings_filter, base_retriever=retriever
