@@ -108,7 +108,7 @@ gpt_model = ChatOpenAI(
     # model="gpt-4-0125-preview",
 
     max_tokens=llm_maxtokens,
-    temperature=;lm_temperature,
+    temperature=llm_temperature,
     default_headers=sec_headers
 )    
 
