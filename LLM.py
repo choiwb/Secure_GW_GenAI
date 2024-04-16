@@ -16,6 +16,7 @@ from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 from hcx_token_cal import token_CompletionExecutor
 from prompt import PROMPT_INJECTION_PROMPT, SYSTEMPROMPT, sllm_inj_rag_prompt
 from config import sllm_model_path, sllm_n_batch, sllm_n_gpu_layers, hcx_general_headers, hcx_stream_headers, sec_headers
+from streamlit_custom_func import hcx_stream_process
 
 
 ##################################################################################
@@ -35,8 +36,7 @@ os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
 
 token_completion_executor = token_CompletionExecutor()
  
-class HCX(LLM):      
-   
+class HCX(LLM): 
     init_input_token_count: int = 0
     init_system_prompt: str
     
@@ -126,7 +126,6 @@ class HCX(LLM):
             return llm_result
         
         
-        
 gpt_model = ChatOpenAI(
     model="gpt-3.5-turbo",
     # GPT-4 Turbo 
@@ -156,6 +155,9 @@ sllm = LlamaCpp(model_path=sllm_model_path, temperature=0, max_tokens=512,
     n_batch=sllm_n_batch,
     use_mlock=True,
     prompt = sllm_inj_rag_prompt)
+
+
+
 
 
 
