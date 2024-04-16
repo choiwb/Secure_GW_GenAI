@@ -17,7 +17,7 @@ from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 
 from hcx_token_cal import token_CompletionExecutor
 from prompt import PROMPT_INJECTION_PROMPT, SYSTEMPROMPT, sllm_inj_rag_prompt
-from config import sllm_model_path, sllm_n_batch, sllm_n_gpu_layers, hcx_general_headers, hcx_stream_header, sec_headers
+from config import sllm_model_path, sllm_n_batch, sllm_n_gpu_layers, hcx_general_headers, hcx_stream_headers, sec_headers
 
 
 ##################################################################################
@@ -144,7 +144,7 @@ class HCX_stream(LLM):
         "seed": 4595
         }
                        
-        stream_sec_headers = hcx_stream_header | sec_headers       
+        stream_sec_headers = hcx_stream_headers | sec_headers       
 
         with httpx.stream(method="POST",
                         url=llm_url,
@@ -153,54 +153,8 @@ class HCX_stream(LLM):
                         timeout=10) as res:
             full_response = hcx_stream_process(res)
             return full_response
-        
-class HCX_only(LLM):        
-    
-    init_input_token_count: int = 0
- 
-    @property
-    def _llm_type(self) -> str:
-        return "hcx-003"
-   
-    def _call(
-        self,
-        prompt: str,
-        run_manager: Optional[CallbackManagerForLLMRun] = None,
-        **kwargs: Any,
-    ) -> str:
-       
-        preset_text = [{"role": "system", "content": ""}, {"role": "user", "content": prompt}]
-       
-        output_token_json = {
-            "messages": preset_text
-            }
-       
-        total_input_token_json = token_completion_executor.execute(output_token_json)
-        self.init_input_token_count = sum(token['count'] for token in total_input_token_json[:])
-       
-        request_data = {
-        'messages': preset_text,
-        'topP': 0.8,
-        'topK': 0,
-        'maxTokens': 512,
-        'temperature': 0.1,
-        'repeatPenalty': 5.0,
-        'stopBefore': [],
-        'includeAiFilters': True,
-        "seed": 4595
-        }
-                       
-        stream_sec_headers = hcx_stream_header | sec_headers       
-        
-        with httpx.stream(method="POST",
-                        url=llm_url,
-                        json=request_data,
-                        headers=stream_sec_headers,
-                        timeout=10) as res:
-            full_response = hcx_stream_process(res)
-            return full_response
-        
-        
+
+
 gpt_model = ChatOpenAI(
     model="gpt-3.5-turbo",
     # GPT-4 Turbo 
