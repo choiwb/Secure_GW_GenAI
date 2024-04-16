@@ -15,7 +15,7 @@ from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 
 from hcx_token_cal import token_CompletionExecutor
 from prompt import PROMPT_INJECTION_PROMPT, SYSTEMPROMPT, sllm_inj_rag_prompt
-from config import sllm_model_path, sllm_n_batch, sllm_n_gpu_layers, hcx_general_headers, hcx_stream_headers, sec_headers
+from config import sllm_model_path, sllm_n_batch, sllm_n_gpu_layers, hcx_general_headers, hcx_stream_headers, sec_headers, hcx_llm_params
 from streamlit_custom_func import hcx_stream_process
 
 
@@ -57,30 +57,18 @@ class HCX(LLM):
         if self.init_system_prompt == SYSTEMPROMPT:
             preset_text = [{"role": "system", "content": SYSTEMPROMPT}, {"role": "user", "content": prompt}]
 
-            output_token_json = {
-                "messages": preset_text
-                }
-        
-            total_input_token_json = token_completion_executor.execute(output_token_json)
+            request_data = {
+            'messages': preset_text
+            }
+            total_input_token_json = token_completion_executor.execute(request_data)
             self.init_input_token_count = sum(token['count'] for token in total_input_token_json[:])
         
-            request_data = {
-            'messages': preset_text,
-            'topP': 0.8,
-            'topK': 0,
-            'maxTokens': 512,
-            'temperature': 0.1,
-            'repeatPenalty': 5.0,
-            'stopBefore': [],
-            'includeAiFilters': True,
-            "seed": 4595
-            }
-                        
+            total_request_data = request_data | hcx_llm_params
             stream_sec_headers = hcx_stream_headers | sec_headers       
 
             with httpx.stream(method="POST",
                             url=llm_url,
-                            json=request_data,
+                            json=total_request_data,
                             headers=stream_sec_headers,
                             timeout=10) as res:
                 full_response = hcx_stream_process(res)
@@ -89,25 +77,13 @@ class HCX(LLM):
         elif self.init_system_prompt == PROMPT_INJECTION_PROMPT:
             preset_text = [{"role": "system", "content": PROMPT_INJECTION_PROMPT}, {"role": "user", "content": prompt}]
        
-            output_token_json = {
-                "messages": preset_text
-                }
-        
-            total_input_token_json = token_completion_executor.execute(output_token_json)
-            self.init_input_token_count = sum(token['count'] for token in total_input_token_json[:])
-                
             request_data = {
-            'messages': preset_text,
-            'topP': 0.8,
-            'topK': 0,
-            'maxTokens': 128,
-            'temperature': 0.1,
-            'repeatPenalty': 5.0,
-            'stopBefore': [],
-            'includeAiFilters': True,
-            "seed": 4595
+            'messages': preset_text
             }
-        
+            total_input_token_json = token_completion_executor.execute(request_data)
+            self.init_input_token_count = sum(token['count'] for token in total_input_token_json[:])
+
+            total_request_data = request_data | hcx_llm_params
             general_sec_headers = hcx_general_headers | sec_headers       
             response = requests.post(llm_url, json=request_data, headers=general_sec_headers, verify=False)
             response.raise_for_status()
@@ -155,17 +131,5 @@ sllm = LlamaCpp(model_path=sllm_model_path, temperature=0, max_tokens=512,
     n_batch=sllm_n_batch,
     use_mlock=True,
     prompt = sllm_inj_rag_prompt)
-
-
-
-
-
-
-
-
-
-
-
-
 
 
