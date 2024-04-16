@@ -70,3 +70,24 @@ sec_headers = {
         'referrer-policy': 'same-origin'
         }
 
+# HCX & GPT LLM 주요 dd\\파라미터
+llm_maxtokens = 512
+llm_temperature = 0.1
+
+hcx_llm_params = {
+            'topP': 0.8,
+            'topK': 0,
+            'maxTokens': llm_maxtokens,
+            'temperature': llm_temperature,
+            'repeatPenalty': 5.0,
+            'stopBefore': [],
+            'includeAiFilters': True,
+            "seed": 4595
+            }
+
+# 벡터 DB 관련 파라미터
+db_search_type = 'mmr'
+db_doc_k = 8
+db_doc_fetch_k = 32
+db_similarity_threshold = 0.1
+
