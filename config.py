@@ -70,7 +70,7 @@ sec_headers = {
         'referrer-policy': 'same-origin'
         }
 
-# HCX & GPT LLM 주요 dd\\파라미터
+# HCX & GPT LLM 주요 파라미터
 llm_maxtokens = 512
 llm_temperature = 0.1
 
