@@ -1,7 +1,6 @@
 
 
 import os
-import pandas as pd
 from langchain.prompts import PromptTemplate
 from langchain.memory import ConversationBufferMemory
 import streamlit as st
@@ -16,16 +15,15 @@ from langchain.vectorstores import Chroma
 
 from config import db_save_path, DB_COLLECTION_NAME, DB_CONNECTION_STRING
 from vector_db import embeddings
-from prompt import not_rag_template, rag_template
-from LLM import HCX_sec, HCX_stream, gpt_model, sllm, gemini_vis_model, gemini_txt_model
+from prompt import not_rag_template, rag_template, PROMPT_INJECTION_PROMPT, SYSTEMPROMPT
+from LLM import HCX, gpt_model, sllm, gemini_vis_model, gemini_txt_model
+from streamlit_custom_func import src_doc
 
-
- 
 ONLY_CHAIN_PROMPT = PromptTemplate(input_variables=["question"],template=not_rag_template)
 QA_CHAIN_PROMPT = PromptTemplate(input_variables=["context", "question"],template=rag_template)
  
-hcx_sec = HCX_sec()
-hcx_stream = HCX_stream()
+hcx_sec = HCX(init_system_prompt=PROMPT_INJECTION_PROMPT) 
+hcx_stream = HCX(init_system_prompt=SYSTEMPROMPT) 
  
 # new_docsearch = Chroma(persist_directory=os.path.join(db_save_path, "cloud_assistant_v1"),
 #                         embedding_function=embeddings)
@@ -108,24 +106,6 @@ def reset_conversation():
   sllm_memory.clear()
   gemini_memory.clear()
 
-
-def src_doc(prompt):
-    prompt_str = str(prompt)
-    source_documents = prompt_str.split("context for answer: ")[1].split("question: ")[0]
-    if len(source_documents.strip()) > 0:
-        source_documents_list = source_documents.split('\\n\\n')
-        sample_src_doc = [[i+1, doc[:100] + '.....(이하 생략)'] for i, doc in enumerate(source_documents_list)] 
-        sample_src_doc_df = pd.DataFrame(sample_src_doc,  columns=['No', '참조 문서'])
-        sample_src_doc_df = sample_src_doc_df.set_index('No')
-        
-        # 참조 문서 UI 표출
-        if sample_src_doc_df.shape[0] > 0:
-            with st.expander('참조 문서'):
-                st.table(sample_src_doc_df)
-                st.markdown("AhnLab에서 제공하는 위협정보 입니다.<br>자세한 정보는 https://www.ahnlab.com/ko/contents/asec/info 에서 참조해주세요.", unsafe_allow_html=True)
-    
-    return prompt
-  
 
 DEFAULT_DOCUMENT_PROMPT = PromptTemplate.from_template(template="{page_content}")
   
