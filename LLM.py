@@ -15,7 +15,7 @@ from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 
 from hcx_token_cal import token_CompletionExecutor
 from prompt import PROMPT_INJECTION_PROMPT, SYSTEMPROMPT, sllm_inj_rag_prompt
-from config import sllm_model_path, sllm_n_batch, sllm_n_gpu_layers, hcx_general_headers, hcx_stream_headers, sec_headers, hcx_llm_params, llm_maxtokens, llm_temperature
+from config import sllm_model_path, sllm_n_batch, sllm_n_gpu_layers, hcx_general_headers, hcx_stream_headers, sec_headers, hcx_llm_params, llm_maxtokens, llm_temperature, sllm_n_ctx, sllm_top_p
 from streamlit_custom_func import hcx_stream_process
 
 
@@ -117,11 +117,11 @@ gemini_vis_model = ChatGoogleGenerativeAI(model="gemini-pro-vision", temperature
 
 callback_manager = CallbackManager([StreamingStdOutCallbackHandler()])
 
-sllm = LlamaCpp(model_path=sllm_model_path, temperature=0, max_tokens=512,
+sllm = LlamaCpp(model_path=sllm_model_path, temperature=llm_temperature, max_tokens=llm_maxtokens,
     # context windows
     # n_ctx: 모델이 한 번에 처리할 수 있는 최대 컨텍스트 길이
-    n_ctx=8192,
-    top_p=1,
+    n_ctx=sllm_n_ctx,
+    top_p=sllm_top_p,
     callback_manager=callback_manager, 
     streaming=True, # Streaming is required to pass to the callback manager
     verbose=True, # Verbose is required to pass to the callback manager
@@ -130,6 +130,6 @@ sllm = LlamaCpp(model_path=sllm_model_path, temperature=0, max_tokens=512,
     n_gpu_layers=sllm_n_gpu_layers,
     n_batch=sllm_n_batch,
     use_mlock=True,
-    prompt = sllm_inj_rag_prompt)
+    prompt=sllm_inj_rag_prompt)
 
 
