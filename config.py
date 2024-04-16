@@ -53,7 +53,7 @@ hcx_general_headers = {
         'Content-Type': 'application/json; charset=utf-8',
         }
 
-hcx_stream_header = {
+hcx_stream_headers = {
         'X-NCP-CLOVASTUDIO-API-KEY': API_KEY,
         'X-NCP-APIGW-API-KEY': API_KEY_PRIMARY_VAL,
         'X-NCP-CLOVASTUDIO-REQUEST-ID': REQUEST_ID,
