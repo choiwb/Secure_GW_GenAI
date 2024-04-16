@@ -26,7 +26,6 @@ with st.expander('추천 질문'):
     - 랜섬웨어과 관련된 악성코드는 뭐가 있어?
     """, unsafe_allow_html=True)
 
-
 if "rerun_tab" not in st.session_state:
     reset_conversation()
     st.session_state.retun_tab = 'rerun_tab'
@@ -57,32 +56,6 @@ with gpt_col:
     with st.expander('No Protection'):
         st.markdown('<br>', unsafe_allow_html=True)
 
-def scroll_bottom():
-    js = f"""
-    <script>
-        // 스크롤을 하단으로 이동시키는 함수
-        function scrollToBottom(){{
-            var textAreas = parent.document.querySelectorAll('section.main');
-            for (let index = 0; index < textAreas.length; index++) {{
-                textAreas[index].scrollTop = textAreas[index].scrollHeight;
-            }}
-        }}
-
-        // MutationObserver의 콜백 함수 정의
-        function observeMutations(){{
-            var observer = new MutationObserver(scrollToBottom);
-            var config = {{ childList: true, subtree: true }};
-            // 감시 대상 요소 지정 및 옵저버 시작
-            var target = parent.document.querySelector('section.main');
-            if(target) observer.observe(target, config);
-        }}
-
-        // 초기 스크롤 위치 조정 및 DOM 변화 감지를 위한 옵저버 설정
-        scrollToBottom();
-        observeMutations();
-    </script>
-    """
-    st.components.v1.html(js, height=0) 
     
 for avatar_message in st.session_state.ahn_messages:
     with ahn_hcx:
@@ -199,7 +172,6 @@ if prompt := st.chat_input(""):
             except Exception as e:
                 st.error(e, icon="🚨")
     
-                            
     with hcx_col:
         with st.chat_message("user", avatar=you_icon):
             st.markdown("<b>You</b><br>", unsafe_allow_html=True)
@@ -262,4 +234,3 @@ if prompt := st.chat_input(""):
             
             sec_st_write.empty()
                         
-
