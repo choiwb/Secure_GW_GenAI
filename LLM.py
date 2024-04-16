@@ -1,13 +1,11 @@
 
 
 import os
-import json
 import httpx
 from dotenv import load_dotenv
 import requests
 from typing import Any, List, Optional
 from langchain.llms.base import LLM
-import streamlit as st
 from langchain.callbacks.manager import CallbackManagerForLLMRun
 from langchain.chat_models import ChatOpenAI  
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -35,80 +33,13 @@ os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
 ##################################################################################
 
 
-
-def hcx_stream_process(res):
-    full_response = ""
-    message_placeholder = st.empty()       
-    
-    for line in res.iter_lines():
-        if line.startswith("data:"):
-            split_line = line.split("data:")
-            line_json = json.loads(split_line[1])
-            if "stopReason" in line_json and line_json["stopReason"] == None:
-                full_response += line_json["message"]["content"]
-                message_placeholder.markdown(full_response, unsafe_allow_html=True)
-    return full_response
-
 token_completion_executor = token_CompletionExecutor()
-
-class HCX_sec(LLM):        
-   
-    init_input_token_count: int = 0
-
-    @property
-    def _llm_type(self) -> str:
-        return "hcx-003"
-   
-    def _call(
-        self,
-        prompt: str,
-        run_manager: Optional[CallbackManagerForLLMRun] = None,
-        **kwargs: Any,
-    ) -> str:
-       
-        preset_text = [{"role": "system", "content": PROMPT_INJECTION_PROMPT}, {"role": "user", "content": prompt}]
-       
-        output_token_json = {
-            "messages": preset_text
-            }
-       
-        total_input_token_json = token_completion_executor.execute(output_token_json)
-        self.init_input_token_count = sum(token['count'] for token in total_input_token_json[:])
-               
-        request_data = {
-        'messages': preset_text,
-        'topP': 0.8,
-        'topK': 0,
-        'maxTokens': 128,
-        'temperature': 0.1,
-        'repeatPenalty': 5.0,
-        'stopBefore': [],
-        'includeAiFilters': True,
-        "seed": 4595
-        }
-       
-        general_sec_headers = hcx_general_headers | sec_headers       
-        response = requests.post(llm_url, json=request_data, headers=general_sec_headers, verify=False)
-        response.raise_for_status()
-        
-        llm_result = response.json()['result']['message']['content']
-        
-        preset_text = [{"role": "system", "content": ""}, {"role": "user", "content": llm_result}]
-        
-        output_token_json = {
-            "messages": preset_text
-            }
-       
-        total_input_token_json = token_completion_executor.execute(output_token_json)
-        self.init_input_token_count += sum(token['count'] for token in total_input_token_json[:])
-                          
-        return llm_result
-       
  
-class HCX_stream(LLM):      
+class HCX(LLM):      
    
     init_input_token_count: int = 0
-
+    init_system_prompt: str
+    
     @property
     def _llm_type(self) -> str:
         return "hcx-003"
@@ -122,39 +53,80 @@ class HCX_stream(LLM):
     ) -> str:
         if stop is not None:
             raise ValueError("stop kwargs are not permitted.")
-       
-        preset_text = [{"role": "system", "content": SYSTEMPROMPT}, {"role": "user", "content": prompt}]
+        
+        if self.init_system_prompt == SYSTEMPROMPT:
+            preset_text = [{"role": "system", "content": SYSTEMPROMPT}, {"role": "user", "content": prompt}]
 
-        output_token_json = {
-            "messages": preset_text
+            output_token_json = {
+                "messages": preset_text
+                }
+        
+            total_input_token_json = token_completion_executor.execute(output_token_json)
+            self.init_input_token_count = sum(token['count'] for token in total_input_token_json[:])
+        
+            request_data = {
+            'messages': preset_text,
+            'topP': 0.8,
+            'topK': 0,
+            'maxTokens': 512,
+            'temperature': 0.1,
+            'repeatPenalty': 5.0,
+            'stopBefore': [],
+            'includeAiFilters': True,
+            "seed": 4595
             }
+                        
+            stream_sec_headers = hcx_stream_headers | sec_headers       
+
+            with httpx.stream(method="POST",
+                            url=llm_url,
+                            json=request_data,
+                            headers=stream_sec_headers,
+                            timeout=10) as res:
+                full_response = hcx_stream_process(res)
+                return full_response
+            
+        elif self.init_system_prompt == PROMPT_INJECTION_PROMPT:
+            preset_text = [{"role": "system", "content": PROMPT_INJECTION_PROMPT}, {"role": "user", "content": prompt}]
        
-        total_input_token_json = token_completion_executor.execute(output_token_json)
-        self.init_input_token_count = sum(token['count'] for token in total_input_token_json[:])
-       
-        request_data = {
-        'messages': preset_text,
-        'topP': 0.8,
-        'topK': 0,
-        'maxTokens': 512,
-        'temperature': 0.1,
-        'repeatPenalty': 5.0,
-        'stopBefore': [],
-        'includeAiFilters': True,
-        "seed": 4595
-        }
-                       
-        stream_sec_headers = hcx_stream_headers | sec_headers       
-
-        with httpx.stream(method="POST",
-                        url=llm_url,
-                        json=request_data,
-                        headers=stream_sec_headers,
-                        timeout=10) as res:
-            full_response = hcx_stream_process(res)
-            return full_response
-
-
+            output_token_json = {
+                "messages": preset_text
+                }
+        
+            total_input_token_json = token_completion_executor.execute(output_token_json)
+            self.init_input_token_count = sum(token['count'] for token in total_input_token_json[:])
+                
+            request_data = {
+            'messages': preset_text,
+            'topP': 0.8,
+            'topK': 0,
+            'maxTokens': 128,
+            'temperature': 0.1,
+            'repeatPenalty': 5.0,
+            'stopBefore': [],
+            'includeAiFilters': True,
+            "seed": 4595
+            }
+        
+            general_sec_headers = hcx_general_headers | sec_headers       
+            response = requests.post(llm_url, json=request_data, headers=general_sec_headers, verify=False)
+            response.raise_for_status()
+            
+            llm_result = response.json()['result']['message']['content']
+            
+            preset_text = [{"role": "system", "content": ""}, {"role": "user", "content": llm_result}]
+            
+            output_token_json = {
+                "messages": preset_text
+                }
+        
+            total_input_token_json = token_completion_executor.execute(output_token_json)
+            self.init_input_token_count += sum(token['count'] for token in total_input_token_json[:])
+                            
+            return llm_result
+        
+        
+        
 gpt_model = ChatOpenAI(
     model="gpt-3.5-turbo",
     # GPT-4 Turbo 
@@ -167,7 +139,6 @@ gpt_model = ChatOpenAI(
 
 gemini_txt_model = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.1, max_output_tokens=512)
 gemini_vis_model = ChatGoogleGenerativeAI(model="gemini-pro-vision", temperature=0.1, max_output_tokens=512)
-
 
 callback_manager = CallbackManager([StreamingStdOutCallbackHandler()])
 
@@ -185,6 +156,8 @@ sllm = LlamaCpp(model_path=sllm_model_path, temperature=0, max_tokens=512,
     n_batch=sllm_n_batch,
     use_mlock=True,
     prompt = sllm_inj_rag_prompt)
+
+
 
 
 
