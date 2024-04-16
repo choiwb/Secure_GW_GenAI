@@ -36,8 +36,6 @@ DB_COLLECTION_NAME = "DB_COLLECTION_NAME !!!!!!!"
 # sLLM 모델 경로
 sllm_model_path = os.path.join(os.getcwd(), "sllm_models/EEVE-Korean-Instruct-10.8B-v1.0-Q4_K_M.gguf")
 sllm_embed_model_path = os.path.join(os.getcwd(), "sllm_models/nomic-embed-text-v1.5.f32.gguf")
-sllm_n_gpu_layers = 1  # Metal set to 1 is enough.
-sllm_n_batch = 8192  # Should be between 1 and n_ctx, consider the amount of RAM of your Apple Silicon Chip.
 
 token_headers = {
         'X-NCP-CLOVASTUDIO-API-KEY': TOKEN_API_KEY,
@@ -70,9 +68,14 @@ sec_headers = {
         'referrer-policy': 'same-origin'
         }
 
-# HCX & GPT LLM 주요 파라미터
+# HCX & GPT & sLLM 주요 파라미터
 llm_maxtokens = 512
 llm_temperature = 0.1
+
+sllm_n_gpu_layers = 1  # Metal set to 1 is enough.
+sllm_n_batch = 8192  # Should be between 1 and n_ctx, consider the amount of RAM of your Apple Silicon Chip.
+sllm_n_ctx = 8192
+sllm_top_p = 1
 
 hcx_llm_params = {
             'topP': 0.8,
