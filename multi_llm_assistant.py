@@ -5,7 +5,7 @@ import streamlit as st
 from config import you_icon, hcx_icon, ahn_icon, gpt_icon, asa_image_path
 from LCEL import hcx_stream, retrieval_qa_chain, asa_memory, hcx_memory, gpt_memory, hcx_sec, hcx_sec_pipe, hcx_only_pipe, gpt_pipe, reset_conversation
 from LLM import token_completion_executor
-
+from streamlit_custom_func import scroll_bottom
 
 
 try:
@@ -263,7 +263,3 @@ if prompt := st.chat_input(""):
             sec_st_write.empty()
                         
 
-
-
-
-                                 
