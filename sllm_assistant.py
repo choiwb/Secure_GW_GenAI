@@ -8,7 +8,7 @@ from langchain.callbacks.manager import collect_runs
 
 from config import you_icon, ahn_icon, asa_image_path
 from LCEL import sllm_pipe, sllm_memory, reset_conversation
-
+from streamlit_custom_func import scroll_bottom
 
 ##################################################################################
 # .env 파일 로드
@@ -42,34 +42,7 @@ with st.expander('추천 질문'):
 
 with st.expander('Protocol Stack'):
     st.image(asa_image_path, caption='Protocol Stack', use_column_width=True)
-    
-def scroll_bottom():
-    js = f"""
-    <script>
-        // 스크롤을 하단으로 이동시키는 함수
-        function scrollToBottom(){{
-            var textAreas = parent.document.querySelectorAll('section.main');
-            for (let index = 0; index < textAreas.length; index++) {{
-                textAreas[index].scrollTop = textAreas[index].scrollHeight;
-            }}
-        }}
-
-        // MutationObserver의 콜백 함수 정의
-        function observeMutations(){{
-            var observer = new MutationObserver(scrollToBottom);
-            var config = {{ childList: true, subtree: true }};
-            // 감시 대상 요소 지정 및 옵저버 시작
-            var target = parent.document.querySelector('section.main');
-            if(target) observer.observe(target, config);
-        }}
-
-        // 초기 스크롤 위치 조정 및 DOM 변화 감지를 위한 옵저버 설정
-        scrollToBottom();
-        observeMutations();
-    </script>
-    """
-    st.components.v1.html(js, height=0) 
-    
+        
 if "rerun_tab" not in st.session_state:
     reset_conversation()
     st.session_state.retun_tab = 'rerun_tab'
