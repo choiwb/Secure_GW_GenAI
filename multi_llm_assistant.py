@@ -3,7 +3,7 @@
 import streamlit as st
 
 from config import you_icon, hcx_icon, ahn_icon, gpt_icon, asa_image_path
-from LCEL import hcx_only, hcx_stream, retrieval_qa_chain, asa_memory, hcx_memory, gpt_memory, hcx_sec, hcx_sec_pipe, hcx_only_pipe, gpt_pipe, reset_conversation
+from LCEL import hcx_stream, retrieval_qa_chain, asa_memory, hcx_memory, gpt_memory, hcx_sec, hcx_sec_pipe, hcx_only_pipe, gpt_pipe, reset_conversation
 from LLM import token_completion_executor
 
 
@@ -212,7 +212,7 @@ if prompt := st.chat_input(""):
                 with st.spinner("답변 생성 중....."):
                     full_response = hcx_only_pipe.invoke({"question":prompt})        
                     
-                    hcx_input_token = hcx_only.init_input_token_count
+                    hcx_input_token = hcx_stream.init_input_token_count
                     output_token_json = {
                         "messages": [
                         {
