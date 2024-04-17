@@ -77,7 +77,7 @@ class HCX(LLM):
                 full_response = hcx_stream_process(res)
                 return full_response
             
-        else
+        else:
             general_sec_headers = hcx_general_headers | sec_headers       
             response = requests.post(llm_url, json=request_data, headers=general_sec_headers, verify=False)
             response.raise_for_status()
