@@ -79,7 +79,7 @@ class HCX(LLM):
             
         else:
             general_sec_headers = hcx_general_headers | sec_headers       
-            response = requests.post(llm_url, json=request_data, headers=general_sec_headers, verify=False)
+            response = requests.post(llm_url, json=total_request_data, headers=general_sec_headers, verify=False)
             response.raise_for_status()
             
             llm_result = response.json()['result']['message']['content']
