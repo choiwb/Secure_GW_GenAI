@@ -22,8 +22,8 @@ from streamlit_custom_func import src_doc
 ONLY_CHAIN_PROMPT = PromptTemplate(input_variables=["question"],template=not_rag_template)
 QA_CHAIN_PROMPT = PromptTemplate(input_variables=["context", "question"],template=rag_template)
  
-hcx_sec = HCX(init_system_prompt=PROMPT_INJECTION_PROMPT, streaming = False) 
-hcx_stream = HCX(init_system_prompt=SYSTEMPROMPT, streaming = True) 
+hcx_sec = HCX(init_system_prompt = PROMPT_INJECTION_PROMPT, streaming = False) 
+hcx_stream = HCX(init_system_prompt = SYSTEMPROMPT, streaming = True) 
  
 # new_docsearch = Chroma(persist_directory=os.path.join(db_save_path, "cloud_assistant_v1"),
 #                         embedding_function=embeddings)
