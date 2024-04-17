@@ -5,6 +5,7 @@ import httpx
 from dotenv import load_dotenv
 import requests
 from typing import Any, List, Optional
+from pydantic import Field
 from langchain.llms.base import LLM
 from langchain.callbacks.manager import CallbackManagerForLLMRun
 from langchain.chat_models import ChatOpenAI  
@@ -14,7 +15,7 @@ from langchain.callbacks.manager import CallbackManager
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 
 from hcx_token_cal import token_CompletionExecutor
-from prompt import PROMPT_INJECTION_PROMPT, SYSTEMPROMPT, sllm_inj_rag_prompt
+from prompt import sllm_inj_rag_prompt
 from config import sllm_model_path, sllm_n_batch, sllm_n_gpu_layers, hcx_general_headers, hcx_stream_headers, sec_headers, hcx_llm_params, llm_maxtokens, llm_temperature, sllm_n_ctx, sllm_top_p
 from streamlit_custom_func import hcx_stream_process
 
@@ -39,7 +40,8 @@ token_completion_executor = token_CompletionExecutor()
 class HCX(LLM): 
     init_input_token_count: int = 0
     init_system_prompt: str
-    
+    streaming: bool = Field(default = False)
+
     @property
     def _llm_type(self) -> str:
         return "hcx-003"
@@ -53,17 +55,18 @@ class HCX(LLM):
     ) -> str:
         if stop is not None:
             raise ValueError("stop kwargs are not permitted.")
-        
-        if self.init_system_prompt == SYSTEMPROMPT:
-            preset_text = [{"role": "system", "content": self.init_system_prompt}, {"role": "user", "content": prompt}]
+         
+        preset_text = [{"role": "system", "content": self.init_system_prompt}, {"role": "user", "content": prompt}]
 
-            request_data = {
-            'messages': preset_text
-            }
-            total_input_token_json = token_completion_executor.execute(request_data)
-            self.init_input_token_count = sum(token['count'] for token in total_input_token_json[:])
-        
-            total_request_data = request_data | hcx_llm_params
+        request_data = {
+        'messages': preset_text
+        }
+        total_request_data = request_data | hcx_llm_params
+
+        total_input_token_json = token_completion_executor.execute(request_data)
+        self.init_input_token_count = sum(token['count'] for token in total_input_token_json[:])
+
+        if self.streaming == True:
             stream_sec_headers = hcx_stream_headers | sec_headers       
 
             with httpx.stream(method="POST",
@@ -74,16 +77,7 @@ class HCX(LLM):
                 full_response = hcx_stream_process(res)
                 return full_response
             
-        elif self.init_system_prompt == PROMPT_INJECTION_PROMPT:
-            preset_text = [{"role": "system", "content": self.init_system_prompt}, {"role": "user", "content": prompt}]
-       
-            request_data = {
-            'messages': preset_text
-            }
-            total_input_token_json = token_completion_executor.execute(request_data)
-            self.init_input_token_count = sum(token['count'] for token in total_input_token_json[:])
-
-            total_request_data = request_data | hcx_llm_params
+        else
             general_sec_headers = hcx_general_headers | sec_headers       
             response = requests.post(llm_url, json=request_data, headers=general_sec_headers, verify=False)
             response.raise_for_status()
