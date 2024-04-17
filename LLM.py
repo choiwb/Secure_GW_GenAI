@@ -57,7 +57,6 @@ class HCX(LLM):
             raise ValueError("stop kwargs are not permitted.")
          
         preset_text = [{"role": "system", "content": self.init_system_prompt}, {"role": "user", "content": prompt}]
-
         request_data = {
         'messages': preset_text
         }
@@ -81,15 +80,12 @@ class HCX(LLM):
             general_sec_headers = hcx_general_headers | sec_headers       
             response = requests.post(llm_url, json=total_request_data, headers=general_sec_headers, verify=False)
             response.raise_for_status()
-            
             llm_result = response.json()['result']['message']['content']
             
             preset_text = [{"role": "system", "content": ""}, {"role": "user", "content": llm_result}]
-            
             output_token_json = {
                 "messages": preset_text
                 }
-        
             total_input_token_json = token_completion_executor.execute(output_token_json)
             self.init_input_token_count += sum(token['count'] for token in total_input_token_json[:])
                             
