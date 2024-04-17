@@ -55,7 +55,7 @@ class HCX(LLM):
             raise ValueError("stop kwargs are not permitted.")
         
         if self.init_system_prompt == SYSTEMPROMPT:
-            preset_text = [{"role": "system", "content": SYSTEMPROMPT}, {"role": "user", "content": prompt}]
+            preset_text = [{"role": "system", "content": self.init_system_prompt}, {"role": "user", "content": prompt}]
 
             request_data = {
             'messages': preset_text
@@ -75,7 +75,7 @@ class HCX(LLM):
                 return full_response
             
         elif self.init_system_prompt == PROMPT_INJECTION_PROMPT:
-            preset_text = [{"role": "system", "content": PROMPT_INJECTION_PROMPT}, {"role": "user", "content": prompt}]
+            preset_text = [{"role": "system", "content": self.init_system_prompt}, {"role": "user", "content": prompt}]
        
             request_data = {
             'messages': preset_text
