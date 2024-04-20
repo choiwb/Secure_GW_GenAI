@@ -16,7 +16,7 @@ from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 
 from hcx_token_cal import token_CompletionExecutor
 from prompt import sllm_inj_rag_prompt
-from config import sllm_model_path, sllm_n_batch, sllm_n_gpu_layers, hcx_general_headers, hcx_stream_headers, sec_headers, hcx_llm_params, llm_maxtokens, llm_temperature, sllm_n_ctx, sllm_top_p
+from config import sllm_model_path, sllm_n_batch, sllm_n_gpu_layers, hcx_general_headers, hcx_stream_headers, hcx_llm_params, llm_maxtokens, llm_temperature, sllm_n_ctx, sllm_top_p
 from streamlit_custom_func import hcx_stream_process
 
 
@@ -66,19 +66,16 @@ class HCX(LLM):
         self.init_input_token_count = sum(token['count'] for token in total_input_token_json[:])
 
         if self.streaming == True:
-            stream_sec_headers = hcx_stream_headers | sec_headers       
-
             with httpx.stream(method="POST",
                             url=llm_url,
                             json=total_request_data,
-                            headers=stream_sec_headers,
+                            headers=hcx_stream_headers,
                             timeout=10) as res:
                 full_response = hcx_stream_process(res)
                 return full_response
             
-        else:
-            general_sec_headers = hcx_general_headers | sec_headers       
-            response = requests.post(llm_url, json=total_request_data, headers=general_sec_headers, verify=False)
+        else:       
+            response = requests.post(llm_url, json=total_request_data, headers=hcx_general_headers, verify=False)
             response.raise_for_status()
             llm_result = response.json()['result']['message']['content']
             
@@ -90,7 +87,8 @@ class HCX(LLM):
             self.init_input_token_count += sum(token['count'] for token in total_input_token_json[:])
                             
             return llm_result
-        
+
+
         
 gpt_model = ChatOpenAI(
     model="gpt-3.5-turbo",
@@ -98,8 +96,7 @@ gpt_model = ChatOpenAI(
     # model="gpt-4-0125-preview",
 
     max_tokens=llm_maxtokens,
-    temperature=llm_temperature,
-    default_headers=sec_headers
+    temperature=llm_temperature
 )    
 
 gemini_txt_model = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.1, max_output_tokens=512)
