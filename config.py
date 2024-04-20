@@ -60,14 +60,6 @@ hcx_stream_headers = {
         'Accept': 'text/event-stream'
         }
 
-sec_headers = {
-        # 응답에 보안 헤더 추가
-        'Strict-Transport-Security': 'max-age=63072000; includeSubdomains; preload',
-        'X-Content-Type-Options': 'nosniff',
-        'Content-Security-Policy': "default-src 'none'; img-src 'self'; script-src 'self'; style-src 'self'; object-src 'none'; frame-ancestors 'none'",
-        'referrer-policy': 'same-origin'
-        }
-
 # HCX & GPT & sLLM 주요 파라미터
 llm_maxtokens = 512
 llm_temperature = 0.1
