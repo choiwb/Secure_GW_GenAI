@@ -4,7 +4,7 @@ import json
 import http.client
 from dotenv import load_dotenv
 
-from config import token_headers, sec_headers
+from config import token_headers
 
 # .env 파일 로드
 load_dotenv()
@@ -12,11 +12,9 @@ token_host = os.getenv('HCX_TOKEN_HOST')
 token_url = os.getenv('HCX_TOKEN_URL')
 
 class token_CompletionExecutor:
-    def _send_request(self, completion_request):
-        token_sec_headers = token_headers | sec_headers
-        
+    def _send_request(self, completion_request):        
         conn = http.client.HTTPSConnection(token_host)
-        conn.request('POST', token_url, json.dumps(completion_request), token_sec_headers)
+        conn.request('POST', token_url, json.dumps(completion_request), token_headers)
 
         response = conn.getresponse()
         result = json.loads(response.read().decode(encoding='utf-8'))
