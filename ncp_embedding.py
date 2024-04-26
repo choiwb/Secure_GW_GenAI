@@ -5,7 +5,7 @@ import uuid
 from dotenv import load_dotenv
 import json
 import http.client
-from chromadb import Documents
+from langchain_core.pydantic_v1 import BaseModel
 from langchain_core.embeddings import Embeddings
 
 load_dotenv()
@@ -15,10 +15,7 @@ HCX_EMBEDDING_API_KEY=os.getenv("HCX_EMBEDDING_API_KEY")
 HCX_TOKEN_HOST=os.getenv("HCX_TOKEN_HOST")
 NCP_EMBEDDING_URL=os.getenv("NCP_EMBEDDING_URL")
 
-class HCXEmbedding(Embeddings):
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+class HCXEmbedding(BaseModel, Embeddings):
         
     def _send_request(self, text):
         headers = {
@@ -27,32 +24,14 @@ class HCXEmbedding(Embeddings):
             'X-NCP-APIGW-API-KEY': HCX_API_KEY_PRIMARY_VAL,
             'X-NCP-CLOVASTUDIO-REQUEST-ID': REQUEST_ID
         }
-        completion_request = {'text': text}  # 예제 요청 포맷, 실제 요청 포맷에 맞춰 수정 필요
+        completion_request = {'text': text}
         conn = http.client.HTTPSConnection(HCX_TOKEN_HOST)
         conn.request('POST', NCP_EMBEDDING_URL, json.dumps(completion_request), headers)
         response = conn.getresponse()
         result = json.loads(response.read().decode('utf-8'))
         conn.close()
         return result
-
-    def __call__(self, input: Documents) -> Embeddings:
-        embeddings = []
-        for text in input.documents:
-            try:
-                res = self._send_request(text)
-                if res['status']['code'] == '20000':
-                    embedding = res['result']['embedding']
-                    embeddings.append(embedding)
-                else:
-                    print('Error retrieving embedding')
-                    return None
-            except Exception as e:
-                print(f"Error in E5EmbeddingFunction: {e}")
-                return None
-
-        return Embeddings(embeddings)
     
-    # embed_query 메서드 추가
     def embed_query(self, query):
         # 단일 쿼리에 대한 임베딩 생성
         res = self._send_request(query)
@@ -85,3 +64,5 @@ class HCXEmbedding(Embeddings):
                 print(f"Error in embed_documents: {e}")
                 embeddings.append(None)
         return embeddings
+
+
