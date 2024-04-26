@@ -42,14 +42,6 @@ class HCXEmbedding(BaseModel, Embeddings):
             return None
         
     def embed_documents(self, documents):
-        """여러 문서에 대해 임베딩을 생성하고 반환합니다.
-
-        Args:
-            documents (list of str): 임베딩을 생성할 문서들의 리스트.
-
-        Returns:
-            list of embeddings: 생성된 임베딩들의 리스트. 각 임베딩은 문서에 대응됩니다.
-        """
         embeddings = []
         for doc_text in documents:
             try:
@@ -59,7 +51,7 @@ class HCXEmbedding(BaseModel, Embeddings):
                     embeddings.append(embedding)
                 else:
                     print('Error retrieving embedding for document')
-                    embeddings.append(None)  # 임베딩 생성 실패시 None 추가
+                    embeddings.append(None)
             except Exception as e:
                 print(f"Error in embed_documents: {e}")
                 embeddings.append(None)
