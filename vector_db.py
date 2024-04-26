@@ -18,7 +18,7 @@ embeddings = HCXEmbedding()
 
  
 text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=100, chunk_overlap=20, is_separator_regex=False
+        chunk_size=200, chunk_overlap=50, is_separator_regex=False
     )
 
 # 오프라인 데이터 가공 ####################################################################################
