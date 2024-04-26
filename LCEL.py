@@ -28,7 +28,10 @@ hcx_stream = HCX(init_system_prompt = SYSTEMPROMPT, streaming = True)
 # new_docsearch = Chroma(persist_directory=os.path.join(db_save_path, "cloud_assistant_v1"),
 #                         embedding_function=embeddings)
 
-new_docsearch = Chroma(persist_directory=os.path.join(db_save_path, "cloud_assistant_v2"),
+# new_docsearch = Chroma(persist_directory=os.path.join(db_save_path, "cloud_assistant_v2"),
+#                         embedding_function=embeddings)
+
+new_docsearch = Chroma(persist_directory=os.path.join(db_save_path, "cloud_assistant_v3"),
                         embedding_function=embeddings)
 
 # new_docsearch = PGVector(collection_name=DB_COLLECTION_NAME, connection_string=DB_CONNECTION_STRING,
