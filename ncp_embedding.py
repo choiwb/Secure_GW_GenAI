@@ -1,11 +1,12 @@
-# -*- coding: utf-8 -*-
+
 
 import os
 import uuid
 from dotenv import load_dotenv
 import json
 import http.client
-from chromadb import Documents, EmbeddingFunction, Embeddings
+from chromadb import Documents
+from langchain_core.embeddings import Embeddings
 
 load_dotenv()
 HCX_API_KEY_PRIMARY_VAL=os.getenv("HCX_API_KEY_PRIMARY_VAL")
@@ -14,9 +15,11 @@ HCX_EMBEDDING_API_KEY=os.getenv("HCX_EMBEDDING_API_KEY")
 HCX_TOKEN_HOST=os.getenv("HCX_TOKEN_HOST")
 NCP_EMBEDDING_URL=os.getenv("NCP_EMBEDDING_URL")
 
+class HCXEmbedding(Embeddings):
 
-class HCXEmbedding(EmbeddingFunction):
-
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
     def _send_request(self, text):
         headers = {
             'Content-Type': 'application/json; charset=utf-8',
@@ -82,8 +85,5 @@ class HCXEmbedding(EmbeddingFunction):
                 print(f"Error in embed_documents: {e}")
                 embeddings.append(None)
         return embeddings
-
-
-
 
 
