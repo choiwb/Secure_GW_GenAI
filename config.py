@@ -82,7 +82,7 @@ hcx_llm_params = {
 
 # 벡터 DB 관련 파라미터
 db_search_type = 'mmr'
-db_doc_k = 8
-db_doc_fetch_k = 32
-db_similarity_threshold = 0.5
+db_doc_k = 4
+db_doc_fetch_k = 16
+db_similarity_threshold = 0.99
 
