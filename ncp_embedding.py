@@ -85,5 +85,3 @@ class HCXEmbedding(Embeddings):
                 print(f"Error in embed_documents: {e}")
                 embeddings.append(None)
         return embeddings
-
-
