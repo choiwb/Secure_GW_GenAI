@@ -42,11 +42,6 @@ retriever = new_docsearch.as_retriever(
                                         search_kwargs={'k': db_doc_k, 'fetch_k': db_doc_fetch_k}
                                        )
 
-
-'''
-ncp embedding의 경우
-ValidationError: 1 validation error for EmbeddingsFilter embeddings instance of Embeddings expected (type=type_error.arbitrary_type; expected_arbitrary_type=Embeddings)
-'''
 embeddings_filter = EmbeddingsFilter(embeddings=embeddings, similarity_threshold=db_similarity_threshold) 
 
 compression_retriever = ContextualCompressionRetriever(
