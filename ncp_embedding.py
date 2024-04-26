@@ -8,6 +8,7 @@ import http.client
 from langchain_core.pydantic_v1 import BaseModel
 from langchain_core.embeddings import Embeddings
 
+
 load_dotenv()
 HCX_API_KEY_PRIMARY_VAL=os.getenv("HCX_API_KEY_PRIMARY_VAL")
 REQUEST_ID=str(uuid.uuid4())
@@ -37,24 +38,14 @@ class HCXEmbedding(BaseModel, Embeddings):
         res = self._send_request(query)
         if res['status']['code'] == '20000':
             return res['result']['embedding']
-        else:
-            print('Error retrieving embedding for query')
-            return None
         
     def embed_documents(self, documents):
         embeddings = []
         for doc_text in documents:
-            try:
-                res = self._send_request(doc_text)
-                if res['status']['code'] == '20000':
-                    embedding = res['result']['embedding']
-                    embeddings.append(embedding)
-                else:
-                    print('Error retrieving embedding for document')
-                    embeddings.append(None)
-            except Exception as e:
-                print(f"Error in embed_documents: {e}")
-                embeddings.append(None)
+            res = self._send_request(doc_text)
+            if res['status']['code'] == '20000':
+                embedding = res['result']['embedding']
+                embeddings.append(embedding)
         return embeddings
 
 
