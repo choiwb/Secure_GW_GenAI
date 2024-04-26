@@ -2,7 +2,7 @@
 import os
 import time
 
-from vector_db import offline_chroma_save
+from vector_db import offline_chroma_save, ncp_offline_chroma_save, offline_pgvector_save
 from config import pdf_folder_path
 
 
@@ -15,6 +15,8 @@ for filename in os.listdir(pdf_folder_path):
         pdf_paths.append(globals()[f'pdf_path_{filename}'])
 
 start = time.time()
-total_content = offline_chroma_save(pdf_paths)
+# total_content = offline_chroma_save(pdf_paths)
+total_content = ncp_offline_chroma_save(pdf_paths)
+# total_content = offline_pgvector_save(pdf_paths)
 end = time.time()
 print('임베딩 완료 시간: %.2f (초)' %(end-start))
