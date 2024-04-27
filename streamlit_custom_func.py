@@ -50,17 +50,18 @@ def scroll_bottom():
     
 def src_doc(prompt):
     prompt_str = str(prompt)
-    source_documents = prompt_str.split("context for answer: ")[1].split("question: ")[0].split('\\n')[1]
+    source_documents = prompt_str.split("context for answer: ")[1].split("question: ")[0]
     if len(source_documents.strip()) > 0:
-        source_documents_list = source_documents.split('\\n\\n')
-        sample_src_doc = [[i+1, doc[:100] + '.....(이하 생략)'] for i, doc in enumerate(source_documents_list)] 
-        sample_src_doc_df = pd.DataFrame(sample_src_doc,  columns=['No', '참조 문서'])
-        sample_src_doc_df = sample_src_doc_df.set_index('No')
+        if source_documents.strip() != '\\n':
+            source_documents_list = source_documents.split('\\n\\n')
+            sample_src_doc = [[i+1, doc[:100] + '.....(이하 생략)'] for i, doc in enumerate(source_documents_list)] 
+            sample_src_doc_df = pd.DataFrame(sample_src_doc,  columns=['No', '참조 문서'])
+            sample_src_doc_df = sample_src_doc_df.set_index('No')
         
-        # 참조 문서 UI 표출
-        if sample_src_doc_df.shape[0] > 0:
-            with st.expander('참조 문서'):
-                st.table(sample_src_doc_df)
-                st.markdown("AhnLab에서 제공하는 위협정보 입니다.<br>자세한 정보는 https://www.ahnlab.com/ko/contents/asec/info 에서 참조해주세요.", unsafe_allow_html=True)
+            # 참조 문서 UI 표출
+            if sample_src_doc_df.shape[0] > 0:
+                with st.expander('참조 문서'):
+                    st.table(sample_src_doc_df)
+                    st.markdown("AhnLab에서 제공하는 위협정보 입니다.<br>자세한 정보는 https://www.ahnlab.com/ko/contents/asec/info 에서 참조해주세요.", unsafe_allow_html=True)
     
     return prompt
