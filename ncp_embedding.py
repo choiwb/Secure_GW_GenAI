@@ -6,7 +6,6 @@ from dotenv import load_dotenv
 import json
 import http.client
 from typing import List
-from langchain_core.pydantic_v1 import BaseModel
 from langchain_core.embeddings import Embeddings
 
 
@@ -17,8 +16,7 @@ HCX_EMBEDDING_API_KEY=os.getenv("HCX_EMBEDDING_API_KEY")
 HCX_TOKEN_HOST=os.getenv("HCX_TOKEN_HOST")
 NCP_EMBEDDING_URL=os.getenv("NCP_EMBEDDING_URL")
 
-class HCXEmbedding(BaseModel, Embeddings):
-        
+class HCXEmbedding(Embeddings):
     def _send_request(self, text):
         headers = {
             'Content-Type': 'application/json; charset=utf-8',
