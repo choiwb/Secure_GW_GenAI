@@ -47,5 +47,3 @@ class HCXEmbedding(BaseModel, Embeddings):
                 embedding = res['result']['embedding']
                 embeddings.append(embedding)
         return embeddings
-
-
