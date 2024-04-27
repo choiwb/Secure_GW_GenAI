@@ -34,10 +34,12 @@ class HCXEmbedding(BaseModel, Embeddings):
         return result
     
     def embed_query(self, query):
-        # 단일 쿼리에 대한 임베딩 생성
+        embeddings = []
         res = self._send_request(query)
         if res['status']['code'] == '20000':
-            return res['result']['embedding']
+            embedding = res['result']['embedding']
+            embeddings.append(embedding)
+        return embeddings[0]
         
     def embed_documents(self, documents):
         embeddings = []
@@ -47,3 +49,4 @@ class HCXEmbedding(BaseModel, Embeddings):
                 embedding = res['result']['embedding']
                 embeddings.append(embedding)
         return embeddings
+    
