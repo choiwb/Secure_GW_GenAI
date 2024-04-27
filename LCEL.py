@@ -24,12 +24,6 @@ QA_CHAIN_PROMPT = PromptTemplate(input_variables=["context", "question"],templat
  
 hcx_sec = HCX(init_system_prompt = PROMPT_INJECTION_PROMPT, streaming = False) 
 hcx_stream = HCX(init_system_prompt = SYSTEMPROMPT, streaming = True) 
- 
-# new_docsearch = Chroma(persist_directory=os.path.join(db_save_path, "cloud_assistant_v1"),
-#                         embedding_function=embeddings)
-
-# new_docsearch = Chroma(persist_directory=os.path.join(db_save_path, "cloud_assistant_v2"),
-#                         embedding_function=embeddings)
 
 new_docsearch = Chroma(persist_directory=os.path.join(db_save_path, "cloud_assistant_v3"),
                         embedding_function=embeddings)
