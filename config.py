@@ -84,5 +84,5 @@ hcx_llm_params = {
 db_search_type = 'mmr'
 db_doc_k = 4
 db_doc_fetch_k = 16
-db_similarity_threshold = 0.5
+db_similarity_threshold = 0.97
 
