@@ -5,6 +5,7 @@ import uuid
 from dotenv import load_dotenv
 import json
 import http.client
+from typing import List
 from langchain_core.pydantic_v1 import BaseModel
 from langchain_core.embeddings import Embeddings
 
@@ -32,16 +33,8 @@ class HCXEmbedding(BaseModel, Embeddings):
         result = json.loads(response.read().decode('utf-8'))
         conn.close()
         return result
-    
-    def embed_query(self, query):
-        embeddings = []
-        res = self._send_request(query)
-        if res['status']['code'] == '20000':
-            embedding = res['result']['embedding']
-            embeddings.append(embedding)
-        return embeddings[0]
         
-    def embed_documents(self, documents):
+    def embed_documents(self, documents: List[str]) -> List[List[float]]:
         embeddings = []
         for doc_text in documents:
             res = self._send_request(doc_text)
@@ -50,3 +43,5 @@ class HCXEmbedding(BaseModel, Embeddings):
                 embeddings.append(embedding)
         return embeddings
     
+    def embed_query(self, query: str) -> List[float]:
+        return self.embed_documents([query])[0]
