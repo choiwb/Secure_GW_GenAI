@@ -52,17 +52,14 @@ def ncp_offline_chroma_save(pdf_paths):
         pdf_doc = pdfreader.load_and_split()
         doc = text_splitter.split_documents(pdf_doc)
         total_docs = total_docs + doc
-        
+
         page_content = [doc.page_content for doc in doc]
-        
+
         for content in page_content:
             single_embed_query = embeddings.embed_query(content)
             # 1024 차원
             # print(len(single_embed_query))
             total_embed_query.append(single_embed_query)
-
-    print(len(total_embed_query))
-    print(len(total_docs))
     
     vectorstore = Chroma.from_documents(
         documents=total_docs,
