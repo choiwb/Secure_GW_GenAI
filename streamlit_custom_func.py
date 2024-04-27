@@ -50,7 +50,7 @@ def scroll_bottom():
     
 def src_doc(prompt):
     prompt_str = str(prompt)
-    source_documents = prompt_str.split("context for answer: ")[1].split("question: ")[0]
+    source_documents = prompt_str.split("context for answer: ")[1].split("question: ")[0].split('\\n')[1]
     if len(source_documents.strip()) > 0:
         source_documents_list = source_documents.split('\\n\\n')
         sample_src_doc = [[i+1, doc[:100] + '.....(이하 생략)'] for i, doc in enumerate(source_documents_list)] 
