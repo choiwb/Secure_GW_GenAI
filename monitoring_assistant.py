@@ -49,7 +49,7 @@ with st.expander('Protocol Stack'):
 
 # 챗 어시스턴트 활성화 상태 관리
 if 'active_assistant' not in st.session_state:
-    st.session_state.active_assistant = None
+    st.session_state.active_assistant = 'sec_ai_gw_rag_active'
     
 if "rerun_tab" not in st.session_state:
     reset_conversation()
@@ -93,7 +93,7 @@ if rag_active:
 
 if st.session_state.active_assistant == "sec_ai_gw_rag_active":
     if prompt := st.chat_input(""):
-        scroll_bottom()
+        scroll_bottom()    
         with st.chat_message("user", avatar=you_icon):
             st.markdown("<b>You</b><br>", unsafe_allow_html=True)
             st.markdown(prompt, unsafe_allow_html=True)
@@ -195,7 +195,7 @@ else:
                             
                         # 사용자 피드백이 필요한 질문에 대한 결과 !!
                         st.session_state.run_id = cb.traced_runs[0].id
-                                           
+                                            
                     with st.expander('토큰 정보'):
                         st.markdown(f"""
                         - 총 토큰 수: {asa_total_token_final}<br>
