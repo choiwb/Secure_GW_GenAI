@@ -11,7 +11,6 @@ from LLM import token_completion_executor
 from LCEL import retrieval_qa_chain, asa_memory, hcx_stream, hcx_sec_pipe, hcx_sec, reset_conversation
 from streamlit_custom_func import scroll_bottom
 
-
 ##################################################################################
 # .env 파일 로드
 load_dotenv()
@@ -46,6 +45,14 @@ with st.expander('추천 질문'):
 with st.expander('Protocol Stack'):
     st.image(asa_image_path, caption='Protocol Stack', use_column_width=True)
     
+with st.sidebar:
+    sec_ai_gw_rag_active = st.button("Secure AI Gateway + RAG")
+    rag_active = st.button("RAG")
+    st.markdown('<br>', unsafe_allow_html=True)
+    st.button("대화 리셋", on_click=reset_conversation, use_container_width=True)
+    st.markdown('<br>', unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: center;'>피드백 방법</h3>", unsafe_allow_html=True)
+    feedback_option = "faces" if st.toggle(label="`thumbs` ⇄ `faces`", value=False) else "thumbs"
 
 # 챗 어시스턴트 활성화 상태 관리
 if 'active_assistant' not in st.session_state:
@@ -73,15 +80,6 @@ for avatar_message in st.session_state.ahn_messages:
                 st.markdown("<b>ASA</b><br>", unsafe_allow_html=True)
                 st.markdown(avatar_message["content"], unsafe_allow_html=True)
 
-with st.sidebar:
-    sec_ai_gw_rag_active = st.button("Secure AI Gateway + RAG")
-    rag_active = st.button("RAG")
-    st.markdown('<br>', unsafe_allow_html=True)
-    st.button("대화 리셋", on_click=reset_conversation, use_container_width=True)
-    st.markdown('<br>', unsafe_allow_html=True)
-    st.markdown("<h3 style='text-align: center;'>피드백 방법</h3>", unsafe_allow_html=True)
-    feedback_option = "faces" if st.toggle(label="`thumbs` ⇄ `faces`", value=False) else "thumbs"
-
 # 버튼 클릭에 따라 어시스턴트 설정
 if sec_ai_gw_rag_active:
     st.session_state.active_assistant = "sec_ai_gw_rag_active"
@@ -89,7 +87,6 @@ if sec_ai_gw_rag_active:
 if rag_active:
     st.session_state.active_assistant = "rag_active"
     st.toast("RAG 어시스턴트 활성화!", icon="👋")
-
 
 if st.session_state.active_assistant == "sec_ai_gw_rag_active":
     if prompt := st.chat_input(""):
@@ -204,7 +201,6 @@ else:
 
             except Exception as e:
                 st.error(e, icon="🚨") 
-    
     
 if st.session_state.get("run_id"):
     run_id = st.session_state.run_id
