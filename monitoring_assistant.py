@@ -159,7 +159,8 @@ if st.session_state.active_assistant == "sec_ai_gw_rag_active":
                 
             except Exception as e:
                 st.error(e, icon="🚨")
-elif st.session_state.active_assistant == "rag_active":
+# elif st.session_state.active_assistant == "rag_active":
+else:
     if prompt := st.chat_input(""):
         scroll_bottom()
         with st.chat_message("user", avatar=you_icon):
