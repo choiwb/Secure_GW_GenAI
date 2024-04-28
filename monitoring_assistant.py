@@ -74,8 +74,8 @@ for avatar_message in st.session_state.ahn_messages:
                 st.markdown(avatar_message["content"], unsafe_allow_html=True)
 
 with st.sidebar:
-    sec_ai_gw_rag = st.button("Secure AI Gateway + RAG")
-    rag = st.button("RAG")
+    sec_ai_gw_rag_active = st.button("Secure AI Gateway + RAG")
+    rag_active = st.button("RAG")
     st.markdown('<br>', unsafe_allow_html=True)
     st.button("대화 리셋", on_click=reset_conversation, use_container_width=True)
     st.markdown('<br>', unsafe_allow_html=True)
@@ -83,15 +83,15 @@ with st.sidebar:
     feedback_option = "faces" if st.toggle(label="`thumbs` ⇄ `faces`", value=False) else "thumbs"
 
 # 버튼 클릭에 따라 어시스턴트 설정
-if sec_ai_gw_rag:
-    st.session_state.active_assistant = "sec_ai_gw_rag"
+if sec_ai_gw_rag_active:
+    st.session_state.active_assistant = "sec_ai_gw_rag_active"
     st.toast("Secure AI Gateway + RAG 어시스턴트 활성화!", icon="👋")
-if rag:
-    st.session_state.active_assistant = "rag"
+if rag_active:
+    st.session_state.active_assistant = "rag_active"
     st.toast("RAG 어시스턴트 활성화!", icon="👋")
 
 
-if st.session_state.active_assistant == "sec_ai_gw_rag":
+if st.session_state.active_assistant == "sec_ai_gw_rag_active":
     if prompt := st.chat_input(""):
         scroll_bottom()
         with st.chat_message("user", avatar=you_icon):
@@ -159,7 +159,7 @@ if st.session_state.active_assistant == "sec_ai_gw_rag":
                 
             except Exception as e:
                 st.error(e, icon="🚨")
-else:
+elif st.session_state.active_assistant == "rag_active":
     if prompt := st.chat_input(""):
         scroll_bottom()
         with st.chat_message("user", avatar=you_icon):
