@@ -65,13 +65,12 @@ for avatar_message in st.session_state.ahn_messages:
             with st.expander('ASA'):
                 st.markdown("<b>ASA</b><br>", unsafe_allow_html=True)
                 st.markdown(avatar_message["content"], unsafe_allow_html=True)
-
-
+    
 with st.sidebar:
-    st.button("대화 리셋", on_click=reset_conversation, use_container_width=True)
-    st.markdown('<br>', unsafe_allow_html=True)
     st.markdown("<h3 style='text-align: center;'>피드백 방법</h3>", unsafe_allow_html=True)
-    feedback_option = "faces" if st.toggle(label="`thumbs` ⇄ `faces`", value=False) else "thumbs"
+    feedback_option = ("faces" if st.toggle(label="`thumbs` ⇄ `faces`", value=True) else "thumbs")
+    st.markdown('<br>', unsafe_allow_html=True)
+    st.button("대화 리셋", on_click=reset_conversation, use_container_width=True)
 
 
 if prompt := st.chat_input(""):
