@@ -45,7 +45,7 @@ with st.expander('Protocol Stack'):
         
 if "rerun_tab" not in st.session_state:
     reset_conversation()
-    st.session_state.retun_tab = 'rerun_tab'
+    st.session_state.rerun_tab = "rerun_tab"
     
 if "ahn_messages" not in st.session_state:
     st.session_state.ahn_messages = []
