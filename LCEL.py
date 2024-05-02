@@ -22,8 +22,8 @@ from streamlit_custom_func import src_doc
 ONLY_CHAIN_PROMPT = PromptTemplate(input_variables=["question"],template=not_rag_template)
 QA_CHAIN_PROMPT = PromptTemplate(input_variables=["context", "question"],template=rag_template)
  
-hcx_sec = HCX(init_system_prompt = PROMPT_INJECTION_PROMPT, streaming = False) 
-hcx_stream = HCX(init_system_prompt = SYSTEMPROMPT, streaming = True) 
+hcx_sec = HCX(init_system_prompt = PROMPT_INJECTION_PROMPT, streaming = False)
+hcx_stream = HCX(init_system_prompt = SYSTEMPROMPT, streaming = True)
 
 new_docsearch = Chroma(persist_directory=os.path.join(db_save_path, "cloud_assistant_v3"),
                         embedding_function=embeddings)
@@ -41,7 +41,7 @@ embeddings_filter = EmbeddingsFilter(embeddings=embeddings, similarity_threshold
 compression_retriever = ContextualCompressionRetriever(
     base_compressor=embeddings_filter, base_retriever=retriever
 )
- 
+
 @st.cache_resource
 def asa_init_memory():
     return ConversationBufferMemory(
@@ -98,7 +98,6 @@ def reset_conversation():
     gemini_memory.clear()
     st.toast("대화 리셋!", icon="👋")
 
-
 DEFAULT_DOCUMENT_PROMPT = PromptTemplate.from_template(template="{page_content}")
   
 def _combine_documents(
@@ -107,7 +106,6 @@ def _combine_documents(
     doc_strings = [format_document(doc, document_prompt) for doc in docs]
     return document_separator.join(doc_strings)
  
-
 asa_loaded_memory = RunnablePassthrough.assign(
     chat_history=RunnableLambda(asa_memory.load_memory_variables) | itemgetter("chat_history"),
 )
@@ -149,7 +147,6 @@ final_inputs = {
     "question": itemgetter("question"),
     "chat_history": itemgetter("chat_history")
 }
-
 
 hcx_sec_pipe = ONLY_CHAIN_PROMPT | hcx_sec | StrOutputParser()
 retrieval_qa_chain =  asa_loaded_memory | retrieved_documents | final_inputs | QA_CHAIN_PROMPT | src_doc | hcx_stream | StrOutputParser()
