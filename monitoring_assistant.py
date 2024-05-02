@@ -46,22 +46,29 @@ with st.expander('Protocol Stack'):
     st.image(asa_image_path, caption='Protocol Stack', use_column_width=True)
     
 with st.sidebar:
-    sec_ai_gw_rag_active = st.button("Secure AI Gateway + RAG")
-    rag_active = st.button("RAG")
-    st.markdown('<br>', unsafe_allow_html=True)
-    st.button("대화 리셋", on_click=reset_conversation, use_container_width=True)
+    # sec_ai_gw_rag_active = st.button("Secure AI Gateway + RAG")
+    # rag_active = st.button("RAG")
+    st.markdown("<h3 style='text-align: center;'>Secure AI Gateway</h3>", unsafe_allow_html=True)
+    sec_ai_gw_activate_yn = "ON" if st.toggle(label="`OFF` ⇄ `ON`", value=True) else "OFF"
     st.markdown('<br>', unsafe_allow_html=True)
     st.markdown("<h3 style='text-align: center;'>피드백 방법</h3>", unsafe_allow_html=True)
-    feedback_option = "faces" if st.toggle(label="`thumbs` ⇄ `faces`", value=False) else "thumbs"
+    feedback_option = ("faces" if st.toggle(label="`thumbs` ⇄ `faces`", value=True) else "thumbs")
+    st.markdown('<br>', unsafe_allow_html=True)
+    st.button("대화 리셋", on_click=reset_conversation, use_container_width=True)
 
-# 챗 어시스턴트 활성화 상태 관리
-if 'active_assistant' not in st.session_state:
-    st.session_state.active_assistant = 'sec_ai_gw_rag_active'
+# # 챗 어시스턴트 활성화 상태 관리
+# if 'active_assistant' not in st.session_state:
+#     st.session_state.active_assistant = 'sec_ai_gw_rag_active'
     
+if sec_ai_gw_activate_yn == "ON":
+    st.session_state.sec_ai_gw_activate_yn = "ON"
+else:
+    st.session_state.sec_ai_gw_activate_yn = "OFF"
+
 if "rerun_tab" not in st.session_state:
     reset_conversation()
-    st.session_state.retun_tab = 'rerun_tab'
-    
+    st.session_state.rerun_tab = "rerun_tab"
+
 if "ahn_messages" not in st.session_state:
     st.session_state.ahn_messages = []
 
@@ -79,16 +86,9 @@ for avatar_message in st.session_state.ahn_messages:
             with st.expander('ASA'):
                 st.markdown("<b>ASA</b><br>", unsafe_allow_html=True)
                 st.markdown(avatar_message["content"], unsafe_allow_html=True)
-
-# 버튼 클릭에 따라 어시스턴트 설정
-if sec_ai_gw_rag_active:
-    st.session_state.active_assistant = "sec_ai_gw_rag_active"
-    st.toast("Secure AI Gateway + RAG 어시스턴트 활성화!", icon="👋")
-if rag_active:
-    st.session_state.active_assistant = "rag_active"
-    st.toast("RAG 어시스턴트 활성화!", icon="👋")
-
-if st.session_state.active_assistant == "sec_ai_gw_rag_active":
+    
+# if st.session_state.active_assistant == "sec_ai_gw_rag_active":
+if st.session_state.sec_ai_gw_activate_yn == "ON":
     if prompt := st.chat_input(""):
         scroll_bottom()    
         with st.chat_message("user", avatar=you_icon):
@@ -156,7 +156,7 @@ if st.session_state.active_assistant == "sec_ai_gw_rag_active":
                 
             except Exception as e:
                 st.error(e, icon="🚨")
-# elif st.session_state.active_assistant == "rag_active":
+# elif st.session_state.sec_ai_gw_activate_yn == "OFF":
 else:
     if prompt := st.chat_input(""):
         scroll_bottom()
@@ -210,7 +210,7 @@ if st.session_state.get("run_id"):
         optional_text_label="[선택] 피드백을 작성해주세요.",  # Allow for additional comments
         key=f"feedback_{st.session_state.run_id}",
     )
-        
+
     score_mappings = {
         "thumbs": {"👍": 1, "👎": 0},
         "faces": {"😀": 1, "🙂": 0.75, "😐": 0.5, "🙁": 0.25, "😞": 0},
