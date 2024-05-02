@@ -89,14 +89,14 @@ gemini_memory = gemini_init_memory()
  
 # reset button
 def reset_conversation():
-  print('대화 리셋!')
-  st.session_state.conversation = None
-  st.session_state.chat_history = None
-  asa_memory.clear()
-  hcx_memory.clear()
-  gpt_memory.clear()
-  sllm_memory.clear()
-  gemini_memory.clear()
+    st.session_state.conversation = None
+    st.session_state.chat_history = None
+    asa_memory.clear()
+    hcx_memory.clear()
+    gpt_memory.clear()
+    sllm_memory.clear()
+    gemini_memory.clear()
+    st.toast("대화 리셋!", icon="👋")
 
 
 DEFAULT_DOCUMENT_PROMPT = PromptTemplate.from_template(template="{page_content}")
