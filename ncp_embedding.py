@@ -11,9 +11,6 @@ from langchain_core.embeddings import Embeddings
 from config import token_headers
 
 load_dotenv()
-HCX_API_KEY_PRIMARY_VAL=os.getenv("HCX_API_KEY_PRIMARY_VAL")
-REQUEST_ID=str(uuid.uuid4())
-HCX_EMBEDDING_API_KEY=os.getenv("HCX_EMBEDDING_API_KEY")
 HCX_TOKEN_HOST=os.getenv("HCX_TOKEN_HOST")
 NCP_EMBEDDING_URL=os.getenv("NCP_EMBEDDING_URL")
 
