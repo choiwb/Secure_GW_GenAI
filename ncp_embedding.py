@@ -7,7 +7,7 @@ import http.client
 from typing import List
 from langchain_core.embeddings import Embeddings
 
-from config import token_headers
+from config import embedding_headers
 
 load_dotenv()
 HCX_TOKEN_HOST=os.getenv("HCX_TOKEN_HOST")
@@ -15,7 +15,7 @@ NCP_EMBEDDING_URL=os.getenv("NCP_EMBEDDING_URL")
 
 class HCXEmbedding(Embeddings):
     def _send_request(self, text):
-        headers = token_headers
+        headers = embedding_headers
         completion_request = {'text': text}
         conn = http.client.HTTPSConnection(HCX_TOKEN_HOST)
         conn.request('POST', NCP_EMBEDDING_URL, json.dumps(completion_request), headers)
