@@ -8,6 +8,7 @@ import http.client
 from typing import List
 from langchain_core.embeddings import Embeddings
 
+from config import token_headers
 
 load_dotenv()
 HCX_API_KEY_PRIMARY_VAL=os.getenv("HCX_API_KEY_PRIMARY_VAL")
@@ -18,12 +19,7 @@ NCP_EMBEDDING_URL=os.getenv("NCP_EMBEDDING_URL")
 
 class HCXEmbedding(Embeddings):
     def _send_request(self, text):
-        headers = {
-            'Content-Type': 'application/json; charset=utf-8',
-            'X-NCP-CLOVASTUDIO-API-KEY': HCX_EMBEDDING_API_KEY,
-            'X-NCP-APIGW-API-KEY': HCX_API_KEY_PRIMARY_VAL,
-            'X-NCP-CLOVASTUDIO-REQUEST-ID': REQUEST_ID
-        }
+        headers = token_headers
         completion_request = {'text': text}
         conn = http.client.HTTPSConnection(HCX_TOKEN_HOST)
         conn.request('POST', NCP_EMBEDDING_URL, json.dumps(completion_request), headers)
