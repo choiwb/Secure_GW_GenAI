@@ -12,6 +12,7 @@ API_KEY_PRIMARY_VAL=os.getenv('HCX_API_KEY_PRIMARY_VAL')
 REQUEST_ID=str(uuid.uuid4())
 
 TOKEN_API_KEY=os.getenv('HCX_TOKEN_API_KEY')
+EMBEDDING_API_KEY=os.getenv('EMBEDDING_API_KEY')
 ##################################################################################
 
 # pdf 파일 저장 경로
@@ -36,6 +37,14 @@ DB_COLLECTION_NAME = "DB_COLLECTION_NAME !!!!!!!"
 # sLLM 모델 경로
 sllm_model_path = os.path.join(os.getcwd(), "sllm_models/EEVE-Korean-Instruct-10.8B-v1.0-Q4_K_M.gguf")
 sllm_embed_model_path = os.path.join(os.getcwd(), "sllm_models/nomic-embed-text-v1.5.f32.gguf")
+
+
+embedding_headers = {
+      'X-NCP-CLOVASTUDIO-API-KEY': EMBEDDING_API_KEY,
+      'X-NCP-APIGW-API-KEY': API_KEY_PRIMARY_VAL,
+      'X-NCP-CLOVASTUDIO-REQUEST-ID': REQUEST_ID,
+      'Content-Type': 'application/json; charset=utf-8'
+      }
 
 token_headers = {
         'X-NCP-CLOVASTUDIO-API-KEY': TOKEN_API_KEY,
