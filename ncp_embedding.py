@@ -1,7 +1,6 @@
 
 
 import os
-import uuid
 from dotenv import load_dotenv
 import json
 import http.client
