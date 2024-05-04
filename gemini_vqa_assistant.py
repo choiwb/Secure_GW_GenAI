@@ -85,10 +85,11 @@ if prompt := st.chat_input(""):
         st.session_state.ahn_messages.append({"role": "user", "content": prompt})
         
     with st.chat_message("assistant",  avatar=ahn_icon):    
+        st.markdown("<b>ASA</b><br>", unsafe_allow_html=True)
         try:     
             with st.spinner("답변 생성 중....."):
                 with collect_runs() as cb:
-                    full_response = "<b>ASA</b><br>"
+                    full_response = ""
                     message_placeholder = st.empty()
                     st.session_state.image_data = uploaded_image
                                             
@@ -106,10 +107,8 @@ if prompt := st.chat_input(""):
                         full_response += chunk
                         message_placeholder.markdown(full_response, unsafe_allow_html=True)   
                         
-                    full_response_for_token_cal = full_response.replace('<b>Assistant</b><br>', '').replace('<b>ASA</b><br>', '')
-                    gemini_memory.save_context({"question": prompt}, {"answer": full_response_for_token_cal})
-
-                    st.session_state.ahn_messages.append({"role": "assistant", "content": full_response_for_token_cal})
+                    gemini_memory.save_context({"question": prompt}, {"answer": full_response})
+                    st.session_state.ahn_messages.append({"role": "assistant", "content": full_response})
                                                 
                     # multimodal llm 결과에 대한 피드백은 필요 없음!
                     multimodal_llm_run_id = cb.traced_runs[0].id
