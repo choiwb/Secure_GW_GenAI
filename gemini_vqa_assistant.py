@@ -7,7 +7,6 @@ from langchain.schema import HumanMessage
 from config import asa_image_path, you_icon, ahn_icon
 from LCEL import reset_conversation, gemini_memory, gemini_vis_pipe, gemini_vis_txt_pipe
 
-
 try:
     # st.set_page_config(page_icon="🚀", page_title="Cloud_Assistant", layout="wide", initial_sidebar_state="collapsed")
     st.set_page_config(page_icon="🚀", page_title="Cloud_Assistant", layout="wide")
@@ -42,7 +41,7 @@ for avatar_message in st.session_state.ahn_messages:
                 
 with st.sidebar:
     st.markdown("<h3 style='text-align: center;'>이미지 업로드</h3>", unsafe_allow_html=True)
-    uploaded_image = st.file_uploader("", type=["png", "jpg", "jpeg"])
+    uploaded_image = st.file_uploader("이미지 선택", type=["png", "jpg", "jpeg"])
 
     if uploaded_image is not None:        
         # 업로드된 이미지를 보여주기 위해 Image 객체로 변환
