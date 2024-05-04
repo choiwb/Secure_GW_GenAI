@@ -49,7 +49,7 @@ with st.sidebar:
         
     st.markdown('<br>', unsafe_allow_html=True)
     st.markdown("<h3 style='text-align: center;'>피드백 방법</h3>", unsafe_allow_html=True)
-    feedback_option = ("faces" if st.toggle(label="`2단계` ⇄ `5단계`", value=True) else "thumbs")
+    feedback_option = "faces" if st.toggle(label="`2단계` ⇄ `5단계`", value=True) else "thumbs"
     st.markdown('<br>', unsafe_allow_html=True)
     st.button("대화 리셋", on_click=reset_conversation, use_container_width=True)
     
