@@ -15,12 +15,13 @@ from langchain.vectorstores import Chroma
 
 from config import db_save_path, DB_COLLECTION_NAME, DB_CONNECTION_STRING, db_search_type, db_doc_k, db_doc_fetch_k, db_similarity_threshold
 from vector_db import embeddings
-from prompt import not_rag_template, rag_template, PROMPT_INJECTION_PROMPT, SYSTEMPROMPT
+from prompt import not_rag_template, rag_template, img_rag_template, PROMPT_INJECTION_PROMPT, SYSTEMPROMPT
 from LLM import HCX, gpt_model, sllm, gemini_vis_model, gemini_txt_model
 from streamlit_custom_func import src_doc
 
 ONLY_CHAIN_PROMPT = PromptTemplate(input_variables=["question"],template=not_rag_template)
 QA_CHAIN_PROMPT = PromptTemplate(input_variables=["context", "question"],template=rag_template)
+IMG_QA_CHAIN_PROMPT = PromptTemplate(input_variables=["img_context", "context", "question"],template=img_rag_template)
  
 hcx_sec = HCX(init_system_prompt = PROMPT_INJECTION_PROMPT, streaming = False)
 hcx_stream = HCX(init_system_prompt = SYSTEMPROMPT, streaming = True)
@@ -138,11 +139,20 @@ not_retrieved_documents = {
 }
 
 img_retrieved_documents = {
-    "context": lambda x: x["context"],
-    "question": lambda x: x["question"]
+    "question": lambda x: x["question"],
+    "img_context": lambda x: x["img_context"],
+    "source_documents": itemgetter("question") | compression_retriever,
+    "chat_history": lambda x: get_buffer_string(x["chat_history"])
 }
  
 final_inputs = {
+    "context": lambda x: _combine_documents(x["source_documents"]),
+    "question": itemgetter("question"),
+    "chat_history": itemgetter("chat_history")
+}
+
+img_final_inputs = {
+    "img_context": itemgetter("img_context"),
     "context": lambda x: _combine_documents(x["source_documents"]),
     "question": itemgetter("question"),
     "chat_history": itemgetter("chat_history")
@@ -156,4 +166,7 @@ sllm_pipe = sllm_loaded_memory | retrieved_documents | final_inputs | QA_CHAIN_P
 
 gemini_txt_pipe = gemini_loaded_memory | not_retrieved_documents | ONLY_CHAIN_PROMPT | gemini_txt_model | StrOutputParser()
 gemini_vis_pipe = RunnablePassthrough() | gemini_vis_model | StrOutputParser()
-gemini_vis_txt_pipe = gemini_loaded_memory | img_retrieved_documents | QA_CHAIN_PROMPT | gemini_txt_model | StrOutputParser()
+gemini_vis_vectordb_txt_pipe = (
+                                gemini_loaded_memory | img_retrieved_documents | img_final_inputs | 
+                                IMG_QA_CHAIN_PROMPT | src_doc | gemini_txt_model | StrOutputParser()
+                               )
