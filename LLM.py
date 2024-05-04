@@ -100,7 +100,7 @@ gpt_model = ChatOpenAI(
 )    
 
 gemini_txt_model = ChatGoogleGenerativeAI(model="gemini-pro", temperature=llm_temperature, max_output_tokens=llm_maxtokens)
-gemini_vis_model = ChatGoogleGenerativeAI(model="gemini-pro-vision", temperature=llm_temperature, max_output_tokens=llm_maxtokens, convert_system_message_to_human=True)
+gemini_vis_model = ChatGoogleGenerativeAI(model="gemini-pro-vision", temperature=llm_temperature, max_output_tokens=llm_maxtokens)
 
 callback_manager = CallbackManager([StreamingStdOutCallbackHandler()])
 
