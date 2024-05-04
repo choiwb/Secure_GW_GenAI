@@ -23,7 +23,8 @@ os.getenv('LANGCHAIN_API_KEY')
 client = Client()
 
 try:
-    st.set_page_config(page_icon="🚀", page_title="Cloud_Assistant", layout="wide", initial_sidebar_state="collapsed")
+    # st.set_page_config(page_icon="🚀", page_title="Cloud_Assistant", layout="wide", initial_sidebar_state="collapsed")
+    st.set_page_config(page_icon="🚀", page_title="Cloud_Assistant", layout="wide")
 except:
     st.rerun()
     
@@ -43,13 +44,18 @@ with st.expander('추천 질문'):
 with st.expander('Protocol Stack'):
     st.image(asa_image_path, caption='Protocol Stack', use_column_width=True)
         
+with st.sidebar:
+    st.markdown("<h3 style='text-align: center;'>피드백 방법</h3>", unsafe_allow_html=True)
+    feedback_option = ("faces" if st.toggle(label="`2단계` ⇄ `5단계`", value=True) else "thumbs")
+    st.markdown('<br>', unsafe_allow_html=True)
+    st.button("대화 리셋", on_click=reset_conversation, use_container_width=True)
+        
 if "rerun_tab" not in st.session_state:
     reset_conversation()
     st.session_state.rerun_tab = "rerun_tab"
     
 if "ahn_messages" not in st.session_state:
     st.session_state.ahn_messages = []
-
     
 for avatar_message in st.session_state.ahn_messages:
     if avatar_message["role"] == "user":
@@ -66,13 +72,6 @@ for avatar_message in st.session_state.ahn_messages:
                 st.markdown("<b>ASA</b><br>", unsafe_allow_html=True)
                 st.markdown(avatar_message["content"], unsafe_allow_html=True)
     
-with st.sidebar:
-    st.markdown("<h3 style='text-align: center;'>피드백 방법</h3>", unsafe_allow_html=True)
-    feedback_option = ("faces" if st.toggle(label="`thumbs` ⇄ `faces`", value=True) else "thumbs")
-    st.markdown('<br>', unsafe_allow_html=True)
-    st.button("대화 리셋", on_click=reset_conversation, use_container_width=True)
-
-
 if prompt := st.chat_input(""):
     scroll_bottom()
     with st.chat_message("user", avatar=you_icon):
@@ -100,16 +99,15 @@ if prompt := st.chat_input(""):
         except Exception as e:
             st.error(e, icon="🚨")
             
-
 if st.session_state.get("run_id"):
     run_id = st.session_state.run_id
-
+        
     feedback = streamlit_feedback(
         feedback_type=feedback_option,  # Apply the selected feedback style
         optional_text_label="[선택] 피드백을 작성해주세요.",  # Allow for additional comments
         key=f"feedback_{st.session_state.run_id}",
     )
-        
+
     score_mappings = {
         "thumbs": {"👍": 1, "👎": 0},
         "faces": {"😀": 1, "🙂": 0.75, "😐": 0.5, "🙁": 0.25, "😞": 0},
