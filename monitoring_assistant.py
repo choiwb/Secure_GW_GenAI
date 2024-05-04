@@ -52,7 +52,7 @@ with st.sidebar:
     sec_ai_gw_activate_yn = "ON" if st.toggle(label="`OFF` ⇄ `ON`", value=True) else "OFF"
     st.markdown('<br>', unsafe_allow_html=True)
     st.markdown("<h3 style='text-align: center;'>피드백 방법</h3>", unsafe_allow_html=True)
-    feedback_option = ("faces" if st.toggle(label="`thumbs` ⇄ `faces`", value=True) else "thumbs")
+    feedback_option = ("faces" if st.toggle(label="`2단계` ⇄ `5단계`", value=True) else "thumbs")
     st.markdown('<br>', unsafe_allow_html=True)
     st.button("대화 리셋", on_click=reset_conversation, use_container_width=True)
 
@@ -132,7 +132,7 @@ if st.session_state.sec_ai_gw_activate_yn == "ON":
                             injection_llm_run_id = cb.traced_runs[0].id
                             # 사용자 피드백이 필요한 질문에 대한 결과 !!
                             st.session_state.run_id = cb.traced_runs[1].id
-                            
+
                         else:
                             sec_st_write.error('보안 검사 결과, 위험한 질문 입니다.', icon='❌')
 
@@ -204,7 +204,7 @@ else:
     
 if st.session_state.get("run_id"):
     run_id = st.session_state.run_id
-
+        
     feedback = streamlit_feedback(
         feedback_type=feedback_option,  # Apply the selected feedback style
         optional_text_label="[선택] 피드백을 작성해주세요.",  # Allow for additional comments
