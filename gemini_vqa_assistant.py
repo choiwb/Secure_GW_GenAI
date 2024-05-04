@@ -5,6 +5,7 @@ from PIL import Image
 from langchain.schema import HumanMessage
 
 from config import asa_image_path, you_icon, ahn_icon
+from prompt import gemini_img_sys_message
 from LCEL import reset_conversation, gemini_memory, gemini_vis_pipe, gemini_vis_vectordb_txt_pipe
 
 try:
@@ -63,19 +64,18 @@ if prompt := st.chat_input(""):
             with st.spinner("답변 생성 중....."):
                 full_response = "<b>ASA</b><br>"
                 message_placeholder = st.empty()
-                
                 st.session_state.image_data = uploaded_image
-
-                img_message = HumanMessage(
-                content=[
-                    {
-                    "type": "text",
-                    "text": "Provide information of given image."},
-                    {"type": "image_url", "image_url": image},
-                ]
-                )
                                          
-                img_context = gemini_vis_pipe.invoke([img_message])
+                gemini_img_message = HumanMessage(
+                    content=[
+                        {
+                        "type": "text",
+                        "text": "Provide information of given image."},
+                        {"type": "image_url", "image_url": image},
+                    ]
+                    )
+                img_context = gemini_vis_pipe.invoke([gemini_img_sys_message, gemini_img_message])
+                
                 for chunk in gemini_vis_vectordb_txt_pipe.stream({"img_context":img_context, "question":prompt}):
                     full_response += chunk
                     message_placeholder.markdown(full_response, unsafe_allow_html=True)   
