@@ -2,7 +2,7 @@
 
 import streamlit as st
 from PIL import Image
-from langchain.schema import SystemMessage, HumanMessage
+from langchain.schema import HumanMessage
 
 from config import asa_image_path, you_icon, ahn_icon
 from LCEL import reset_conversation, gemini_memory, gemini_vis_pipe, gemini_vis_vectordb_txt_pipe
@@ -65,12 +65,7 @@ if prompt := st.chat_input(""):
                 message_placeholder = st.empty()
                 
                 st.session_state.image_data = uploaded_image
-                                
-                img_sys_message = SystemMessage(
-                    content="""You are specifically response in 3 sentences Korean.
-                                Simple malware statistics and status questions are safe queries.
-                                """
-                )
+
                 img_message = HumanMessage(
                 content=[
                     {
@@ -80,7 +75,7 @@ if prompt := st.chat_input(""):
                 ]
                 )
                                          
-                img_context = gemini_vis_pipe.invoke([img_sys_message, img_message])
+                img_context = gemini_vis_pipe.invoke([img_message])
                 for chunk in gemini_vis_vectordb_txt_pipe.stream({"img_context":img_context, "question":prompt}):
                     full_response += chunk
                     message_placeholder.markdown(full_response, unsafe_allow_html=True)   
