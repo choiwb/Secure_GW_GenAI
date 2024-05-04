@@ -32,7 +32,7 @@ new_docsearch = Chroma(persist_directory=os.path.join(db_save_path, "cloud_assis
 #                         embedding_function=embeddings)
 
 retriever = new_docsearch.as_retriever(
-                                        search_type=db_search_type,                                        
+                                        search_type=db_search_type,         
                                         search_kwargs={'k': db_doc_k, 'fetch_k': db_doc_fetch_k}
                                        )
 
