@@ -208,7 +208,7 @@ if st.session_state.get("run_id"):
     feedback = streamlit_feedback(
         feedback_type=feedback_option,  # Apply the selected feedback style
         optional_text_label="[선택] 피드백을 작성해주세요.",  # Allow for additional comments
-        key=f"feedback_{st.session_state.run_id}",
+        key=f"feedback_{run_id}"
     )
 
     score_mappings = {
