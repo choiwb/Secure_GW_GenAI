@@ -16,7 +16,7 @@ from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 
 from hcx_token_cal import token_CompletionExecutor
 from prompt import sllm_inj_rag_prompt
-from config import sllm_model_path, sllm_n_batch, sllm_n_gpu_layers, hcx_general_headers, hcx_stream_headers, hcx_llm_params, llm_maxtokens, llm_temperature, sllm_n_ctx, sllm_top_p
+from config import sllm_model_path, sllm_n_batch, sllm_n_gpu_layers, hcx_general_headers, hcx_stream_headers, hcx_llm_params, llm_maxtokens, llm_temperature, gemini_llm_params, gemini_safe, sllm_n_ctx, sllm_top_p
 from streamlit_custom_func import hcx_stream_process
 
 
@@ -99,8 +99,10 @@ gpt_model = ChatOpenAI(
     temperature=llm_temperature
 )    
 
-gemini_txt_model = ChatGoogleGenerativeAI(model="gemini-pro", temperature=llm_temperature, max_output_tokens=llm_maxtokens)
-gemini_vis_model = ChatGoogleGenerativeAI(model="gemini-pro-vision", temperature=llm_temperature, max_output_tokens=llm_maxtokens)
+gemini_txt_model = ChatGoogleGenerativeAI(model="gemini-pro", gemini_confog=gemini_llm_params,
+                                          convert_system_message_to_human=True, safety_settings=gemini_safe)
+gemini_vis_model = ChatGoogleGenerativeAI(model="gemini-pro-vision", gemini_confog=gemini_llm_params, 
+                                          convert_system_message_to_human=True, safety_settings=gemini_safe)
 
 callback_manager = CallbackManager([StreamingStdOutCallbackHandler()])
 
