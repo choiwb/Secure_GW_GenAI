@@ -1,15 +1,16 @@
 
 import os
+import base64
+from io import BytesIO
 from dotenv import load_dotenv
 import streamlit as st
 from PIL import Image
-from langchain.schema import HumanMessage
 from streamlit_feedback import streamlit_feedback
 from langsmith import Client
 from langchain.callbacks.manager import collect_runs
 
 from config import asa_image_path, you_icon, ahn_icon
-from prompt import gemini_img_sys_message
+from prompt import multimodal_prompt
 from LCEL import reset_conversation, gemini_memory, gemini_vis_pipe, gemini_vis_vectordb_txt_pipe
 from streamlit_custom_func import scroll_bottom
 
@@ -41,12 +42,30 @@ with st.sidebar:
     uploaded_image = st.file_uploader("이미지 선택", type=["png", "jpg", "jpeg"])
 
     if uploaded_image is not None:        
-        # 업로드된 이미지를 보여주기 위해 Image 객체로 변환
-        image = Image.open(uploaded_image)
+        # UploadedFile의 내용을 읽어서 BytesIO 객체로 변환 및 열기
+        image = Image.open(BytesIO(uploaded_image.read()))
         
         # 사이드바에 이미지 표시
         st.image(image, caption="업로드된 이미지", use_column_width=True)
         
+        width, height = image.size 
+        # print(f"width: {width}, height: {height}, size: {width*height}")
+                
+        isResized = False
+        # 5242880: Claude 3 Sonnet 의 허용 사이즈
+        while(width*height > 5242880):                    
+            width = int(width/2)
+            height = int(height/2)
+            isResized = True
+            # print(f"width: {width}, height: {height}, size: {width*height}")
+                    
+        if isResized:
+            img = image.resize((width, height))
+                                                                                
+        buffer = BytesIO()
+        image.save(buffer, format="PNG")
+        img_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
+
     st.markdown('<br>', unsafe_allow_html=True)
     st.markdown("<h3 style='text-align: center;'>피드백 방법</h3>", unsafe_allow_html=True)
     feedback_option = "faces" if st.toggle(label="`2단계` ⇄ `5단계`", value=True) else "thumbs"
@@ -93,16 +112,8 @@ if prompt := st.chat_input(""):
                     message_placeholder = st.empty()
                     st.session_state.image_data = uploaded_image
                                             
-                    gemini_img_message = HumanMessage(
-                        content=[
-                            {
-                            "type": "text",
-                            "text": "Provide information of given image."},
-                            {"type": "image_url", "image_url": image},
-                        ]
-                        )
-                    img_context = gemini_vis_pipe.invoke([gemini_img_sys_message, gemini_img_message])
-                    
+                    img_context = gemini_vis_pipe.invoke(multimodal_prompt(img_base64)) 
+
                     for chunk in gemini_vis_vectordb_txt_pipe.stream({"img_context":img_context, "question":prompt}):
                         full_response += chunk
                         message_placeholder.markdown(full_response, unsafe_allow_html=True)   
