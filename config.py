@@ -2,6 +2,7 @@
 import os
 import uuid
 from dotenv import load_dotenv
+from google.generativeai.types import HarmCategory, HarmBlockThreshold
 
 ##################################################################################
 # .env 파일 로드
