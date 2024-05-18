@@ -40,9 +40,7 @@ def offline_chroma_save(pdf_paths, db_name):
     
 # postgresql 설치 후, pgvector 설치해야 함.
 def offline_pgvector_save(pdf_paths):
-
     total_docs = []
-    
     for pdf_url in pdf_paths:
         pdfreader =  PyPDFLoader(pdf_url)
         pdf_doc = pdfreader.load_and_split()
