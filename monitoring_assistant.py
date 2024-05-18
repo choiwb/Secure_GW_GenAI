@@ -84,9 +84,9 @@ with st.sidebar:
         # 기본 벡터 db 전환 시, 사용자 pdf 삭제 및 벡터 DB 초기화
         try:
             os.remove(user_pdf_path)
+            user_new_docsearch.delete_collection()
         except:
             pass
-        user_new_docsearch.delete_collection()
             
     if user_vector_db_button:
         st.session_state.selected_db = 'user_vectordb'
