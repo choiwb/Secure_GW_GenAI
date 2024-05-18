@@ -18,7 +18,7 @@ TOKEN_API_KEY=os.getenv('HCX_TOKEN_API_KEY')
 # pdf 파일 저장 경로
 pdf_folder_path = os.path.join(os.getcwd(), 'YOUR PATH !!!!!!!')
 user_pdf_folder_path = os.path.join(os.getcwd(), 'YOUR PATH !!!!!!!')
-db_name = 'INIT VECTOR DB NAME !!!!!!!''
+db_name = 'INIT VECTOR DB NAME !!!!!!!'
 user_db_name = 'USER VECTOR DB NAME !!!!!!!'
 
 # 임베딩 벡터 DB 저장 & 호출
