@@ -1,13 +1,10 @@
 
 import os
-import shutil
 from dotenv import load_dotenv
 import streamlit as st
 from streamlit_feedback import streamlit_feedback
 from langsmith import Client
 from langchain.callbacks.manager import collect_runs
-from langchain.retrievers.document_compressors import EmbeddingsFilter
-from langchain_community.vectorstores import Chroma
 
 from config import you_icon, ahn_icon, asa_image_path, user_db_name, user_pdf_folder_path
 from vector_db import offline_chroma_save
