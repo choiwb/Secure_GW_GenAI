@@ -11,9 +11,9 @@ from langchain_core.messages import get_buffer_string
 from langchain.schema import format_document
 from langchain.retrievers import ContextualCompressionRetriever
 from langchain.retrievers.document_compressors import EmbeddingsFilter
-from langchain.vectorstores import Chroma
+from langchain_community.vectorstores import Chroma
 
-from config import db_save_path, DB_COLLECTION_NAME, DB_CONNECTION_STRING, db_search_type, db_doc_k, db_doc_fetch_k, db_similarity_threshold
+from config import db_save_path, db_name, user_db_name, DB_COLLECTION_NAME, DB_CONNECTION_STRING, db_search_type, db_doc_k, db_doc_fetch_k, db_similarity_threshold
 from vector_db import embeddings
 from prompt import not_rag_template, rag_template, img_rag_template, PROMPT_INJECTION_PROMPT, SYSTEMPROMPT
 from LLM import HCX, gpt_model, sllm, gemini_vis_model, gemini_txt_model
@@ -26,22 +26,8 @@ IMG_QA_CHAIN_PROMPT = PromptTemplate(input_variables=["img_context", "context", 
 hcx_sec = HCX(init_system_prompt = PROMPT_INJECTION_PROMPT, streaming = False)
 hcx_stream = HCX(init_system_prompt = SYSTEMPROMPT, streaming = True)
 
-new_docsearch = Chroma(persist_directory=os.path.join(db_save_path, "cloud_assistant_v3"),
-                        embedding_function=embeddings)
-
 # new_docsearch = PGVector(collection_name=DB_COLLECTION_NAME, connection_string=DB_CONNECTION_STRING,
 #                         embedding_function=embeddings)
-
-retriever = new_docsearch.as_retriever(
-                                        search_type=db_search_type,         
-                                        search_kwargs={'k': db_doc_k, 'fetch_k': db_doc_fetch_k}
-                                       )
-
-embeddings_filter = EmbeddingsFilter(embeddings=embeddings, similarity_threshold=db_similarity_threshold) 
-
-compression_retriever = ContextualCompressionRetriever(
-    base_compressor=embeddings_filter, base_retriever=retriever
-)
 
 @st.cache_resource
 def asa_init_memory():
@@ -106,11 +92,7 @@ def _combine_documents(
 ):
     doc_strings = [format_document(doc, document_prompt) for doc in docs]
     return document_separator.join(doc_strings)
- 
-asa_loaded_memory = RunnablePassthrough.assign(
-    chat_history=RunnableLambda(asa_memory.load_memory_variables) | itemgetter("chat_history"),
-)
- 
+  
 hcx_loaded_memory = RunnablePassthrough.assign(
     chat_history=RunnableLambda(hcx_memory.load_memory_variables) | itemgetter("chat_history"),
 )
@@ -126,13 +108,42 @@ sllm_loaded_memory = RunnablePassthrough.assign(
 gemini_loaded_memory = RunnablePassthrough.assign(
     chat_history=RunnableLambda(gemini_memory.load_memory_variables) | itemgetter("chat_history"),
 )
-  
-retrieved_documents = {
+   
+def retrieval_qa_chain_by_vector_db(self_vector_db):
+    asa_loaded_memory = RunnablePassthrough.assign(
+        chat_history=RunnableLambda(asa_memory.load_memory_variables) | itemgetter("chat_history"),
+    )
+    
+    new_docsearch = Chroma(persist_directory=os.path.join(db_save_path, self_vector_db),
+                            embedding_function=embeddings)
+    
+    retriever = new_docsearch.as_retriever(
+                                        search_type=db_search_type,         
+                                        search_kwargs={'k': db_doc_k, 'fetch_k': db_doc_fetch_k}
+                                       )
+
+    embeddings_filter = EmbeddingsFilter(embeddings=embeddings, similarity_threshold=db_similarity_threshold) 
+
+    global compression_retriever, retrieved_documents, final_inputs
+    compression_retriever = ContextualCompressionRetriever(
+        base_compressor=embeddings_filter, base_retriever=retriever
+    )
+    
+    retrieved_documents = {
     "question": lambda x: x["question"],
     "source_documents": itemgetter("question") | compression_retriever,
     "chat_history": lambda x: get_buffer_string(x["chat_history"])
-}
- 
+    }
+    
+    final_inputs = {
+    "context": lambda x: _combine_documents(x["source_documents"]),
+    "question": itemgetter("question"),
+    "chat_history": itemgetter("chat_history")
+    }
+    
+    retrieval_qa_chain =  asa_loaded_memory | retrieved_documents | final_inputs | QA_CHAIN_PROMPT | src_doc | hcx_stream | StrOutputParser()    
+    return retrieval_qa_chain
+
 not_retrieved_documents = {
     "question": lambda x: x["question"],
     "chat_history": lambda x: get_buffer_string(x["chat_history"])
@@ -145,12 +156,6 @@ img_retrieved_documents = {
     "chat_history": lambda x: get_buffer_string(x["chat_history"])
 }
  
-final_inputs = {
-    "context": lambda x: _combine_documents(x["source_documents"]),
-    "question": itemgetter("question"),
-    "chat_history": itemgetter("chat_history")
-}
-
 img_final_inputs = {
     "img_context": itemgetter("img_context"),
     "context": lambda x: _combine_documents(x["source_documents"]),
@@ -159,7 +164,8 @@ img_final_inputs = {
 }
 
 hcx_sec_pipe = ONLY_CHAIN_PROMPT | hcx_sec | StrOutputParser()
-retrieval_qa_chain =  asa_loaded_memory | retrieved_documents | final_inputs | QA_CHAIN_PROMPT | src_doc | hcx_stream | StrOutputParser()
+retrieval_qa_chain = retrieval_qa_chain_by_vector_db(db_name)
+user_retrieval_qa_chain = retrieval_qa_chain_by_vector_db(user_db_name)
 hcx_only_pipe =  hcx_loaded_memory | not_retrieved_documents | ONLY_CHAIN_PROMPT | hcx_stream | StrOutputParser()
 gpt_pipe =  gpt_loaded_memory | not_retrieved_documents | ONLY_CHAIN_PROMPT | gpt_model | StrOutputParser()
 sllm_pipe = sllm_loaded_memory | retrieved_documents | final_inputs | QA_CHAIN_PROMPT | src_doc | sllm | StrOutputParser()
