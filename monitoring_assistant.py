@@ -5,10 +5,13 @@ import streamlit as st
 from streamlit_feedback import streamlit_feedback
 from langsmith import Client
 from langchain.callbacks.manager import collect_runs
+from langchain.retrievers.document_compressors import EmbeddingsFilter
+from langchain_community.vectorstores import Chroma
 
-from config import you_icon, ahn_icon, asa_image_path
+from config import you_icon, ahn_icon, asa_image_path, user_db_name, user_pdf_folder_path
+from vector_db import offline_chroma_save
 from LLM import token_completion_executor
-from LCEL import retrieval_qa_chain, asa_memory, hcx_stream, hcx_sec_pipe, hcx_sec, reset_conversation
+from LCEL import retrieval_qa_chain, user_retrieval_qa_chain, asa_memory, hcx_stream, hcx_sec_pipe, hcx_sec, reset_conversation
 from streamlit_custom_func import scroll_bottom
 
 ##################################################################################
@@ -44,10 +47,11 @@ with st.expander('추천 질문'):
 
 with st.expander('Protocol Stack'):
     st.image(asa_image_path, caption='Protocol Stack', use_column_width=True)
-    
+           
+if 'user_vectordb' not in st.session_state:
+    st.session_state.selected_db = 'user_vectordb'
+             
 with st.sidebar:
-    # sec_ai_gw_rag_active = st.button("Secure AI Gateway + RAG")
-    # rag_active = st.button("RAG")
     st.markdown("<h3 style='text-align: center;'>Secure AI Gateway</h3>", unsafe_allow_html=True)
     sec_ai_gw_activate_yn = "ON" if st.toggle(label="`OFF` ⇄ `ON`", value=True) else "OFF"
     st.markdown('<br>', unsafe_allow_html=True)
@@ -55,11 +59,35 @@ with st.sidebar:
     feedback_option = "faces" if st.toggle(label="`2단계` ⇄ `5단계`", value=True) else "thumbs"
     st.markdown('<br>', unsafe_allow_html=True)
     st.button("대화 리셋", on_click=reset_conversation, use_container_width=True)
+    st.markdown('<br>', unsafe_allow_html=True)
+        
+    org_vector_db_button = st.button("기본 벡터 DB", use_container_width=True)
+    user_vector_db_button = st.button("사용자 벡터 DB", use_container_width=True)
+    st.markdown('<br>', unsafe_allow_html=True)
 
-# # 챗 어시스턴트 활성화 상태 관리
-# if 'active_assistant' not in st.session_state:
-#     st.session_state.active_assistant = 'sec_ai_gw_rag_active'
+    if org_vector_db_button:
+        st.session_state.selected_db = 'org_vectordb'
+        '''사용자 벡터 db 세션에서 다시 전환 되는 경우, 사용자 벡터 db 삭제 로직 추가 !!!!!!!!!!!!!!!!!'''
+    if user_vector_db_button:
+        st.session_state.selected_db = 'user_vectordb'
     
+    if st.session_state.selected_db == 'org_vectordb':
+        st.toast("기본 벡터 DB 활성화!", icon="👋")
+
+    if st.session_state.selected_db == 'user_vectordb':
+        st.toast("사용자 벡터 DB 활성화!", icon="👋")
+        st.markdown("<h3 style='text-align: center;'>PDF 업로드</h3>", unsafe_allow_html=True)
+        uploaded_pdf = st.file_uploader("PDF 선택", type="pdf")
+        if uploaded_pdf is not None:
+            user_pdf_path = os.path.join(user_pdf_folder_path, uploaded_pdf.name)
+            with open(user_pdf_path, "wb") as f:
+                f.write(uploaded_pdf.getbuffer())
+            
+            with st.spinner('벡터 DB 생성 시작.....'):
+                user_pdf_path_list = [user_pdf_path]
+                total_content = offline_chroma_save(user_pdf_path_list, user_db_name)
+            st.markdown('벡터 DB 생성 완료!')            
+            
 if sec_ai_gw_activate_yn == "ON":
     st.session_state.sec_ai_gw_activate_yn = "ON"
 else:
@@ -87,7 +115,6 @@ for avatar_message in st.session_state.ahn_messages:
                 st.markdown("<b>ASA</b><br>", unsafe_allow_html=True)
                 st.markdown(avatar_message["content"], unsafe_allow_html=True)
     
-# if st.session_state.active_assistant == "sec_ai_gw_rag_active":
 if st.session_state.sec_ai_gw_activate_yn == "ON":
     if prompt := st.chat_input(""):
         scroll_bottom()    
@@ -108,8 +135,12 @@ if st.session_state.sec_ai_gw_activate_yn == "ON":
                         sec_st_write = st.empty()
                         if '보안 취약점이 우려되는 질문입니다' not in inj_full_response:                        
                             sec_st_write.success('보안 검사 결과, 안전한 질문 입니다.', icon='✅')
-                            full_response = retrieval_qa_chain.invoke({"question":prompt})    
-                            
+
+                            if st.session_state.selected_db == 'user_vectordb':
+                                full_response = user_retrieval_qa_chain.invoke({"question":prompt})    
+                            else:
+                                full_response = retrieval_qa_chain.invoke({"question":prompt})    
+
                             asa_input_token = hcx_stream.init_input_token_count
                             output_token_json = {
                                 "messages": [
@@ -156,7 +187,6 @@ if st.session_state.sec_ai_gw_activate_yn == "ON":
                 
             except Exception as e:
                 st.error(e, icon="🚨")
-# elif st.session_state.sec_ai_gw_activate_yn == "OFF":
 else:
     if prompt := st.chat_input(""):
         scroll_bottom()
@@ -170,7 +200,10 @@ else:
             try:
                 with st.spinner("답변 생성 중....."):
                     with collect_runs() as cb:              
-                        full_response = retrieval_qa_chain.invoke({"question":prompt})    
+                        if st.session_state.selected_db == 'user_vectordb':
+                            full_response = user_retrieval_qa_chain.invoke({"question":prompt})    
+                        else:
+                            full_response = retrieval_qa_chain.invoke({"question":prompt})                          
                         
                         asa_input_token = hcx_stream.init_input_token_count
                         output_token_json = {
