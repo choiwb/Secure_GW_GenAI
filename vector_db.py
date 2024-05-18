@@ -2,8 +2,8 @@
 import os
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.vectorstores import Chroma
-from langchain.embeddings.openai import OpenAIEmbeddings
+from langchain_community.vectorstores import Chroma
+from langchain_openai import OpenAIEmbeddings
 from langchain_community.embeddings import LlamaCppEmbeddings
 from langchain_community.vectorstores.pgvector import PGVector
 
@@ -12,9 +12,9 @@ from config import db_save_path, sllm_embed_model_path, DB_COLLECTION_NAME, DB_C
 
 
 # text-embedding-3-small or text-embedding-3-large
-# embeddings = OpenAIEmbeddings(model = 'text-embedding-3-small')
+embeddings = OpenAIEmbeddings(model = 'text-embedding-3-small')
 # embeddings = LlamaCppEmbeddings(model_path = sllm_embed_model_path)
-embeddings = HCXEmbedding()
+# embeddings = HCXEmbedding()
 
  
 text_splitter = RecursiveCharacterTextSplitter(
@@ -23,24 +23,21 @@ text_splitter = RecursiveCharacterTextSplitter(
 
 # 오프라인 데이터 가공 ####################################################################################
 # OpenAI, NCP, HuggingFace Embedding
-def offline_chroma_save(pdf_paths):
- 
+def offline_chroma_save(pdf_paths, db_name): 
     total_docs = []
-   
     for pdf_url in pdf_paths:
         pdfreader =  PyPDFLoader(pdf_url)
         pdf_doc = pdfreader.load_and_split()
         doc = text_splitter.split_documents(pdf_doc)
         total_docs = total_docs + doc
-
+    
     vectorstore = Chroma.from_documents(
         documents=total_docs,
         embedding=embeddings,
-        persist_directory=os.path.join(db_save_path, "cloud_assistant_v3")
+        persist_directory=os.path.join(db_save_path, db_name)
         )
     vectorstore.persist()
-
-
+    
 # postgresql 설치 후, pgvector 설치해야 함.
 def offline_pgvector_save(pdf_paths):
 
