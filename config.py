@@ -17,6 +17,9 @@ TOKEN_API_KEY=os.getenv('HCX_TOKEN_API_KEY')
 
 # pdf 파일 저장 경로
 pdf_folder_path = os.path.join(os.getcwd(), 'YOUR PATH !!!!!!!')
+user_pdf_folder_path = os.path.join(os.getcwd(), 'YOUR PATH !!!!!!!')
+db_name = 'INIT VECTOR DB NAME !!!!!!!''
+user_db_name = 'USER VECTOR DB NAME !!!!!!!'
 
 # 임베딩 벡터 DB 저장 & 호출
 db_save_path = os.path.join(os.getcwd(), 'YOUR PATH !!!!!!!') 
@@ -85,7 +88,7 @@ hcx_llm_params = {
 db_search_type = 'mmr'
 db_doc_k = 4
 db_doc_fetch_k = 16
-db_similarity_threshold = 0.97
+db_similarity_threshold = 0.4
 
 gemini_llm_params = {
         'temperature': llm_temperature,
