@@ -1,5 +1,6 @@
 
 import os
+import shutil
 from dotenv import load_dotenv
 import streamlit as st
 from streamlit_feedback import streamlit_feedback
@@ -8,7 +9,7 @@ from langchain.callbacks.manager import collect_runs
 from langchain.retrievers.document_compressors import EmbeddingsFilter
 from langchain_community.vectorstores import Chroma
 
-from config import you_icon, ahn_icon, asa_image_path, user_db_name, user_pdf_folder_path
+from config import you_icon, ahn_icon, asa_image_path, db_save_path, user_db_name, user_pdf_folder_path
 from vector_db import offline_chroma_save
 from LLM import token_completion_executor
 from LCEL import retrieval_qa_chain, user_retrieval_qa_chain, asa_memory, hcx_stream, hcx_sec_pipe, hcx_sec, reset_conversation
@@ -65,12 +66,7 @@ with st.sidebar:
     user_vector_db_button = st.button("사용자 벡터 DB", use_container_width=True)
     st.markdown('<br>', unsafe_allow_html=True)
 
-    if org_vector_db_button:
-        st.session_state.selected_db = 'org_vectordb'
-        # 사용자 벡터 db 세션에서 다시 전환 되는 경우, 사용자 벡터 db 삭제 로직 추가 !!!!!!!!!!!!!!!!!
-        # 및 사용자 pdf 데이터 삭제 !!!!!!!!!!
-    if user_vector_db_button:
-        st.session_state.selected_db = 'user_vectordb'    
+    if st.session_state.selected_db == 'user_vectordb': 
         st.markdown("<h3 style='text-align: center;'>PDF 업로드</h3>", unsafe_allow_html=True)
         uploaded_pdf = st.file_uploader("PDF 선택", type="pdf")
         if uploaded_pdf is not None:
@@ -82,6 +78,17 @@ with st.sidebar:
                 user_pdf_path_list = [user_pdf_path]
                 total_content = offline_chroma_save(user_pdf_path_list, user_db_name)
             st.markdown('벡터 DB 생성 완료!')            
+    
+    if org_vector_db_button:
+        st.session_state.selected_db = 'org_vectordb'
+        # 기본 벡터 db 전환 시, 사용자 pdf 및 벡터 db 삭제 !!!!!!!
+        if os.path.exists(user_pdf_path):
+            os.remove(user_pdf_path)
+        if os.path.exists(os.path.join(db_save_path, user_db_name)):
+            shutil.rmtree(os.path.join(db_save_path, user_db_name))
+        
+    if user_vector_db_button:
+        st.session_state.selected_db = 'user_vectordb'
             
 if sec_ai_gw_activate_yn == "ON":
     st.session_state.sec_ai_gw_activate_yn = "ON"
