@@ -12,7 +12,7 @@ from langchain_community.vectorstores import Chroma
 from config import you_icon, ahn_icon, asa_image_path, db_save_path, user_db_name, user_pdf_folder_path
 from vector_db import offline_chroma_save
 from LLM import token_completion_executor
-from LCEL import retrieval_qa_chain, user_retrieval_qa_chain, asa_memory, hcx_stream, hcx_sec_pipe, hcx_sec, reset_conversation
+from LCEL import user_new_docsearch, retrieval_qa_chain, user_retrieval_qa_chain, asa_memory, hcx_stream, hcx_sec_pipe, hcx_sec, reset_conversation
 from streamlit_custom_func import scroll_bottom
 
 ##################################################################################
@@ -81,12 +81,13 @@ with st.sidebar:
     
     if org_vector_db_button:
         st.session_state.selected_db = 'org_vectordb'
-        # 기본 벡터 db 전환 시, 사용자 pdf 및 벡터 db 삭제 !!!!!!!
-        if os.path.exists(user_pdf_path):
+        # 기본 벡터 db 전환 시, 사용자 pdf 삭제 및 벡터 DB 초기화
+        try:
             os.remove(user_pdf_path)
-        if os.path.exists(os.path.join(db_save_path, user_db_name)):
-            shutil.rmtree(os.path.join(db_save_path, user_db_name))
-        
+        except:
+            pass
+        user_new_docsearch.delete_collection()
+            
     if user_vector_db_button:
         st.session_state.selected_db = 'user_vectordb'
             
