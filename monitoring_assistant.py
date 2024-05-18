@@ -67,15 +67,10 @@ with st.sidebar:
 
     if org_vector_db_button:
         st.session_state.selected_db = 'org_vectordb'
-        '''사용자 벡터 db 세션에서 다시 전환 되는 경우, 사용자 벡터 db 삭제 로직 추가 !!!!!!!!!!!!!!!!!'''
+        # 사용자 벡터 db 세션에서 다시 전환 되는 경우, 사용자 벡터 db 삭제 로직 추가 !!!!!!!!!!!!!!!!!
+        # 및 사용자 pdf 데이터 삭제 !!!!!!!!!!
     if user_vector_db_button:
-        st.session_state.selected_db = 'user_vectordb'
-    
-    if st.session_state.selected_db == 'org_vectordb':
-        st.toast("기본 벡터 DB 활성화!", icon="👋")
-
-    if st.session_state.selected_db == 'user_vectordb':
-        st.toast("사용자 벡터 DB 활성화!", icon="👋")
+        st.session_state.selected_db = 'user_vectordb'    
         st.markdown("<h3 style='text-align: center;'>PDF 업로드</h3>", unsafe_allow_html=True)
         uploaded_pdf = st.file_uploader("PDF 선택", type="pdf")
         if uploaded_pdf is not None:
