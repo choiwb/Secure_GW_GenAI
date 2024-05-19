@@ -46,9 +46,9 @@ with st.expander('추천 질문'):
 with st.expander('Protocol Stack'):
     st.image(asa_image_path, caption='Protocol Stack', use_column_width=True)
            
-if 'user_vectordb' not in st.session_state:
-    st.session_state.selected_db = 'user_vectordb'
-             
+if 'org_vectordb' not in st.session_state:
+    st.session_state.selected_db = 'org_vectordb'
+     
 with st.sidebar:
     st.markdown("<h3 style='text-align: center;'>Secure AI Gateway</h3>", unsafe_allow_html=True)
     sec_ai_gw_activate_yn = "ON" if st.toggle(label="`OFF` ⇄ `ON`", value=True) else "OFF"
@@ -70,7 +70,7 @@ with st.sidebar:
     if st.session_state.selected_db == 'user_vectordb': 
         st.markdown("<h3 style='text-align: center;'>PDF 업로드</h3>", unsafe_allow_html=True)
         uploaded_pdf = st.file_uploader("PDF 선택", type=["pdf"])
-        if uploaded_pdf:
+        if uploaded_pdf is not None:
             user_pdf_path = os.path.join(user_pdf_folder_path, uploaded_pdf.name)
             with open(user_pdf_path, "wb") as f:
                 f.write(uploaded_pdf.getbuffer())
