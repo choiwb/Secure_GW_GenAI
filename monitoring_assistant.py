@@ -62,11 +62,15 @@ with st.sidebar:
     org_vector_db_button = st.button("기본 벡터 DB", use_container_width=True)
     user_vector_db_button = st.button("사용자 벡터 DB", use_container_width=True)
     st.markdown('<br>', unsafe_allow_html=True)
-
+            
+    if user_vector_db_button:
+        st.toast("사용자 벡터 DB 활성화!", icon="👋")
+        st.session_state.selected_db = 'user_vectordb'
+        
     if st.session_state.selected_db == 'user_vectordb': 
         st.markdown("<h3 style='text-align: center;'>PDF 업로드</h3>", unsafe_allow_html=True)
-        uploaded_pdf = st.file_uploader("PDF 선택", type="pdf")
-        if uploaded_pdf is not None:
+        uploaded_pdf = st.file_uploader("PDF 선택", type=["pdf"])
+        if uploaded_pdf:
             user_pdf_path = os.path.join(user_pdf_folder_path, uploaded_pdf.name)
             with open(user_pdf_path, "wb") as f:
                 f.write(uploaded_pdf.getbuffer())
@@ -74,9 +78,9 @@ with st.sidebar:
             with st.spinner('벡터 DB 생성 시작.....'):
                 user_pdf_path_list = [user_pdf_path]
                 total_content = offline_chroma_save(user_pdf_path_list, user_db_name)
-            st.markdown('벡터 DB 생성 완료!')            
-    
+                                                
     if org_vector_db_button:
+        st.toast("기본 벡터 DB 활성화!", icon="👋")
         st.session_state.selected_db = 'org_vectordb'
         # 기본 벡터 db 전환 시, 사용자 pdf 삭제 및 벡터 DB 초기화
         try:
@@ -84,10 +88,7 @@ with st.sidebar:
             user_new_docsearch.delete_collection()
         except:
             pass
-            
-    if user_vector_db_button:
-        st.session_state.selected_db = 'user_vectordb'
-            
+                
 if sec_ai_gw_activate_yn == "ON":
     st.session_state.sec_ai_gw_activate_yn = "ON"
 else:
