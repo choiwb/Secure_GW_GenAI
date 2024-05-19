@@ -46,8 +46,8 @@ with st.expander('추천 질문'):
 with st.expander('Protocol Stack'):
     st.image(asa_image_path, caption='Protocol Stack', use_column_width=True)
            
-if 'org_vectordb' not in st.session_state:
-    st.session_state.selected_db = 'org_vectordb'
+if 'user_vectordb' not in st.session_state:
+    st.session_state.selected_db = 'user_vectordb'
      
 with st.sidebar:
     st.markdown("<h3 style='text-align: center;'>Secure AI Gateway</h3>", unsafe_allow_html=True)
