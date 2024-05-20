@@ -46,8 +46,10 @@ with st.expander('추천 질문'):
 with st.expander('Protocol Stack'):
     st.image(asa_image_path, caption='Protocol Stack', use_column_width=True)
                 
-if 'user_vectordb' not in st.session_state:
-    st.session_state.selected_db = 'user_vectordb'
+if 'selected_db' not in st.session_state:
+    st.session_state.selected_db = 'org_vectordb'
+if 'user_vectordb_initialized' not in st.session_state:
+    st.session_state.user_vectordb_initialized = False
     
 with st.sidebar:
     st.markdown("<h3 style='text-align: center;'>Secure AI Gateway</h3>", unsafe_allow_html=True)
@@ -74,10 +76,12 @@ with st.sidebar:
             user_pdf_path = os.path.join(user_pdf_folder_path, uploaded_pdf.name)
             with open(user_pdf_path, "wb") as f:
                 f.write(uploaded_pdf.getbuffer())
-            
-            with st.spinner('벡터 DB 생성 시작.....'):
-                user_pdf_path_list = [user_pdf_path]
-                total_content = offline_chroma_save(user_pdf_path_list, user_db_name)
+
+            if not st.session_state.user_vectordb_initialized:
+                with st.spinner('벡터 DB 생성 시작.....'):
+                    user_pdf_path_list = [user_pdf_path]
+                    total_content = offline_chroma_save(user_pdf_path_list, user_db_name)
+                    st.session_state.user_vectordb_initialized = True
                                                 
     if org_vector_db_button:
         st.toast("기본 벡터 DB 활성화!", icon="👋")
@@ -86,6 +90,7 @@ with st.sidebar:
         try:
             os.remove(user_pdf_path)
             user_new_docsearch.delete_collection()
+            st.session_state.user_vectordb_initialized = False
         except:
             pass
 
