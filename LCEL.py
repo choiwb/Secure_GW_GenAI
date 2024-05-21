@@ -35,7 +35,6 @@ user_new_docsearch = Chroma(persist_directory=os.path.join(db_save_path, user_db
                             embedding_function=embeddings)
 
 def retriever_alog(new_docsearch):
-    
     retriever = new_docsearch.as_retriever(
                                         search_type=db_search_type,         
                                         search_kwargs={'k': db_doc_k, 'fetch_k': db_doc_fetch_k}
