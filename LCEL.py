@@ -29,31 +29,21 @@ hcx_stream = HCX(init_system_prompt = SYSTEMPROMPT, streaming = True)
 # new_docsearch = PGVector(collection_name=DB_COLLECTION_NAME, connection_string=DB_CONNECTION_STRING,
 #                         embedding_function=embeddings)
 
-new_docsearch = Chroma(persist_directory=os.path.join(db_save_path, db_name),
-                        embedding_function=embeddings)
+def retriever_alog(db_name):
+    new_docsearch = Chroma(persist_directory=os.path.join(db_save_path, db_name),
+                            embedding_function=embeddings)
+    retriever = new_docsearch.as_retriever(
+                                        search_type=db_search_type,         
+                                        search_kwargs={'k': db_doc_k, 'fetch_k': db_doc_fetch_k}
+                                    )
+    embeddings_filter = EmbeddingsFilter(embeddings=embeddings, similarity_threshold=db_similarity_threshold) 
+    compression_retriever = ContextualCompressionRetriever(
+        base_compressor=embeddings_filter, base_retriever=retriever
+    )
+    return compression_retriever
 
-user_new_docsearch = Chroma(persist_directory=os.path.join(db_save_path, user_db_name),
-                        embedding_function=embeddings)
-
-retriever = new_docsearch.as_retriever(
-                                    search_type=db_search_type,         
-                                    search_kwargs={'k': db_doc_k, 'fetch_k': db_doc_fetch_k}
-                                )
-
-user_retriever = user_new_docsearch.as_retriever(
-                                    search_type=db_search_type,         
-                                    search_kwargs={'k': db_doc_k, 'fetch_k': db_doc_fetch_k}
-                                )
-
-embeddings_filter = EmbeddingsFilter(embeddings=embeddings, similarity_threshold=db_similarity_threshold) 
-
-compression_retriever = ContextualCompressionRetriever(
-    base_compressor=embeddings_filter, base_retriever=retriever
-)
-
-user_compression_retriever = ContextualCompressionRetriever(
-    base_compressor=embeddings_filter, base_retriever=user_retriever
-)
+compression_retriever = retriever_alog(db_name)
+user_compression_retriever = retriever_alog(user_db_name)
 
 @st.cache_resource
 def asa_init_memory():
@@ -176,14 +166,20 @@ img_final_inputs = {
     "chat_history": itemgetter("chat_history")
 }
 
-hcx_sec_pipe = ONLY_CHAIN_PROMPT | hcx_sec | StrOutputParser()
-retrieval_qa_chain =  asa_loaded_memory | retrieved_documents | final_inputs | QA_CHAIN_PROMPT | src_doc | hcx_stream | StrOutputParser()   
-user_retrieval_qa_chain =  asa_loaded_memory | user_retrieved_documents | final_inputs | QA_CHAIN_PROMPT | src_doc | hcx_stream | StrOutputParser()   
-hcx_only_pipe =  hcx_loaded_memory | not_retrieved_documents | ONLY_CHAIN_PROMPT | hcx_stream | StrOutputParser()
-gpt_pipe =  gpt_loaded_memory | not_retrieved_documents | ONLY_CHAIN_PROMPT | gpt_model | StrOutputParser()
-sllm_pipe = sllm_loaded_memory | retrieved_documents | final_inputs | QA_CHAIN_PROMPT | src_doc | sllm | StrOutputParser()
+def RAG_pipeline(memory, documents, llm):
+    return memory | documents | final_inputs | QA_CHAIN_PROMPT | src_doc | llm | StrOutputParser() 
 
-gemini_txt_pipe = gemini_loaded_memory | not_retrieved_documents | ONLY_CHAIN_PROMPT | gemini_txt_model | StrOutputParser()
+def not_RAG_pipeline(memory, llm):
+    return memory | not_retrieved_documents | ONLY_CHAIN_PROMPT | llm | StrOutputParser()
+
+hcx_sec_pipe = ONLY_CHAIN_PROMPT | hcx_sec | StrOutputParser()
+retrieval_qa_chain = RAG_pipeline(asa_loaded_memory, retrieved_documents, hcx_stream)
+user_retrieval_qa_chain = RAG_pipeline(asa_loaded_memory, user_retrieved_documents, hcx_stream)
+hcx_only_pipe =  not_RAG_pipeline(hcx_loaded_memory, hcx_stream)
+gpt_pipe =  not_RAG_pipeline(gpt_loaded_memory, gpt_model)
+sllm_pipe = RAG_pipeline(sllm_loaded_memory, retrieved_documents, sllm)
+
+gemini_txt_pipe = not_RAG_pipeline(gemini_loaded_memory, gemini_txt_model)
 gemini_vis_pipe = RunnablePassthrough() | gemini_vis_model | StrOutputParser()
 gemini_vis_vectordb_txt_pipe = (
                                 gemini_loaded_memory | img_retrieved_documents | img_final_inputs | 
