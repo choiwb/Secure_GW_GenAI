@@ -120,20 +120,20 @@ for avatar_message in st.session_state.ahn_messages:
             with st.expander('ASA'):
                 st.markdown("<b>ASA</b><br>", unsafe_allow_html=True)
                 st.markdown(avatar_message["content"], unsafe_allow_html=True)
-    
-if st.session_state.sec_ai_gw_activate_yn == "ON":
-    if prompt := st.chat_input(""):
-        scroll_bottom()    
-        with st.chat_message("user", avatar=you_icon):
-            st.markdown("<b>You</b><br>", unsafe_allow_html=True)
-            st.markdown(prompt, unsafe_allow_html=True)
-            st.session_state.ahn_messages.append({"role": "user", "content": prompt})
 
-        with st.chat_message("assistant",  avatar=ahn_icon):    
-            st.markdown("<b>ASA</b><br>", unsafe_allow_html=True)
-            try:
-                with st.spinner("답변 생성 중....."):
-                    with collect_runs() as cb:
+if prompt := st.chat_input(""):
+    scroll_bottom()    
+    with st.chat_message("user", avatar=you_icon):
+        st.markdown("<b>You</b><br>", unsafe_allow_html=True)
+        st.markdown(prompt, unsafe_allow_html=True)
+        st.session_state.ahn_messages.append({"role": "user", "content": prompt})
+
+    with st.chat_message("assistant",  avatar=ahn_icon):    
+        st.markdown("<b>ASA</b><br>", unsafe_allow_html=True)
+        try:
+            with st.spinner("답변 생성 중....."):
+                with collect_runs() as cb:
+                    if st.session_state.sec_ai_gw_activate_yn == "ON":
                         inj_full_response = hcx_sec_pipe.invoke({"question": prompt})
                         
                         sec_inj_total_token = hcx_sec.init_input_token_count
@@ -177,40 +177,12 @@ if st.session_state.sec_ai_gw_activate_yn == "ON":
                             message_placeholder.markdown(inj_full_response, unsafe_allow_html=True)
 
                             st.session_state.ahn_messages.append({"role": "assistant", "content": inj_full_response})
-                                                    
-                if '보안 취약점이 우려되는 질문입니다' not in inj_full_response:
-                    with st.expander('토큰 정보'):
-                        st.markdown(f"""
-                        - 총 토큰 수: {asa_total_token_final}<br>
-                        - 총 토큰 비용: {round(asa_total_token_final * 0.005, 3)}(원)
-                        """, unsafe_allow_html=True)
-                else:
-                    with st.expander('토큰 정보'):
-                        st.markdown(f"""
-                        - 총 토큰 수: {sec_inj_total_token}<br>
-                        - 총 토큰 비용: {round(sec_inj_total_token * 0.005, 3)}(원)
-                        """, unsafe_allow_html=True)
-                
-            except Exception as e:
-                st.error(e, icon="🚨")
-else:
-    if prompt := st.chat_input(""):
-        scroll_bottom()
-        with st.chat_message("user", avatar=you_icon):
-            st.markdown("<b>You</b><br>", unsafe_allow_html=True)
-            st.markdown(prompt, unsafe_allow_html=True)
-            st.session_state.ahn_messages.append({"role": "user", "content": prompt})
-
-        with st.chat_message("assistant",  avatar=ahn_icon):    
-            st.markdown("<b>ASA</b><br>", unsafe_allow_html=True)
-            try:
-                with st.spinner("답변 생성 중....."):
-                    with collect_runs() as cb:              
+                    else:
                         if st.session_state.selected_db == 'user_vectordb':
                             full_response = user_retrieval_qa_chain.invoke({"question":prompt})    
                         else:
                             full_response = retrieval_qa_chain.invoke({"question":prompt})                          
-                        
+                    
                         asa_input_token = hcx_stream.init_input_token_count
                         output_token_json = {
                             "messages": [
@@ -231,15 +203,30 @@ else:
                             
                         # 사용자 피드백이 필요한 질문에 대한 결과 !!
                         st.session_state.run_id = cb.traced_runs[0].id
-                                            
+                                  
+            if st.session_state.sec_ai_gw_activate_yn == "ON":            
+                if '보안 취약점이 우려되는 질문입니다' not in inj_full_response:
                     with st.expander('토큰 정보'):
                         st.markdown(f"""
                         - 총 토큰 수: {asa_total_token_final}<br>
                         - 총 토큰 비용: {round(asa_total_token_final * 0.005, 3)}(원)
                         """, unsafe_allow_html=True)
-
-            except Exception as e:
-                st.error(e, icon="🚨") 
+                else:
+                    with st.expander('토큰 정보'):
+                        st.markdown(f"""
+                        - 총 토큰 수: {sec_inj_total_token}<br>
+                        - 총 토큰 비용: {round(sec_inj_total_token * 0.005, 3)}(원)
+                        """, unsafe_allow_html=True)
+            else:
+                with st.expander('토큰 정보'):
+                    st.markdown(f"""
+                    - 총 토큰 수: {asa_total_token_final}<br>
+                    - 총 토큰 비용: {round(asa_total_token_final * 0.005, 3)}(원)
+                    """, unsafe_allow_html=True)
+            
+        except Exception as e:
+            st.error(e, icon="🚨")
+    
     
 if st.session_state.get("run_id"):
     run_id = st.session_state.run_id
