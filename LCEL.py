@@ -16,7 +16,7 @@ from langchain_community.vectorstores import Chroma
 from config import db_save_path, db_name, user_db_name, DB_COLLECTION_NAME, DB_CONNECTION_STRING, db_search_type, db_doc_k, db_doc_fetch_k, db_similarity_threshold
 from vector_db import embeddings
 from prompt import not_rag_template, rag_template, img_rag_template, PROMPT_INJECTION_PROMPT, SYSTEMPROMPT
-from LLM import HCX, gpt_model, sllm, gemini_vis_model, gemini_txt_model
+from LLM import HCX, gpt_model, sonnet_llm, sllm, gemini_vis_model, gemini_txt_model
 from streamlit_custom_func import src_doc
 
 ONLY_CHAIN_PROMPT = PromptTemplate(input_variables=["question"],template=not_rag_template)
@@ -180,6 +180,7 @@ retrieval_qa_chain = RAG_pipeline(asa_loaded_memory, retrieved_documents, hcx_st
 user_retrieval_qa_chain = RAG_pipeline(asa_loaded_memory, user_retrieved_documents, hcx_stream)
 hcx_only_pipe =  not_RAG_pipeline(hcx_loaded_memory, hcx_stream)
 gpt_pipe =  not_RAG_pipeline(gpt_loaded_memory, gpt_model)
+aws_retrieval_qa_chain = RAG_pipeline(asa_loaded_memory, retrieved_documents, sonnet_llm)
 sllm_pipe = RAG_pipeline(sllm_loaded_memory, retrieved_documents, sllm)
 
 gemini_txt_pipe = not_RAG_pipeline(gemini_loaded_memory, gemini_txt_model)
