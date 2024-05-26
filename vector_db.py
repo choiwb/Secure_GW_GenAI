@@ -11,7 +11,7 @@ from langchain_community.vectorstores.pgvector import PGVector
 from langchain_aws import BedrockEmbeddings
 
 from ncp_embedding import HCXEmbedding
-from config import db_save_path, sllm_embed_model_path, DB_COLLECTION_NAME, DB_CONNECTION_STRING
+from config import aws_embed_model_id, db_save_path, sllm_embed_model_path, DB_COLLECTION_NAME, DB_CONNECTION_STRING
 
 
 ##################################################################################
@@ -46,7 +46,7 @@ bedrock_runtime = boto3.client(
 embeddings = BedrockEmbeddings(
         client=bedrock_runtime,
         region_name=AWS_REGION,
-        model_id = 'amazon.titan-embed-text-v1' 
+        model_id=aws_embed_model_id
     ) 
  
 text_splitter = RecursiveCharacterTextSplitter(
