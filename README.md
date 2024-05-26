@@ -1,12 +1,12 @@
 # Secure Gateway based GenAI
-HCX (Hyper Clova X) & GPT & Gemini Pro Vision Generative AI Application
+HCX (Hyper Clova X) & GPT & Anthropic Claude & Gemini Pro Vision Generative AI Application
 
 [Generative AI app]
 - Scenario: auto review generation, Cloud based Assistant
 - Secure Gateway: Nginx based Security Headers add & LLM based Prompt Injection module
-- LLM: HCX, GPT, sLLM (EEVE), Gemini Pro Vision
+- LLM: HCX, GPT, Anthropic Claude, sLLM (EEVE), Gemini Pro Vision
 - Process: RAG, Multimodal RAG
-- Embedding: OpenAI, NCP, HuggingFace (nomic embed text)
+- Embedding: OpenAI, Amazon Titan, NCP, HuggingFace (nomic embed text)
 - Vector DB: Chroma, FAISS, PGVector
 - Backend: LangChain
 - Frontend: Streamlit
