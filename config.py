@@ -13,6 +13,25 @@ API_KEY_PRIMARY_VAL=os.getenv('HCX_API_KEY_PRIMARY_VAL')
 REQUEST_ID=str(uuid.uuid4())
 
 TOKEN_API_KEY=os.getenv('HCX_TOKEN_API_KEY')
+
+os.getenv('OPENAI_API_KEY')
+
+# HCX LLM 경로 !!!!!!!!!!!!!!!!!!!!!!!
+HCX_LLM_URL = os.getenv('HCX_LLM_URL')
+
+# Set Google API key
+os.getenv("GOOGLE_API_KEY")
+os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+
+# aws 콘솔 - IAM 사용자 그룹 및 사용자 생성
+# Bedrock 접근 정책 생성
+# 해당 사용자에 위 접근 정책 부여
+# aws configure
+# vi ~/.aws/credentials
+
+AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
+AWS_REGION = os.getenv("AWS_REGION")
 ##################################################################################
 
 # pdf 파일 저장 경로
@@ -36,6 +55,18 @@ gpt_icon = os.path.join(os.getcwd(), 'YOUR PATH !!!!!!!')
 # PostgreSQL 접속 정보
 DB_CONNECTION_STRING = "DB_CONNECTION_STRING !!!!!!!"
 DB_COLLECTION_NAME = "DB_COLLECTION_NAME !!!!!!!"
+
+# Bedrock Runtime
+bedrock_runtime = boto3.client(
+    service_name="bedrock-runtime",
+    aws_access_key_id=AWS_ACCESS_KEY_ID,
+    aws_secret_access_key=AWS_SECRET_ACCESS_KEY,     
+    region_name=AWS_REGION
+)
+
+# AWS 임베딩 & LLM 모델
+aws_embed_model_id = "amazon.titan-embed-text-v1"
+aws_llm_id = "anthropic.claude-3-sonnet-20240229-v1:0"
 
 # sLLM 모델 경로
 sllm_model_path = os.path.join(os.getcwd(), "sllm_models/EEVE-Korean-Instruct-10.8B-v1.0-Q4_K_M.gguf")
