@@ -1,8 +1,6 @@
 
 
-import os
 import httpx
-from dotenv import load_dotenv
 import requests
 from typing import Any, List, Optional
 from pydantic import Field
@@ -13,27 +11,12 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.llms import LlamaCpp
 from langchain.callbacks.manager import CallbackManager
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
+from langchain_aws import ChatBedrock
 
 from hcx_token_cal import token_CompletionExecutor
 from prompt import sllm_inj_rag_prompt
-from config import sllm_model_path, sllm_n_batch, sllm_n_gpu_layers, hcx_general_headers, hcx_stream_headers, hcx_llm_params, llm_maxtokens, llm_temperature, gemini_llm_params, gemini_safe, sllm_n_ctx, sllm_top_p
+from config import HCX_LLM_URL, bedrock_runtime, aws_llm_id, sllm_model_path, sllm_n_batch, sllm_n_gpu_layers, hcx_general_headers, hcx_stream_headers, hcx_llm_params, llm_maxtokens, llm_temperature, gemini_llm_params, gemini_safe, sllm_n_ctx, sllm_top_p
 from streamlit_custom_func import hcx_stream_process
-
-
-##################################################################################
-# .env 파일 로드
-load_dotenv()
-
-os.getenv('OPENAI_API_KEY')
-
-# HCX LLM 경로 !!!!!!!!!!!!!!!!!!!!!!!
-llm_url = os.getenv('HCX_LLM_URL')
-
-# Set Google API key
-os.getenv("GOOGLE_API_KEY")
-os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
-##################################################################################
-
 
 token_completion_executor = token_CompletionExecutor()
  
@@ -67,7 +50,7 @@ class HCX(LLM):
 
         if self.streaming == True:
             with httpx.stream(method="POST",
-                            url=llm_url,
+                            url=HCX_LLM_URL,
                             json=total_request_data,
                             headers=hcx_stream_headers,
                             timeout=10) as res:
@@ -75,7 +58,7 @@ class HCX(LLM):
                 return full_response
             
         else:       
-            response = requests.post(llm_url, json=total_request_data, headers=hcx_general_headers, verify=False)
+            response = requests.post(HCX_LLM_URL, json=total_request_data, headers=hcx_general_headers, verify=False)
             response.raise_for_status()
             llm_result = response.json()['result']['message']['content']
             
@@ -88,8 +71,6 @@ class HCX(LLM):
                             
             return llm_result
 
-
-        
 gpt_model = ChatOpenAI(
     model="gpt-3.5-turbo",
     # GPT-4 Turbo 
@@ -103,6 +84,19 @@ gemini_txt_model = ChatGoogleGenerativeAI(model="gemini-pro", gemini_confog=gemi
                                           convert_system_message_to_human=True, safety_settings=gemini_safe)
 gemini_vis_model = ChatGoogleGenerativeAI(model="gemini-pro-vision", gemini_confog=gemini_llm_params, 
                                           convert_system_message_to_human=True, safety_settings=gemini_safe)
+
+
+# Claude Model configuration
+aws_model_kwargs =  { 
+    "max_tokens": llm_maxtokens, "temperature": llm_temperature,
+}
+
+# LangChain class for chat - Claude
+sonnet_llm = ChatBedrock(
+    client=bedrock_runtime,
+    model_id=aws_llm_id,
+    model_kwargs=aws_model_kwargs
+)
 
 callback_manager = CallbackManager([StreamingStdOutCallbackHandler()])
 
