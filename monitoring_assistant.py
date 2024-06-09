@@ -1,5 +1,6 @@
 
 import os
+import shutil
 from dotenv import load_dotenv
 import streamlit as st
 from streamlit_feedback import streamlit_feedback
@@ -73,6 +74,10 @@ with st.sidebar:
         st.markdown("<h3 style='text-align: center;'>PDF 업로드</h3>", unsafe_allow_html=True)
         uploaded_pdf = st.file_uploader("PDF 선택", type=["pdf"])
         if uploaded_pdf is not None:
+            try:
+                os.mkdir(user_pdf_folder_path)
+            except:
+                pass
             user_pdf_path = os.path.join(user_pdf_folder_path, uploaded_pdf.name)
             with open(user_pdf_path, "wb") as f:
                 f.write(uploaded_pdf.getbuffer())
@@ -86,10 +91,17 @@ with st.sidebar:
     if org_vector_db_button:
         st.toast("기본 벡터 DB 활성화!", icon="👋")
         st.session_state.selected_db = 'org_vectordb'
+        
         # 기본 벡터 db 전환 시, 사용자 pdf 삭제 및 벡터 DB 초기화
+        user_db_name_list = os.listdir(os.path.join(os.getcwd(), 'vector_db', user_db_name))
+
         try:
-            os.remove(user_pdf_path)
-            user_new_docsearch.delete_collection()
+            shutil.rmtree(user_pdf_folder_path)
+            for i in user_db_name_list:
+                if i != 'chroma.sqlite3' and i != '.DS_Store':
+                    shutil.rmtree(os.path.join(os.getcwd(), 'vector_db', user_db_name, i))
+                
+            # user_new_docsearch.delete_collection()
             st.session_state.user_vectordb_initialized = False
         except:
             pass
@@ -146,7 +158,7 @@ if prompt := st.chat_input(""):
                                 full_response = user_retrieval_qa_chain.invoke({"question":prompt})    
                             else:
                                 full_response = retrieval_qa_chain.invoke({"question":prompt})    
-
+                                
                             asa_input_token = hcx_stream.init_input_token_count
                             output_token_json = {
                                 "messages": [
