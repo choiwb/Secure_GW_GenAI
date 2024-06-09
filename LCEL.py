@@ -11,9 +11,7 @@ from langchain.schema import format_document
 
 from config import compression_retriever, user_compression_retriever
 from prompt import not_rag_template, rag_template, img_rag_template, PROMPT_INJECTION_PROMPT, SYSTEMPROMPT
-
-# from LLM import HCX, gpt_model, sonnet_llm, sllm, gemini_vis_model, gemini_txt_model
-from LLM import HCX, gpt_model, sonnet_llm, gemini_vis_model, gemini_txt_model
+from LLM import HCX, gpt_model, sonnet_llm, sllm, gemini_vis_model, gemini_txt_model
 
 
 ONLY_CHAIN_PROMPT = PromptTemplate(input_variables=["question"],template=not_rag_template)
@@ -175,7 +173,7 @@ user_retrieval_qa_chain = asa_loaded_memory | user_retrieved_documents | src_doc
 hcx_only_pipe =  hcx_loaded_memory | not_retrieved_documents |  ONLY_CHAIN_PROMPT | hcx_stream | StrOutputParser()
 gpt_pipe =  gpt_loaded_memory | not_retrieved_documents | ONLY_CHAIN_PROMPT | gpt_model | StrOutputParser()
 aws_retrieval_qa_chain = asa_loaded_memory | retrieved_documents | src_doc | final_inputs | QA_CHAIN_PROMPT | sonnet_llm | StrOutputParser()
-# sllm_pipe = sllm_loaded_memory | retrieved_documents | src_doc | final_inputs | QA_CHAIN_PROMPT | sllm | StrOutputParser()
+sllm_pipe = sllm_loaded_memory | retrieved_documents | src_doc | final_inputs | QA_CHAIN_PROMPT | sllm | StrOutputParser()
 
 gemini_txt_pipe = gemini_loaded_memory | not_retrieved_documents | ONLY_CHAIN_PROMPT | gemini_txt_model | StrOutputParser()
 gemini_vis_pipe = RunnablePassthrough() | gemini_vis_model | StrOutputParser()
