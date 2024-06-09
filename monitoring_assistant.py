@@ -6,10 +6,10 @@ from streamlit_feedback import streamlit_feedback
 from langsmith import Client
 from langchain.callbacks.manager import collect_runs
 
-from config import you_icon, ahn_icon, asa_image_path, user_db_name, user_pdf_folder_path
+from config import you_icon, ahn_icon, asa_image_path, user_db_name, user_pdf_folder_path, user_new_docsearch
 from vector_db import offline_chroma_save
 from LLM import token_completion_executor
-from LCEL import user_new_docsearch, retrieval_qa_chain, user_retrieval_qa_chain, asa_memory, hcx_stream, hcx_sec_pipe, hcx_sec, reset_conversation
+from LCEL import retrieval_qa_chain, user_retrieval_qa_chain, asa_memory, hcx_stream, hcx_sec_pipe, hcx_sec, reset_conversation
 from streamlit_custom_func import scroll_bottom
 
 ##################################################################################
