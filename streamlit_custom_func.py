@@ -1,15 +1,11 @@
 
 
-import os
+import time
 import json
 import pandas as pd
 import streamlit as st
-from langchain_community.vectorstores import Chroma
-from langchain.retrievers import ContextualCompressionRetriever
-from langchain.retrievers.document_compressors import EmbeddingsFilter
 
-from config import db_name, user_db_name, db_save_path, db_similarity_threshold, db_doc_k, db_search_type, db_doc_fetch_k
-from vector_db import embeddings
+from config import compression_retriever, user_compression_retriever
 
 
 def hcx_stream_process(res):
@@ -63,27 +59,24 @@ def src_doc(prompt):
         sample_src_doc_df = pd.DataFrame(sample_src_doc,  columns=['No', '참조 문서'])
         sample_src_doc_df = sample_src_doc_df.set_index('No')
 
+        # 문서 추출 소요 시간: 3.16 (초) => 불필요하므로 제거하는것도 고민해 봐야 함!!!!!!
+        start = time.time()
         if st.session_state.selected_db == 'user_vectordb':
-            load_db = Chroma(persist_directory=os.path.join(db_save_path, user_db_name),
-                                embedding_function=embeddings) 
+            extraction_context = user_compression_retriever.invoke(extraction_question)
         else:
-            load_db = Chroma(persist_directory=os.path.join(db_save_path, db_name),
-                                embedding_function=embeddings) 
+            extraction_context = compression_retriever.invoke(extraction_question)
+        end = time.time()
+        dur = end - start
+        print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
+        print('문서 추출 소요 시간: %.2f (초)' %(dur))
+        print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
         
-        retriever = load_db.as_retriever(
-                                                search_type=db_search_type,         
-                                                search_kwargs={'k': db_doc_k, 'fetch_k': db_doc_fetch_k}
-                                            )
-        embeddings_filter = EmbeddingsFilter(embeddings=embeddings, similarity_threshold=db_similarity_threshold) 
-        compression_retriever = ContextualCompressionRetriever(
-                base_compressor=embeddings_filter, base_retriever=retriever
-            )
-
-        extraction_context = compression_retriever.invoke(extraction_question)
         src_doc_score = [doc.state['query_similarity_score'] for doc in extraction_context]
-
+        src_doc_locat = [doc.metadata for doc in extraction_context]
+        
         sample_src_doc_df['유사도'] = src_doc_score
         sample_src_doc_df['유사도'] = sample_src_doc_df['유사도'].round(2).astype(str)
+        sample_src_doc_df['문서 출처'] = src_doc_locat
                 
         # 참조 문서 UI 표출
         if sample_src_doc_df.shape[0] > 0:
