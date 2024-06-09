@@ -11,7 +11,9 @@ from langchain.schema import format_document
 
 from config import compression_retriever, user_compression_retriever
 from prompt import not_rag_template, rag_template, img_rag_template, PROMPT_INJECTION_PROMPT, SYSTEMPROMPT
-from LLM import HCX, gpt_model, sonnet_llm, sllm, gemini_vis_model, gemini_txt_model
+
+# from LLM import HCX, gpt_model, sonnet_llm, sllm, gemini_vis_model, gemini_txt_model
+from LLM import HCX, gpt_model, sonnet_llm, gemini_vis_model, gemini_txt_model
 
 
 ONLY_CHAIN_PROMPT = PromptTemplate(input_variables=["question"],template=not_rag_template)
@@ -110,11 +112,17 @@ retrieved_documents = {
     "source_documents": itemgetter("question") | compression_retriever,
     "chat_history": lambda x: get_buffer_string(x["chat_history"])
     }
-
-def src_doc(retrieved_documents):
-
-    if len(retrieved_documents) > 0:
-        source_documents_total = retrieved_documents['source_documents']
+    
+user_retrieved_documents = {
+    "question": lambda x: x["question"],
+    "source_documents": itemgetter("question") | user_compression_retriever,
+    "chat_history": lambda x: get_buffer_string(x["chat_history"])
+    }
+    
+def src_doc(init_src_doc):
+    if len(init_src_doc) > 0:
+        source_documents_total = init_src_doc['source_documents']
+        
         src_doc_context = [doc.page_content for doc in source_documents_total]
         src_doc_score = [doc.state['query_similarity_score'] for doc in source_documents_total]
         src_doc_metadata = [doc.metadata for doc in source_documents_total]
@@ -134,13 +142,7 @@ def src_doc(retrieved_documents):
             st.table(src_doc_df)
             st.markdown("AhnLab에서 제공하는 위협정보 입니다.<br>자세한 정보는 https://www.ahnlab.com/ko/contents/asec/info 에서 참조해주세요.", unsafe_allow_html=True)
 
-    return retrieved_documents
-    
-user_retrieved_documents = {
-    "question": lambda x: x["question"],
-    "source_documents": itemgetter("question") | user_compression_retriever,
-    "chat_history": lambda x: get_buffer_string(x["chat_history"])
-    }
+    return init_src_doc
 
 not_retrieved_documents = {
     "question": lambda x: x["question"],
@@ -167,23 +169,17 @@ img_final_inputs = {
     "chat_history": itemgetter("chat_history")
 }
 
-def RAG_pipeline(memory, documents, llm):
-    return memory | documents | src_doc | final_inputs | QA_CHAIN_PROMPT | llm | StrOutputParser() 
-
-def not_RAG_pipeline(memory, llm):
-    return memory | not_retrieved_documents | ONLY_CHAIN_PROMPT | llm | StrOutputParser()
-
 hcx_sec_pipe = ONLY_CHAIN_PROMPT | hcx_sec | StrOutputParser()
-retrieval_qa_chain = RAG_pipeline(asa_loaded_memory, retrieved_documents, hcx_stream)
-user_retrieval_qa_chain = RAG_pipeline(asa_loaded_memory, user_retrieved_documents, hcx_stream)
-hcx_only_pipe =  not_RAG_pipeline(hcx_loaded_memory, hcx_stream)
-gpt_pipe =  not_RAG_pipeline(gpt_loaded_memory, gpt_model)
-aws_retrieval_qa_chain = RAG_pipeline(asa_loaded_memory, retrieved_documents, sonnet_llm)
-sllm_pipe = RAG_pipeline(sllm_loaded_memory, retrieved_documents, sllm)
+retrieval_qa_chain = asa_loaded_memory | retrieved_documents | src_doc | final_inputs | QA_CHAIN_PROMPT | hcx_stream | StrOutputParser()
+user_retrieval_qa_chain = asa_loaded_memory | user_retrieved_documents | src_doc | final_inputs | QA_CHAIN_PROMPT | hcx_stream | StrOutputParser()
+hcx_only_pipe =  hcx_loaded_memory | not_retrieved_documents |  ONLY_CHAIN_PROMPT | hcx_stream | StrOutputParser()
+gpt_pipe =  gpt_loaded_memory | not_retrieved_documents | ONLY_CHAIN_PROMPT | gpt_model | StrOutputParser()
+aws_retrieval_qa_chain = asa_loaded_memory | retrieved_documents | src_doc | final_inputs | QA_CHAIN_PROMPT | sonnet_llm | StrOutputParser()
+# sllm_pipe = sllm_loaded_memory | retrieved_documents | src_doc | final_inputs | QA_CHAIN_PROMPT | sllm | StrOutputParser()
 
-gemini_txt_pipe = not_RAG_pipeline(gemini_loaded_memory, gemini_txt_model)
+gemini_txt_pipe = gemini_loaded_memory | not_retrieved_documents | ONLY_CHAIN_PROMPT | gemini_txt_model | StrOutputParser()
 gemini_vis_pipe = RunnablePassthrough() | gemini_vis_model | StrOutputParser()
 gemini_vis_vectordb_txt_pipe = (
-                                gemini_loaded_memory | img_retrieved_documents | src_doc | img_final_inputs | 
+                                gemini_loaded_memory | img_retrieved_documents | img_final_inputs | 
                                 IMG_QA_CHAIN_PROMPT | gemini_txt_model | StrOutputParser()
                                )
