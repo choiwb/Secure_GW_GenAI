@@ -1,8 +1,16 @@
 
 import os
+import boto3
 import uuid
 from dotenv import load_dotenv
+from langchain.retrievers import ContextualCompressionRetriever
+from langchain.retrievers.document_compressors import EmbeddingsFilter
+from langchain_community.vectorstores import Chroma
 from google.generativeai.types import HarmCategory, HarmBlockThreshold
+from langchain_openai import OpenAIEmbeddings
+from langchain_aws import BedrockEmbeddings
+from langchain_community.embeddings import ClovaEmbeddings, LlamaCppEmbeddings
+from langchain_community.vectorstores.pgvector import PGVector
 
 ##################################################################################
 # .env 파일 로드
@@ -13,6 +21,10 @@ API_KEY_PRIMARY_VAL=os.getenv('HCX_API_KEY_PRIMARY_VAL')
 REQUEST_ID=str(uuid.uuid4())
 
 TOKEN_API_KEY=os.getenv('HCX_TOKEN_API_KEY')
+
+CLOVA_EMB_API_KEY = os.getenv("CLOVA_EMB_API_KEY")
+CLOVA_EMB_APIGW_API_KEY = os.getenv("CLOVA_EMB_APIGW_API_KEY")
+EMBEDDING_APP_ID = os.getenv("EMBEDDING_APP_ID")
 
 os.getenv('OPENAI_API_KEY')
 
@@ -68,6 +80,21 @@ bedrock_runtime = boto3.client(
 aws_embed_model_id = "amazon.titan-embed-text-v1"
 aws_llm_id = "anthropic.claude-3-sonnet-20240229-v1:0"
 
+# text-embedding-3-small or text-embedding-3-large
+# embeddings = OpenAIEmbeddings(model = 'text-embedding-3-small')
+# embeddings = LlamaCppEmbeddings(model_path = sllm_embed_model_path)
+# embeddings = ClovaEmbeddings(
+#         model = 'clir-sts-dolphin',
+#         clova_emb_api_key=CLOVA_EMB_API_KEY,
+#         clova_emb_apigw_api_key=CLOVA_EMB_APIGW_API_KEY,
+#         app_id=EMBEDDING_APP_ID
+#         )
+embeddings = BedrockEmbeddings(
+        client=bedrock_runtime,
+        region_name=AWS_REGION,
+        model_id=aws_embed_model_id
+        ) 
+
 # sLLM 모델 경로
 sllm_model_path = os.path.join(os.getcwd(), "sllm_models/EEVE-Korean-Instruct-10.8B-v1.0-Q4_K_M.gguf")
 sllm_embed_model_path = os.path.join(os.getcwd(), "sllm_models/nomic-embed-text-v1.5.f32.gguf")
@@ -120,6 +147,28 @@ db_search_type = 'mmr'
 db_doc_k = 4
 db_doc_fetch_k = 16
 db_similarity_threshold = 0.4
+
+# new_docsearch = PGVector(collection_name=DB_COLLECTION_NAME, connection_string=DB_CONNECTION_STRING,
+#                         embedding_function=embeddings)
+
+new_docsearch = Chroma(persist_directory=os.path.join(db_save_path, db_name),
+                            embedding_function=embeddings)
+user_new_docsearch = Chroma(persist_directory=os.path.join(db_save_path, user_db_name),
+                            embedding_function=embeddings)
+
+def retriever_alog(new_docsearch):
+    retriever = new_docsearch.as_retriever(
+                                        search_type=db_search_type,         
+                                        search_kwargs={'k': db_doc_k, 'fetch_k': db_doc_fetch_k}
+                                    )
+    embeddings_filter = EmbeddingsFilter(embeddings=embeddings, similarity_threshold=db_similarity_threshold) 
+    compression_retriever = ContextualCompressionRetriever(
+        base_compressor=embeddings_filter, base_retriever=retriever
+    )
+    return compression_retriever
+
+compression_retriever = retriever_alog(new_docsearch)
+user_compression_retriever = retriever_alog(user_new_docsearch)
 
 gemini_llm_params = {
         'temperature': llm_temperature,
