@@ -150,7 +150,7 @@ not_retrieved_documents = {
 img_retrieved_documents = {
     "question": lambda x: x["question"],
     "img_context": lambda x: x["img_context"],
-    "source_documents": itemgetter("question") | compression_retriever,
+    "source_documents": itemgetter("question") | user_compression_retriever,
     "chat_history": lambda x: get_buffer_string(x["chat_history"])
 }
  
@@ -180,4 +180,9 @@ gemini_vis_pipe = RunnablePassthrough() | gemini_vis_model | StrOutputParser()
 gemini_vis_vectordb_txt_pipe = (
                                 gemini_loaded_memory | img_retrieved_documents | img_final_inputs | 
                                 IMG_QA_CHAIN_PROMPT | gemini_txt_model | StrOutputParser()
+                               )
+aws_vis_pipe = RunnablePassthrough() | sonnet_llm | StrOutputParser()
+aws_vis_vectordb_txt_pipe = (
+                                asa_loaded_memory | img_retrieved_documents | img_final_inputs | 
+                                IMG_QA_CHAIN_PROMPT | sonnet_llm | StrOutputParser()
                                )
