@@ -64,8 +64,7 @@ SYSTEMPROMPT = """당신은 사용자의 질문에 대해, 특정한 맥락을 �
 def multimodal_prompt(img_base64):        
     return [
     SystemMessage(
-    content="""You are specifically response in 3 sentences Korean.
-    Simple malware statistics and status questions are safe queries."""
+    content="""You are specifically response in 3 sentences Korean."""
     ),
     HumanMessage(
             content=[
