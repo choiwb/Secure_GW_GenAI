@@ -11,7 +11,8 @@ from langchain.callbacks.manager import collect_runs
 
 from config import asa_image_path, you_icon, ahn_icon
 from prompt import multimodal_prompt
-from LCEL import reset_conversation, gemini_memory, gemini_vis_pipe, gemini_vis_vectordb_txt_pipe
+from LCEL import (reset_conversation, gemini_memory, asa_memory, gemini_vis_pipe, aws_vis_pipe, 
+                  gemini_vis_vectordb_txt_pipe, aws_vis_vectordb_txt_pipe)
 from streamlit_custom_func import scroll_bottom
 
 ##################################################################################
@@ -50,6 +51,20 @@ with st.sidebar:
         
         width, height = image.size 
         # print(f"width: {width}, height: {height}, size: {width*height}")
+
+        ######################################################################        
+        # 이미지를 2 x 2 로 나누었을 때 오른쪽 하단 부분 추출
+        left = width // 2
+        top = height // 2
+        right = width
+        bottom = height
+        
+        cropped_image = image.crop((left, top, right, bottom))
+        
+        # 추출한 이미지 표시
+        st.image(cropped_image, caption="추출된 이미지 (오른쪽 하단)", use_column_width=True)
+        width, height = cropped_image.size 
+        ######################################################################
                 
         isResized = False
         # 5242880: Claude 3 Sonnet 의 허용 사이즈
@@ -60,10 +75,13 @@ with st.sidebar:
             # print(f"width: {width}, height: {height}, size: {width*height}")
                     
         if isResized:
-            img = image.resize((width, height))
-                                                                                
+            # img = image.resize((width, height))
+            cropped_image = cropped_image.resize((width, height))
+                               
         buffer = BytesIO()
-        image.save(buffer, format="PNG")
+        # image.save(buffer, format="PNG")
+        cropped_image.save(buffer, format="PNG")
+
         img_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
 
     st.markdown('<br>', unsafe_allow_html=True)
@@ -112,13 +130,16 @@ if prompt := st.chat_input(""):
                     message_placeholder = st.empty()
                     st.session_state.image_data = uploaded_image
                                             
-                    img_context = gemini_vis_pipe.invoke(multimodal_prompt(img_base64)) 
+                    img_context = aws_vis_pipe.invoke(multimodal_prompt(img_base64)) 
+                    print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
+                    print(img_context)
+                    print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
 
-                    for chunk in gemini_vis_vectordb_txt_pipe.stream({"img_context":img_context, "question":prompt}):
+                    for chunk in aws_vis_vectordb_txt_pipe.stream({"img_context":img_context, "question":prompt}):
                         full_response += chunk
                         message_placeholder.markdown(full_response, unsafe_allow_html=True)   
                         
-                    gemini_memory.save_context({"question": prompt}, {"answer": full_response})
+                    asa_memory.save_context({"question": prompt}, {"answer": full_response})
                     st.session_state.ahn_messages.append({"role": "assistant", "content": full_response})
                                                 
                     # multimodal llm 결과에 대한 피드백은 필요 없음!
