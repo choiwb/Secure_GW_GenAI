@@ -118,7 +118,7 @@ user_retrieved_documents = {
     }
     
 def src_doc(init_src_doc):
-    if len(init_src_doc) > 0:
+    if len(init_src_doc['source_documents']) > 0:
         source_documents_total = init_src_doc['source_documents']
         
         src_doc_context = [doc.page_content for doc in source_documents_total]
