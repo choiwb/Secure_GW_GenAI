@@ -49,7 +49,7 @@ rag_template = """
     
 img_rag_template = """
     img context: {img_context}
-    context for answer: {context}
+    valid img context: {valid_img_context}
     question: {question}
     answer: """
      
