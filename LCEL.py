@@ -16,7 +16,7 @@ from LLM import HCX, gpt_model, sonnet_llm, sllm, gemini_vis_model, gemini_txt_m
 
 ONLY_CHAIN_PROMPT = PromptTemplate(input_variables=["question"],template=not_rag_template)
 QA_CHAIN_PROMPT = PromptTemplate(input_variables=["context", "question"],template=rag_template)
-IMG_QA_CHAIN_PROMPT = PromptTemplate(input_variables=["img_context", "context", "question"],template=img_rag_template)
+IMG_QA_CHAIN_PROMPT = PromptTemplate(input_variables=["img_context", "valid_img_context", "question"],template=img_rag_template)
  
 hcx_sec = HCX(init_system_prompt = PROMPT_INJECTION_PROMPT, streaming = False)
 hcx_stream = HCX(init_system_prompt = SYSTEMPROMPT, streaming = True)
@@ -150,7 +150,7 @@ not_retrieved_documents = {
 img_retrieved_documents = {
     "question": lambda x: x["question"],
     "img_context": lambda x: x["img_context"],
-    "source_documents": itemgetter("question") | user_compression_retriever,
+    "valid_img_context": lambda x: x["valid_img_context"],
     "chat_history": lambda x: get_buffer_string(x["chat_history"])
 }
  
@@ -162,7 +162,7 @@ final_inputs = {
  
 img_final_inputs = {
     "img_context": itemgetter("img_context"),
-    "context": lambda x: _combine_documents(x["source_documents"]),
+    "valid_img_context": itemgetter("valid_img_context"),
     "question": itemgetter("question"),
     "chat_history": itemgetter("chat_history")
 }
