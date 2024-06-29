@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from langchain.retrievers import ContextualCompressionRetriever
 from langchain.retrievers.document_compressors import EmbeddingsFilter
 from langchain_community.vectorstores import Chroma
+from langchain_milvus import Milvus
 from google.generativeai.types import HarmCategory, HarmBlockThreshold
 from langchain_openai import OpenAIEmbeddings
 from langchain_aws import BedrockEmbeddings
@@ -151,8 +152,16 @@ db_similarity_threshold = 0.4
 # new_docsearch = PGVector(collection_name=DB_COLLECTION_NAME, connection_string=DB_CONNECTION_STRING,
 #                         embedding_function=embeddings)
 
-new_docsearch = Chroma(persist_directory=os.path.join(db_save_path, db_name),
-                            embedding_function=embeddings)
+# new_docsearch = Chroma(persist_directory=os.path.join(db_save_path, db_name),
+#                             embedding_function=embeddings)
+
+new_docsearch = Milvus(
+    embedding_function=embeddings,
+    connection_args={"uri": os.path.join(db_save_path, db_name)},
+    #collection_name=db_name,
+    drop_old=True,
+        )
+
 user_new_docsearch = Chroma(persist_directory=os.path.join(db_save_path, user_db_name),
                             embedding_function=embeddings)
 
