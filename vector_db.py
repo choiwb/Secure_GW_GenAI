@@ -3,6 +3,7 @@ import os
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import Chroma
+from langchain_milvus import Milvus
 from langchain_community.vectorstores.pgvector import PGVector
 
 from config import db_save_path, DB_COLLECTION_NAME, DB_CONNECTION_STRING, embeddings
@@ -67,4 +68,21 @@ def offline_pgvector_save(pdf_paths):
             collection_name=DB_COLLECTION_NAME,
             connection_string=DB_CONNECTION_STRING,
         )
+    
+def offline_milvus_save(pdf_paths): 
+    total_docs = []
+    for pdf_url in pdf_paths:
+        pdfreader =  PyPDFLoader(pdf_url)
+        pdf_doc = pdfreader.load_and_split()
+
+        doc = text_splitter.split_documents(pdf_doc)
+        total_docs = total_docs + doc
+    
+    vectorstore = Milvus.from_documents(
+            documents=total_docs,
+            embedding=embeddings,
+            connection_args={"uri": os.path.join(db_save_path, 'cloud_assistant_v5_milvus.db')},
+            drop_old=True,  # Drop the old Milvus collection if it exists
+            )
+        
 #######################################################################################################
