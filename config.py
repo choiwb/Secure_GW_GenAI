@@ -158,8 +158,8 @@ db_similarity_threshold = 0.4
 new_docsearch = Milvus(
     embedding_function=embeddings,
     connection_args={"uri": os.path.join(db_save_path, db_name)},
-    #collection_name=db_name,
-    drop_old=True,
+    collection_name="LangChainCollection",
+    drop_old=False,  # Drop the old Milvus collection if it exists
         )
 
 user_new_docsearch = Chroma(persist_directory=os.path.join(db_save_path, user_db_name),
