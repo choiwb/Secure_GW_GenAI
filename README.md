@@ -7,7 +7,7 @@ HCX (Hyper Clova X) & GPT & Anthropic Claude & Gemini Pro Vision Generative AI A
 - LLM: HCX, GPT, Anthropic Claude, sLLM (EEVE), Gemini Pro Vision
 - Process: RAG, Multimodal RAG
 - Embedding: OpenAI, Amazon Titan, NCP, HuggingFace (nomic embed text)
-- Vector DB: Chroma, FAISS, PGVector
+- Vector DB: Chroma, FAISS, PGVector, Milvus
 - Backend: LangChain
 - Frontend: Streamlit
 - Production & Deployment: LangSmith
