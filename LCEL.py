@@ -1,10 +1,13 @@
 
 import pandas as pd
 from langchain.prompts import PromptTemplate
+from langchain.schema import SystemMessage, HumanMessage
 from langchain.memory import ConversationBufferMemory
 import streamlit as st
 from langchain_core.runnables import RunnablePassthrough, RunnableLambda
-from langchain_core.output_parsers import StrOutputParser
+from langchain_core.pydantic_v1 import BaseModel, Field
+from langchain_core.runnables import chain
+from langchain_core.output_parsers import StrOutputParser, JsonOutputParser
 from operator import itemgetter
 from langchain_core.messages import get_buffer_string
 from langchain.schema import format_document
@@ -18,6 +21,37 @@ ONLY_CHAIN_PROMPT = PromptTemplate(input_variables=["question"],template=not_rag
 QA_CHAIN_PROMPT = PromptTemplate(input_variables=["context", "question"],template=rag_template)
 IMG_QA_CHAIN_PROMPT = PromptTemplate(input_variables=["img_context", "valid_img_context", "question"],template=img_rag_template)
  
+class doc_review_system_key(BaseModel):
+    문서명: str = Field(description="문서명을 추출해줘.")
+    조합명: str = Field(description="조합명(단체명)을 추출해줘, 단 추출 시, 띄어쓰기를 반드시 주의해야 해.")
+    고유번호: str = Field(description="고유번호를 추출해줘, 숫자 3자리 - 숫자 2자리 - 숫자 5자리 형태야.")
+    주소: str = Field(description="주소(소재지)를 추출해줘.")
+    대표자성명: str = Field(description="대표자 성명을 추출해줘.")
+    생년월일: str = Field(description="생년월일을 추출해줘.")
+    조합인감: str = Field(description="조합인감의 유/무를 O/X로 나타내줘.")
+
+json_parser = JsonOutputParser(pydantic_object=doc_review_system_key)
+
+def multimodal_prompt_json_parser(img_base64):        
+    return [
+    SystemMessage(
+    content=""""Answer the user question.\n{format_instructions}\n{question}\n"""
+    ),
+    HumanMessage(
+            content=[
+                {
+                    "type": "image_url",
+                    "image_url": {
+                    "url": f"data:image/png;base64,{img_base64}", 
+                    },
+                },
+                {
+                    "type": "text", "text": json_parser.get_format_instructions()
+                }
+            ]
+    )
+    ]
+
 hcx_sec = HCX(init_system_prompt = PROMPT_INJECTION_PROMPT, streaming = False)
 hcx_stream = HCX(init_system_prompt = SYSTEMPROMPT, streaming = True)
 
@@ -177,12 +211,12 @@ sllm_pipe = sllm_loaded_memory | retrieved_documents | src_doc | final_inputs | 
 
 gemini_txt_pipe = gemini_loaded_memory | not_retrieved_documents | ONLY_CHAIN_PROMPT | gemini_txt_model | StrOutputParser()
 gemini_vis_pipe = RunnablePassthrough() | gemini_vis_model | StrOutputParser()
-gemini_vis_vectordb_txt_pipe = (
+gemini_vis_txt_pipe = (
                                 gemini_loaded_memory | img_retrieved_documents | img_final_inputs | 
                                 IMG_QA_CHAIN_PROMPT | gemini_txt_model | StrOutputParser()
                                )
-aws_vis_pipe = RunnablePassthrough() | sonnet_llm | StrOutputParser()
-aws_vis_vectordb_txt_pipe = (
+aws_vis_json_parser_pipe = RunnablePassthrough() | sonnet_llm | json_parser
+aws_vis_txt_pipe = (
                                 asa_loaded_memory | img_retrieved_documents | img_final_inputs | 
                                 IMG_QA_CHAIN_PROMPT | sonnet_llm | StrOutputParser()
                                )
