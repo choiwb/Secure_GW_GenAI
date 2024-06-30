@@ -11,9 +11,8 @@ from langchain_community.document_loaders import PyPDFLoader
 from pdf2image import convert_from_bytes
 
 from config import asa_image_path, you_icon, ahn_icon, user_pdf_folder_path
-from prompt import multimodal_prompt
-from LCEL import (reset_conversation, gemini_memory, asa_memory, gemini_vis_pipe, aws_vis_pipe, 
-                  gemini_vis_vectordb_txt_pipe, aws_vis_vectordb_txt_pipe)
+from LCEL import (reset_conversation, gemini_memory, asa_memory, gemini_vis_pipe, multimodal_prompt_json_parser, aws_vis_json_parser_pipe,
+                  gemini_vis_txt_pipe, aws_vis_txt_pipe)
 from streamlit_custom_func import scroll_bottom
 
 ##################################################################################
@@ -42,15 +41,17 @@ with st.expander('Protocol Stack'):
 with st.sidebar:
     st.markdown("<h3 style='text-align: center;'>pdf 업로드</h3>", unsafe_allow_html=True)
     uploaded_pdf = st.file_uploader("pdf 선택", type=["pdf"])
-
-    if uploaded_pdf is not None:        
+    st.markdown("<h3 style='text-align: center;'검증용 pdf 업로드</h3>", unsafe_allow_html=True)
+    valid_uploaded_pdf = st.file_uploader("검증용 pdf 선택", type=["pdf"])
+    
+    if uploaded_pdf is not None and valid_uploaded_pdf is not None:        
         # 멀티모달 사용 (문서에서 서명, 인감 등 추출) 위해 pdf to image 
         pages = convert_from_bytes(uploaded_pdf.read())
         
         images_base64 = []
         for page_number, image in enumerate(pages):
-            st.markdown(f"### Page {page_number + 1}")
-            st.image(image, caption=f"업로드된 이미지 - 페이지 {page_number + 1}", use_column_width=True)
+            # st.markdown(f"### Page {page_number + 1}")
+            # st.image(image, caption=f"업로드된 이미지 - 페이지 {page_number + 1}", use_column_width=True)
                     
             width, height = image.size 
             # print(f"width: {width}, height: {height}, size: {width*height}")
@@ -69,16 +70,13 @@ with st.sidebar:
             # width, height = cropped_image.size 
             ######################################################################
                     
-            isResized = False
             # 5242880: Claude 3 Sonnet 의 허용 사이즈
-            while(width*height > 5242880):                    
+            if width*height > 5242880:                    
                 width = int(width/2)
                 height = int(height/2)
-                isResized = True
                 # print(f"width: {width}, height: {height}, size: {width*height}")
                         
-            if isResized:
-                img = image.resize((width, height))
+                image = image.resize((width, height))
                 # cropped_image = cropped_image.resize((width, height))
                                 
             buffer = BytesIO()
@@ -88,32 +86,24 @@ with st.sidebar:
             img_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
             images_base64.append(img_base64)
             
-    st.markdown('<br>', unsafe_allow_html=True)
-    st.markdown("<h3 style='text-align: center;'검증용 pdf 업로드</h3>", unsafe_allow_html=True)
-    valid_uploaded_pdf = st.file_uploader("검증용 pdf 선택", type=["pdf"])
-
-    if valid_uploaded_pdf is not None:        
         # 멀티모달 사용 (문서에서 서명, 인감 등 추출) 위해 pdf to image 
         pages = convert_from_bytes(valid_uploaded_pdf.read())
         
         valid_images_base64 = []
         for page_number, image in enumerate(pages):
-            st.markdown(f"### Page {page_number + 1}")
-            st.image(image, caption=f"업로드된 이미지 - 페이지 {page_number + 1}", use_column_width=True)
+            # st.markdown(f"### Page {page_number + 1}")
+            # st.image(image, caption=f"업로드된 이미지 - 페이지 {page_number + 1}", use_column_width=True)
                     
             width, height = image.size 
             # print(f"width: {width}, height: {height}, size: {width*height}")
                     
-            isResized = False
             # 5242880: Claude 3 Sonnet 의 허용 사이즈
-            while(width*height > 5242880):                    
+            if width*height > 5242880:                    
                 width = int(width/2)
                 height = int(height/2)
-                isResized = True
                 # print(f"width: {width}, height: {height}, size: {width*height}")
                         
-            if isResized:
-                img = image.resize((width, height))
+                image = image.resize((width, height))
                                 
             buffer = BytesIO()
             image.save(buffer, format="PNG")
@@ -167,19 +157,21 @@ if prompt := st.chat_input(""):
                     message_placeholder = st.empty()
                     st.session_state.image_data = uploaded_pdf
 
-                    img_context_total = []
+                    img_context_total = {}
                     for i in images_base64:    
-                        img_context = aws_vis_pipe.invoke(multimodal_prompt(i)) 
-                        img_context_total.append(img_context)
-                    img_context_total = '\n'.join(img_context_total)
+                        img_context = aws_vis_json_parser_pipe.invoke(multimodal_prompt_json_parser(i)) 
+                        img_context_total = {**img_context_total, **img_context}
+                    print('@@@@@@@@@@@@@@@@@@')
+                    print(img_context_total)
 
-                    valid_img_context_total = []
+                    valid_img_context_total = {}
                     for i in valid_images_base64:    
-                        valid_img_context = aws_vis_pipe.invoke(multimodal_prompt(i)) 
-                        valid_img_context_total.append(valid_img_context)
-                    valid_img_context_total = '\n'.join(valid_img_context_total)
-                                        
-                    for chunk in aws_vis_vectordb_txt_pipe.stream({"img_context":img_context_total, "valid_img_context": valid_img_context_total, "question":prompt}):
+                        valid_img_context = aws_vis_json_parser_pipe.invoke(multimodal_prompt_json_parser(i)) 
+                        valid_img_context_total = {**valid_img_context_total, **valid_img_context}
+                    print('@@@@@@@@@@@@@@@@@@')
+                    print(valid_img_context_total)
+
+                    for chunk in aws_vis_txt_pipe.stream({"img_context":img_context_total, "valid_img_context": valid_img_context_total, "question":prompt}):
                         full_response += chunk
                         message_placeholder.markdown(full_response, unsafe_allow_html=True)   
                         
