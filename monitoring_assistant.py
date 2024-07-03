@@ -174,6 +174,8 @@ if prompt := st.chat_input(""):
                                 full_response = user_retrieval_qa_chain.invoke({"question":prompt})    
                             else:
                                 full_response = retrieval_qa_chain.invoke({"question":prompt})    
+
+                            record_token_debug(prompt, SrcDoc.src_doc, full_response)
                                 
                             # asa_input_token = hcx_stream.init_input_token_count
                             # output_token_json = {
