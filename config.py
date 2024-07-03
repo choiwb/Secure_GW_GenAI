@@ -56,6 +56,9 @@ user_db_name = 'USER VECTOR DB NAME !!!!!!!'
 # 임베딩 벡터 DB 저장 & 호출
 db_save_path = os.path.join(os.getcwd(), 'YOUR PATH !!!!!!!') 
 
+# HCX 토큰수 저장 DB
+token_db_path = os.path.join(os.getcwd(), 'YOUR PATH !!!!!!!')
+
 # asa, hcx 별 프로토콜 스택 이미지 경로
 asa_image_path = os.path.join(os.getcwd(), 'YOUR PATH !!!!!!!')
 
