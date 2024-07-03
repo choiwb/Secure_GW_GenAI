@@ -17,11 +17,12 @@ from hcx_token_cal import token_CompletionExecutor
 from prompt import sllm_inj_rag_prompt
 from config import HCX_LLM_URL, bedrock_runtime, aws_llm_id, sllm_model_path, sllm_n_batch, sllm_n_gpu_layers, hcx_general_headers, hcx_stream_headers, hcx_llm_params, llm_maxtokens, llm_temperature, gemini_llm_params, gemini_safe, sllm_n_ctx, sllm_top_p
 from streamlit_custom_func import hcx_stream_process
+from token_usage import record_token_usage
 
 token_completion_executor = token_CompletionExecutor()
  
 class HCX(LLM): 
-    init_input_token_count: int = 0
+    # init_input_token_count: int = 0
     init_system_prompt: str
     streaming: bool = Field(default = False)
 
@@ -45,8 +46,8 @@ class HCX(LLM):
         }
         total_request_data = request_data | hcx_llm_params
 
-        total_input_token_json = token_completion_executor.execute(request_data)
-        self.init_input_token_count = sum(token['count'] for token in total_input_token_json[:])
+        # total_input_token_json = token_completion_executor.execute(request_data)
+        # self.init_input_token_count = sum(token['count'] for token in total_input_token_json[:])
 
         if self.streaming == True:
             with httpx.stream(method="POST",
@@ -54,21 +55,25 @@ class HCX(LLM):
                             json=total_request_data,
                             headers=hcx_stream_headers,
                             timeout=10) as res:
-                full_response = hcx_stream_process(res)
+                total_count, full_response = hcx_stream_process(res)
+                print('토큰 총 사용량: ', total_count)
                 return full_response
             
         else:       
             response = requests.post(HCX_LLM_URL, json=total_request_data, headers=hcx_general_headers, verify=False)
-            response.raise_for_status()
-            llm_result = response.json()['result']['message']['content']
+            # response.raise_for_status()     
+            response = response.json()       
+            llm_result = response['result']['message']['content']
+            # preset_text = [{"role": "system", "content": ""}, {"role": "user", "content": llm_result}]
+            # output_token_json = {
+            #     "messages": preset_text
+            #     }
+            # total_input_token_json = token_completion_executor.execute(output_token_json)
+            # self.init_input_token_count += sum(token['count'] for token in total_input_token_json[:])
             
-            preset_text = [{"role": "system", "content": ""}, {"role": "user", "content": llm_result}]
-            output_token_json = {
-                "messages": preset_text
-                }
-            total_input_token_json = token_completion_executor.execute(output_token_json)
-            self.init_input_token_count += sum(token['count'] for token in total_input_token_json[:])
-                            
+            total_count = response["result"]["inputLength"] + response["result"]["outputLength"]
+            print('토큰 총 사용량: ', total_count)
+            record_token_usage(total_count)
             return llm_result
 
 gpt_model = ChatOpenAI(
