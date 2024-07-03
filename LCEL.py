@@ -231,10 +231,11 @@ img_final_inputs = {
 
 hcx_sec_pipe = ONLY_CHAIN_PROMPT | hcx_sec | StrOutputParser()
 retrieval_qa_chain = asa_loaded_memory | retrieved_documents | SrcDoc.src_doc | final_inputs | QA_CHAIN_PROMPT | hcx_stream | StrOutputParser()
-user_retrieval_qa_chain = asa_loaded_memory | user_retrieved_documents | SrcDoc.src_doc | final_inputs | QA_CHAIN_PROMPT | hcx_stream | StrOutputParser()hcx_only_pipe =  hcx_loaded_memory | not_retrieved_documents |  ONLY_CHAIN_PROMPT | hcx_stream | StrOutputParser()
+user_retrieval_qa_chain = asa_loaded_memory | user_retrieved_documents | SrcDoc.src_doc | final_inputs | QA_CHAIN_PROMPT | hcx_stream | StrOutputParser()
+hcx_only_pipe =  hcx_loaded_memory | not_retrieved_documents |  ONLY_CHAIN_PROMPT | hcx_stream | StrOutputParser()
 gpt_pipe =  gpt_loaded_memory | not_retrieved_documents | ONLY_CHAIN_PROMPT | gpt_model | StrOutputParser()
-aws_retrieval_qa_chain = asa_loaded_memory | retrieved_documents | src_doc | final_inputs | QA_CHAIN_PROMPT | sonnet_llm | StrOutputParser()
-sllm_pipe = sllm_loaded_memory | retrieved_documents | src_doc | final_inputs | QA_CHAIN_PROMPT | sllm | StrOutputParser()
+aws_retrieval_qa_chain = asa_loaded_memory | retrieved_documents | SrcDoc.src_doc | final_inputs | QA_CHAIN_PROMPT | sonnet_llm | StrOutputParser()
+sllm_pipe = sllm_loaded_memory | retrieved_documents | SrcDoc.src_doc | final_inputs | QA_CHAIN_PROMPT | sllm | StrOutputParser()
 
 gemini_txt_pipe = gemini_loaded_memory | not_retrieved_documents | ONLY_CHAIN_PROMPT | gemini_txt_model | StrOutputParser()
 gemini_vis_pipe = RunnablePassthrough() | gemini_vis_model | StrOutputParser()
