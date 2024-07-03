@@ -15,7 +15,11 @@ def hcx_stream_process(res):
             if "stopReason" in line_json and line_json["stopReason"] == None:
                 full_response += line_json["message"]["content"]
                 message_placeholder.markdown(full_response, unsafe_allow_html=True)
-    return full_response
+            # token length check
+            elif "stopReason" in line_json and "seed" in line_json and line_json["stopReason"] == "stop_before":
+                total_count = line_json["inputLength"] + line_json["outputLength"] - 1
+    return total_count, full_response
+    # return full_response
 
 def scroll_bottom():
     js = f"""
