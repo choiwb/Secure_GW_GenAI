@@ -11,7 +11,7 @@ from langchain.callbacks.manager import collect_runs
 from config import you_icon, ahn_icon, asa_image_path, user_db_name, user_pdf_folder_path, user_new_docsearch
 from vector_db import offline_chroma_save
 from LLM import token_completion_executor
-from LCEL import retrieval_qa_chain, user_retrieval_qa_chain, asa_memory, hcx_stream, hcx_sec_pipe, hcx_sec, reset_conversation, SrcDoc
+from LCEL import retrieval_qa_chain, user_retrieval_qa_chain, asa_memory, hcx_stream, hcx_sec_pipe, hcx_sec, reset_conversation, src_doc
 from streamlit_custom_func import scroll_bottom
 from token_usage import get_token_usage, init_db
 from token_debug import record_token_debug, token_debug_init_db
@@ -176,7 +176,7 @@ if prompt := st.chat_input(""):
                             else:
                                 full_response = retrieval_qa_chain.invoke({"question":prompt})    
 
-                            record_token_debug(prompt, SrcDoc.src_doc, full_response)
+                            record_token_debug(prompt, '\n'.join(src_doc.formatted_metadata), full_response)
                                 
                             # asa_input_token = hcx_stream.init_input_token_count
                             # output_token_json = {
@@ -214,7 +214,7 @@ if prompt := st.chat_input(""):
                         else:
                             full_response = retrieval_qa_chain.invoke({"question":prompt})        
 
-                        record_token_debug(prompt, SrcDoc.src_doc, full_response)                  
+                        record_token_debug(prompt, '\n'.join(src_doc.formatted_metadata), full_response)
                     
                         # asa_input_token = hcx_stream.init_input_token_count
                         # output_token_json = {
