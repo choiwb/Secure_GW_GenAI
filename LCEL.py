@@ -151,33 +151,10 @@ user_retrieved_documents = {
     "chat_history": lambda x: get_buffer_string(x["chat_history"])
     }
     
-# def src_doc(init_src_doc):
-#     if len(init_src_doc['source_documents']) > 0:
-#         source_documents_total = init_src_doc['source_documents']
-        
-#         src_doc_context = [doc.page_content for doc in source_documents_total]
-#         src_doc_score = [doc.state['query_similarity_score'] for doc in source_documents_total]
-#         src_doc_metadata = [doc.metadata for doc in source_documents_total]
-
-#         formatted_metadata = [
-#             f'문서 명: {metadata["source"].split("/")[-1]}, 문서 위치: {metadata["page"]} 쪽'
-#             for metadata in src_doc_metadata
-#         ]
-        
-#         src_doc_df = pd.DataFrame({'참조 문서': src_doc_context, '유사도': src_doc_score, '문서 출처': formatted_metadata})
-#         src_doc_df['No'] = [i+1 for i in range(src_doc_df.shape[0])]
-#         src_doc_df = src_doc_df.set_index('No')
-#         src_doc_df['참조 문서'] = src_doc_df['참조 문서'].str.slice(0, 100) + '.....(이하 생략)'
-#         src_doc_df['유사도'] = src_doc_df['유사도'].round(3).astype(str)
-        
-#         with st.expander('참조 문서'):
-#             st.table(src_doc_df)
-#             st.markdown("AhnLab에서 제공하는 위협정보 입니다.<br>자세한 정보는 https://www.ahnlab.com/ko/contents/asec/info 에서 참조해주세요.", unsafe_allow_html=True)
-
-#     return init_src_doc
-
-class SrcDoc():
-    def src_doc(init_src_doc):
+class SrcDoc:    
+    formatted_metadata: list
+          
+    def src_doc(self, init_src_doc):
         if len(init_src_doc['source_documents']) > 0:
             source_documents_total = init_src_doc['source_documents']
             
@@ -185,14 +162,12 @@ class SrcDoc():
             src_doc_score = [doc.state['query_similarity_score'] for doc in source_documents_total]
             src_doc_metadata = [doc.metadata for doc in source_documents_total]
 
-            formatted_metadata = [
+            self.formatted_metadata = [
                 f'문서 명: {metadata["source"].split("/")[-1]}, 문서 위치: {metadata["page"]} 쪽'
                 for metadata in src_doc_metadata
-            ]
-            print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-            print(formatted_metadata)
-            
-            src_doc_df = pd.DataFrame({'참조 문서': src_doc_context, '유사도': src_doc_score, '문서 출처': formatted_metadata})
+            ]  
+                                
+            src_doc_df = pd.DataFrame({'참조 문서': src_doc_context, '유사도': src_doc_score, '문서 출처': self.formatted_metadata})
             src_doc_df['No'] = [i+1 for i in range(src_doc_df.shape[0])]
             src_doc_df = src_doc_df.set_index('No')
             src_doc_df['참조 문서'] = src_doc_df['참조 문서'].str.slice(0, 100) + '.....(이하 생략)'
@@ -203,6 +178,8 @@ class SrcDoc():
                 st.markdown("AhnLab에서 제공하는 위협정보 입니다.<br>자세한 정보는 https://www.ahnlab.com/ko/contents/asec/info 에서 참조해주세요.", unsafe_allow_html=True)
 
         return init_src_doc
+
+src_doc = SrcDoc()
 
 not_retrieved_documents = {
     "question": lambda x: x["question"],
@@ -230,12 +207,12 @@ img_final_inputs = {
 }
 
 hcx_sec_pipe = ONLY_CHAIN_PROMPT | hcx_sec | StrOutputParser()
-retrieval_qa_chain = asa_loaded_memory | retrieved_documents | SrcDoc.src_doc | final_inputs | QA_CHAIN_PROMPT | hcx_stream | StrOutputParser()
-user_retrieval_qa_chain = asa_loaded_memory | user_retrieved_documents | SrcDoc.src_doc | final_inputs | QA_CHAIN_PROMPT | hcx_stream | StrOutputParser()
+retrieval_qa_chain = asa_loaded_memory | retrieved_documents | (lambda x: src_doc.src_doc(x)) | final_inputs | QA_CHAIN_PROMPT | hcx_stream | StrOutputParser()
+user_retrieval_qa_chain = asa_loaded_memory | user_retrieved_documents | (lambda x: src_doc.src_doc(x))  | final_inputs | QA_CHAIN_PROMPT | hcx_stream | StrOutputParser()
 hcx_only_pipe =  hcx_loaded_memory | not_retrieved_documents |  ONLY_CHAIN_PROMPT | hcx_stream | StrOutputParser()
 gpt_pipe =  gpt_loaded_memory | not_retrieved_documents | ONLY_CHAIN_PROMPT | gpt_model | StrOutputParser()
-aws_retrieval_qa_chain = asa_loaded_memory | retrieved_documents | SrcDoc.src_doc | final_inputs | QA_CHAIN_PROMPT | sonnet_llm | StrOutputParser()
-sllm_pipe = sllm_loaded_memory | retrieved_documents | SrcDoc.src_doc | final_inputs | QA_CHAIN_PROMPT | sllm | StrOutputParser()
+aws_retrieval_qa_chain = asa_loaded_memory | retrieved_documents | (lambda x: src_doc.src_doc(x)) | final_inputs | QA_CHAIN_PROMPT | sonnet_llm | StrOutputParser()
+sllm_pipe = sllm_loaded_memory | retrieved_documents | (lambda x: src_doc.src_doc(x)) | final_inputs | QA_CHAIN_PROMPT | sllm | StrOutputParser()
 
 gemini_txt_pipe = gemini_loaded_memory | not_retrieved_documents | ONLY_CHAIN_PROMPT | gemini_txt_model | StrOutputParser()
 gemini_vis_pipe = RunnablePassthrough() | gemini_vis_model | StrOutputParser()
