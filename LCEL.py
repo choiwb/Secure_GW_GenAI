@@ -16,7 +16,6 @@ from config import compression_retriever, user_compression_retriever
 from prompt import not_rag_template, rag_template, img_rag_template, PROMPT_INJECTION_PROMPT, SYSTEMPROMPT
 from LLM import HCX, gpt_model, sonnet_llm, sllm, gemini_vis_model, gemini_txt_model
 
-
 ONLY_CHAIN_PROMPT = PromptTemplate(input_variables=["question"],template=not_rag_template)
 QA_CHAIN_PROMPT = PromptTemplate(input_variables=["context", "question"],template=rag_template)
 IMG_QA_CHAIN_PROMPT = PromptTemplate(input_variables=["img_context", "valid_img_context", "question"],template=img_rag_template)
