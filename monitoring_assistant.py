@@ -10,7 +10,6 @@ from langchain.callbacks.manager import collect_runs
 
 from config import you_icon, ahn_icon, asa_image_path, user_db_name, user_pdf_folder_path, user_new_docsearch
 from vector_db import offline_chroma_save
-from LLM import token_completion_executor
 from LCEL import retrieval_qa_chain, user_retrieval_qa_chain, asa_memory, hcx_stream, hcx_sec_pipe, hcx_sec, reset_conversation, src_doc
 from streamlit_custom_func import scroll_bottom
 from token_usage import get_token_usage, init_db
@@ -164,8 +163,7 @@ if prompt := st.chat_input(""):
                     if st.session_state.sec_ai_gw_activate_yn == "ON":
                         inj_full_response = hcx_sec_pipe.invoke({"question": prompt})
                         
-                        # sec_inj_total_token = hcx_sec.init_input_token_count
-                        record_token_debug(prompt, '-', inj_full_response)
+                        record_token_debug(hcx_sec.question_time, hcx_sec.dur_latency, prompt, '-', inj_full_response, hcx_sec.token_count, hcx_sec.token_price)
                             
                         sec_st_write = st.empty()
                         if '보안 취약점이 우려되는 질문입니다' not in inj_full_response:                        
@@ -176,23 +174,8 @@ if prompt := st.chat_input(""):
                             else:
                                 full_response = retrieval_qa_chain.invoke({"question":prompt})    
 
-                            record_token_debug(prompt, '\n'.join(src_doc.formatted_metadata), full_response)
-                                
-                            # asa_input_token = hcx_stream.init_input_token_count
-                            # output_token_json = {
-                            #     "messages": [
-                            #     {
-                            #         "role": "assistant",
-                            #         "content": full_response
-                            #     }
-                            #     ]
-                            #     }
-                            # output_text_token = token_completion_executor.execute(output_token_json)
-                            # output_token_count = sum(token['count'] for token in output_text_token[:])
-                            # asa_total_token = asa_input_token + output_token_count
-                            
-                            # asa_total_token_final = sec_inj_total_token + asa_total_token
-                            
+                            record_token_debug(hcx_stream.question_time, hcx_stream.dur_latency, prompt, '\n'.join(src_doc.formatted_metadata), full_response, hcx_stream.token_count, hcx_stream.token_price)
+                                                            
                             asa_memory.save_context({"question": prompt}, {"answer": full_response})
                             st.session_state.ahn_messages.append({"role": "assistant", "content": full_response})
                             
@@ -214,49 +197,14 @@ if prompt := st.chat_input(""):
                         else:
                             full_response = retrieval_qa_chain.invoke({"question":prompt})        
 
-                        record_token_debug(prompt, '\n'.join(src_doc.formatted_metadata), full_response)
-                    
-                        # asa_input_token = hcx_stream.init_input_token_count
-                        # output_token_json = {
-                        #     "messages": [
-                        #     {
-                        #         "role": "assistant",
-                        #         "content": full_response
-                        #     }
-                        #     ]
-                        #     }
-                        # output_text_token = token_completion_executor.execute(output_token_json)
-                        # output_token_count = sum(token['count'] for token in output_text_token[:])
-                        # asa_total_token = asa_input_token + output_token_count
-                        
-                        # asa_total_token_final =  asa_total_token
-                        
+                        record_token_debug(hcx_stream.question_time, hcx_stream.dur_latency, prompt, '\n'.join(src_doc.formatted_metadata), full_response, hcx_stream.token_count, hcx_stream.token_price)
+                                            
                         asa_memory.save_context({"question": prompt}, {"answer": full_response})
                         st.session_state.ahn_messages.append({"role": "assistant", "content": full_response})
                             
                         # 사용자 피드백이 필요한 질문에 대한 결과 !!
                         st.session_state.run_id = cb.traced_runs[0].id
-                                  
-            # if st.session_state.sec_ai_gw_activate_yn == "ON":            
-            #     if '보안 취약점이 우려되는 질문입니다' not in inj_full_response:
-            #         with st.expander('토큰 정보'):
-            #             st.markdown(f"""
-            #             - 총 토큰 수: {asa_total_token_final}<br>
-            #             - 총 토큰 비용: {round(asa_total_token_final * 0.005, 3)}(원)
-            #             """, unsafe_allow_html=True)
-            #     else:
-            #         with st.expander('토큰 정보'):
-            #             st.markdown(f"""
-            #             - 총 토큰 수: {sec_inj_total_token}<br>
-            #             - 총 토큰 비용: {round(sec_inj_total_token * 0.005, 3)}(원)
-            #             """, unsafe_allow_html=True)
-            # else:
-            #     with st.expander('토큰 정보'):
-            #         st.markdown(f"""
-            #         - 총 토큰 수: {asa_total_token_final}<br>
-            #         - 총 토큰 비용: {round(asa_total_token_final * 0.005, 3)}(원)
-            #         """, unsafe_allow_html=True)
-            
+                                              
         except Exception as e:
             st.error(e, icon="🚨")
     
