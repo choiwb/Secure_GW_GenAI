@@ -61,12 +61,12 @@ class HCX(LLM):
                             headers=hcx_stream_headers,
                             timeout=10) as res:
                 end_latency, self.token_count, full_response = hcx_stream_process(res)
-                print('토큰 총 사용량: ', self.token_count)
-                self.token_price = self.token_count * hcx_003_token_per_price
                 # 첫 토큰 지연시간
-                end_latency = time.time()
                 self.dur_latency = end_latency - start_latency
                 self.dur_latency = round(self.dur_latency, 2)
+                print('토큰 총 사용량: ', self.token_count)
+                self.token_price = self.token_count * hcx_003_token_per_price
+                record_token_usage(self.token_count)
                 return full_response
             
         else:       
