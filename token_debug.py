@@ -15,22 +15,24 @@ def token_debug_init_db():
     c.execute('''
         CREATE TABLE IF NOT EXISTS token_debug (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            question_time VARCHAR,
+            latency_seconds FLOAT,
             question VARCHAR,
             context VARCHAR,
-            answer VARCHAR
+            answer VARCHAR,
+            token_count INT,
+            token_price FLOAT
         )
     ''')
     conn.commit()
     conn.close()
 
-def record_token_debug(question, context, answer):
+def record_token_debug(time, latency, question, context, answer, count, price):
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
     c.execute('''
-        INSERT INTO token_debug (question, context, answer)
-        VALUES (?, ?, ?)
-    ''', (question, context, answer))
+        INSERT INTO token_debug (question_time, latency_seconds, question, context, answer, token_count, token_price)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    ''', (time, latency, question, context, answer, count, price))
     conn.commit()
     conn.close()
-
-
