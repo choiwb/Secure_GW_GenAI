@@ -126,6 +126,9 @@ hcx_stream_headers = {
         'Accept': 'text/event-stream'
         }
 
+# hcx-003 1 토큰 당 가격 (원) (세전)
+hcx_003_token_per_price = 0.005 
+
 # HCX & GPT & sLLM 주요 파라미터
 llm_maxtokens = 512
 llm_temperature = 0.1
