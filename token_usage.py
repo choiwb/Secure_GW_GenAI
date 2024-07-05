@@ -3,7 +3,7 @@ import sqlite3
 import os
 from datetime import datetime
 
-from config import token_db_path
+from config import token_db_path, hcx_003_token_per_price
 
 DB_FILE = os.path.join(token_db_path, "token_usage.db")
 
@@ -29,7 +29,7 @@ def record_token_usage(tokens):
     now = datetime.now()
     year = now.year
     month = now.month
-    fee = tokens * 0.005
+    fee = tokens * hcx_003_token_per_price
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
     c.execute('SELECT usage, fee FROM token_usage WHERE year=? AND month=?', (year, month))
