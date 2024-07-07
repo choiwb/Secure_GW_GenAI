@@ -10,7 +10,7 @@ HCX (Hyper Clova X) & GPT & Anthropic Claude & Gemini Pro Vision Generative AI A
 - Vector DB: Chroma, FAISS, PGVector, Milvus
 - Backend: LangChain
 - Frontend: Streamlit
-- Production & Deployment: LangSmith
+- Production & Deployment: LangSmith, RDB (SQLite3)
 -----
 - TO DO 1: sLLM R&D (Meta Llama 3)
 - TO DO 2: LangSmith customizing - token count & price (OpenAI to HCX)
