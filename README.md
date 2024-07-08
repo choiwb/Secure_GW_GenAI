@@ -9,7 +9,7 @@ HCX (Hyper Clova X) & GPT & Anthropic Claude & Gemini Pro Vision Generative AI A
 - Embedding: OpenAI, Amazon Titan, NCP, HuggingFace (nomic embed text)
 - Vector DB: Chroma, FAISS, PGVector, Milvus
 - Backend: LangChain
-- Frontend: Streamlit
+- Frontend: Nginx based Streamlit
 - Production & Deployment: LangSmith, RDB (SQLite3)
 -----
 - TO DO 1: sLLM R&D (Meta Llama 3)
