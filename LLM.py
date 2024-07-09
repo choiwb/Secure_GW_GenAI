@@ -51,7 +51,7 @@ class HCX(LLM):
         
         # 질문 요청 시간
         now_time = datetime.now()
-        self.question_time = now_time.strftime('%Y%M%d%H%M%S')
+        self.question_time = now_time.strftime('%Y%m%d%H%M%S')
         # LLM 요청 시간 
         start_latency = time.time()
         if self.streaming == True:
