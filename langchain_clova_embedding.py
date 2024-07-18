@@ -9,7 +9,7 @@ load_dotenv()
 
 CLOVA_EMB_API_KEY = os.getenv("CLOVA_EMB_API_KEY")
 CLOVA_EMB_APIGW_API_KEY = os.getenv("CLOVA_EMB_APIGW_API_KEY")
-EMBEDDING_APP_ID = os.getenv("EMBEDDING_APP_ID")
+CLOVA_EMB_APP_ID = os.getenv("CLOVA_EMB_APP_ID")
 ###################################################################
 
 def cosine_similarity(A, B):
@@ -42,28 +42,42 @@ embedding_emb = ClovaEmbeddings(
     model = 'clir-emb-dolphin',
     clova_emb_api_key=CLOVA_EMB_API_KEY,
     clova_emb_apigw_api_key=CLOVA_EMB_APIGW_API_KEY,
-    app_id=EMBEDDING_APP_ID
+    app_id=CLOVA_EMB_APP_ID
 )
 
 embedding_sts = ClovaEmbeddings(
     model = 'clir-sts-dolphin',
     clova_emb_api_key=CLOVA_EMB_API_KEY,
     clova_emb_apigw_api_key=CLOVA_EMB_APIGW_API_KEY,
-    app_id=EMBEDDING_APP_ID
+    app_id=CLOVA_EMB_APP_ID
+)
+
+embedding_v2 = ClovaEmbeddings(
+    model = 'v2',
+    clova_emb_api_key=CLOVA_EMB_API_KEY,
+    clova_emb_apigw_api_key=CLOVA_EMB_APIGW_API_KEY,
+    app_id=CLOVA_EMB_APP_ID
 )
 
 query_text_1 = "오늘 날씨 어때?"
 query_text_2 = "오늘은 비가 옵니다."
 # query_text_2 = "날씨 오늘 어떨까?"
 
-sts_query_result_1 = embedding_sts.embed_query(query_text_1)
-sts_query_result_2 = embedding_sts.embed_query(query_text_2)
+# sts_query_result_1 = embedding_sts.embed_query(query_text_1)
+# sts_query_result_2 = embedding_sts.embed_query(query_text_2)
+# cosine_score_sts = cosine_similarity(sts_query_result_1, sts_query_result_2)
+# print('clir-sts-dolphin 모델의 코사인 유사도: %.2f' %(cosine_score_sts))
 
-cosine_score_sts = cosine_similarity(sts_query_result_1, sts_query_result_2)
-print('clir-sts-dolphin 모델의 코사인 유사도: %.2f' %(cosine_score_sts))
+# emb_query_result_1 = embedding_emb.embed_query(query_text_1)
+# emb_query_result_2 = embedding_emb.embed_query(query_text_2)
+# euclidean_score_emb = euclidean_distance(emb_query_result_1, emb_query_result_2)
+# print('clir-emb-dolphin 모델의 유클리드 거리 (L2 거리): %.2f' %(euclidean_score_emb))
 
-emb_query_result_1 = embedding_emb.embed_query(query_text_1)
-emb_query_result_2 = embedding_emb.embed_query(query_text_2)
-euclidean_score_emb = euclidean_distance(emb_query_result_1, emb_query_result_2)
-print('clir-emb-dolphin 모델의 유클리드 거리 (L2 거리): %.2f' %(euclidean_score_emb))
+v2_query_result_1 = embedding_v2.embed_query(query_text_1)
+v2_query_result_2 = embedding_v2.embed_query(query_text_2)
+euclidean_score_v2 = euclidean_distance(v2_query_result_1, v2_query_result_2)
+print('embedding v2 모델의 유클리드 거리 (L2 거리): %.2f' %(euclidean_score_v2))
+
+cosine_score_sts = cosine_similarity(v2_query_result_1, v2_query_result_2)
+print('embedding v2 모델의 코사인 유사도: %.2f' %(cosine_score_sts))
 
