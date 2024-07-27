@@ -15,7 +15,7 @@ from langchain.callbacks.manager import CallbackManager
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 from langchain_aws import ChatBedrock
 
-from prompt import sllm_inj_rag_prompt
+from prompt import sllm_inj_rag_prompt, llama_prompt
 from config import HCX_LLM_URL, hcx_003_token_per_price, bedrock_runtime, aws_llm_id, sllm_model_path, sllm_n_batch, sllm_n_gpu_layers, hcx_general_headers, hcx_stream_headers, hcx_llm_params, llm_maxtokens, llm_temperature, gemini_llm_params, gemini_safe, sllm_n_ctx, sllm_top_p
 from streamlit_custom_func import hcx_stream_process
 from token_usage import record_token_usage
@@ -126,4 +126,4 @@ sllm = LlamaCpp(model_path=sllm_model_path, temperature=llm_temperature, max_tok
     n_gpu_layers=sllm_n_gpu_layers,
     n_batch=sllm_n_batch,
     use_mlock=True,
-    prompt=sllm_inj_rag_prompt)
+    prompt=llama_prompt)
