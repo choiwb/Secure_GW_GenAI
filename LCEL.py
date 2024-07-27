@@ -6,18 +6,18 @@ from langchain.memory import ConversationBufferMemory
 import streamlit as st
 from langchain_core.runnables import RunnablePassthrough, RunnableLambda
 from langchain_core.pydantic_v1 import BaseModel, Field
-from langchain_core.runnables import chain
 from langchain_core.output_parsers import StrOutputParser, JsonOutputParser
 from operator import itemgetter
 from langchain_core.messages import get_buffer_string
 from langchain.schema import format_document
 
 from config import compression_retriever, user_compression_retriever
-from prompt import not_rag_template, rag_template, img_rag_template, PROMPT_INJECTION_PROMPT, SYSTEMPROMPT
+from prompt import not_rag_template, rag_template, llama_template, img_rag_template, PROMPT_INJECTION_PROMPT, SYSTEMPROMPT
 from LLM import HCX, gpt_model, sonnet_llm, sllm, gemini_vis_model, gemini_txt_model
 
 ONLY_CHAIN_PROMPT = PromptTemplate(input_variables=["question"],template=not_rag_template)
 QA_CHAIN_PROMPT = PromptTemplate(input_variables=["context", "question"],template=rag_template)
+LLAMA_QA_CHAIN_PROMPT = PromptTemplate(input_variables=["context", "question"],template=llama_template)
 IMG_QA_CHAIN_PROMPT = PromptTemplate(input_variables=["img_context", "valid_img_context", "question"],template=img_rag_template)
  
 class doc_review_system_key(BaseModel):
@@ -211,7 +211,7 @@ user_retrieval_qa_chain = asa_loaded_memory | user_retrieved_documents | (lambda
 hcx_only_pipe =  hcx_loaded_memory | not_retrieved_documents |  ONLY_CHAIN_PROMPT | hcx_stream | StrOutputParser()
 gpt_pipe =  gpt_loaded_memory | not_retrieved_documents | ONLY_CHAIN_PROMPT | gpt_model | StrOutputParser()
 aws_retrieval_qa_chain = asa_loaded_memory | retrieved_documents | (lambda x: src_doc.src_doc(x)) | final_inputs | QA_CHAIN_PROMPT | sonnet_llm | StrOutputParser()
-sllm_pipe = sllm_loaded_memory | retrieved_documents | (lambda x: src_doc.src_doc(x)) | final_inputs | QA_CHAIN_PROMPT | sllm | StrOutputParser()
+sllm_pipe = sllm_loaded_memory | retrieved_documents | (lambda x: src_doc.src_doc(x)) | final_inputs | LLAMA_QA_CHAIN_PROMPT | sllm | StrOutputParser()
 
 gemini_txt_pipe = gemini_loaded_memory | not_retrieved_documents | ONLY_CHAIN_PROMPT | gemini_txt_model | StrOutputParser()
 gemini_vis_pipe = RunnablePassthrough() | gemini_vis_model | StrOutputParser()
