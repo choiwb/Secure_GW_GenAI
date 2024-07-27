@@ -4,7 +4,7 @@ HCX (Hyper Clova X) & GPT & Anthropic Claude & Gemini Pro Vision Generative AI A
 [Generative AI app]
 - Scenario: auto review generation, Cloud based Assistant
 - Secure Gateway: Nginx based Security Headers add & LLM based Prompt Injection module
-- LLM: HCX, GPT, Anthropic Claude, sLLM (EEVE), Gemini Pro Vision
+- LLM: HCX, GPT, Anthropic Claude, sLLM (Llama 3.1 8B Instruct), Gemini Pro Vision
 - Process: RAG, Multimodal RAG
 - Embedding: OpenAI, Amazon Titan, NCP, HuggingFace (nomic embed text)
 - Vector DB: Chroma, FAISS, PGVector, Milvus
@@ -12,5 +12,5 @@ HCX (Hyper Clova X) & GPT & Anthropic Claude & Gemini Pro Vision Generative AI A
 - Frontend: Nginx based Streamlit
 - Production & Deployment: LangSmith, RDB (SQLite3)
 -----
-- TO DO 1: sLLM R&D (Meta Llama 3)
+- TO DO 1: Production Level Vector DB merge
 - TO DO 2: LangSmith customizing - token count & price (OpenAI to HCX)
