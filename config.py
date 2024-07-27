@@ -84,6 +84,10 @@ bedrock_runtime = boto3.client(
 aws_embed_model_id = "amazon.titan-embed-text-v1"
 aws_llm_id = "anthropic.claude-3-5-sonnet-20240620-v1:0"
 
+# sLLM 모델 경로
+sllm_model_path = os.path.join(os.getcwd(), "sllm_models/Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf")
+sllm_embed_model_path = os.path.join(os.getcwd(), "sllm_models/nomic-embed-text-v1.5.f32.gguf")
+
 # text-embedding-3-small or text-embedding-3-large
 # embeddings = OpenAIEmbeddings(model = 'text-embedding-3-small')
 # embeddings = LlamaCppEmbeddings(model_path = sllm_embed_model_path)
@@ -98,10 +102,6 @@ embeddings = BedrockEmbeddings(
         region_name=AWS_REGION,
         model_id=aws_embed_model_id
         ) 
-
-# sLLM 모델 경로
-sllm_model_path = os.path.join(os.getcwd(), "sllm_models/Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf")
-sllm_embed_model_path = os.path.join(os.getcwd(), "sllm_models/nomic-embed-text-v1.5.f32.gguf")
 
 token_headers = {
         'X-NCP-CLOVASTUDIO-API-KEY': TOKEN_API_KEY,
