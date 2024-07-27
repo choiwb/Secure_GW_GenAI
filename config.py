@@ -100,7 +100,7 @@ embeddings = BedrockEmbeddings(
         ) 
 
 # sLLM 모델 경로
-sllm_model_path = os.path.join(os.getcwd(), "sllm_models/EEVE-Korean-Instruct-10.8B-v1.0-Q4_K_M.gguf")
+sllm_model_path = os.path.join(os.getcwd(), "sllm_models/Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf")
 sllm_embed_model_path = os.path.join(os.getcwd(), "sllm_models/nomic-embed-text-v1.5.f32.gguf")
 
 token_headers = {
