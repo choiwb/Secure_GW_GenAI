@@ -84,5 +84,24 @@ def offline_milvus_save(pdf_paths):
             connection_args={"uri": os.path.join(db_save_path, 'cloud_assistant_v5_milvus.db')},
             drop_old=True,  # Drop the old Milvus collection if it exists
             )
-        
+    
+async def async_offline_milvus_save(pdf_paths): 
+    total_docs = []
+    for pdf_url in pdf_paths:
+        pdfreader =  PyPDFLoader(pdf_url)
+        pdf_doc = pdfreader.load_and_split()
+
+        doc = text_splitter.split_documents(pdf_doc)
+        total_docs = total_docs + doc
+
+    print(len(total_docs))
+
+    vectorstore = await Milvus.afrom_documents(
+            documents=total_docs,
+            embedding=embeddings,
+            connection_args={"uri": os.path.join(db_save_path, 'nia_poc_sample_milvus.db')},
+            drop_old=True,  # Drop the old Milvus collection if it exists
+            )
+    
+    return vectorstore
 #######################################################################################################
