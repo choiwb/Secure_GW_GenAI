@@ -81,7 +81,7 @@ bedrock_runtime = boto3.client(
 )
 
 # AWS 임베딩 & LLM 모델
-aws_embed_model_id = "amazon.titan-embed-text-v1"
+aws_embed_model_id = "amazon.titan-embed-text-v2:0"
 aws_llm_id = "anthropic.claude-3-5-sonnet-20240620-v1:0"
 
 # sLLM 모델 경로
