@@ -96,12 +96,23 @@ async def async_offline_milvus_save(pdf_paths):
 
     print(len(total_docs))
 
-    vectorstore = await Milvus.afrom_documents(
-            documents=total_docs,
-            embedding=embeddings,
-            connection_args={"uri": os.path.join(db_save_path, 'nia_poc_sample_milvus.db')},
-            drop_old=True,  # Drop the old Milvus collection if it exists
-            )
+    total_docs_batch_size = 1000
     
+    if len(total_docs) > total_docs_batch_size:
+        vectorstore = await Milvus.afrom_documents(
+                documents=total_docs[:total_docs_batch_size],
+                embedding=embeddings,
+                connection_args={"uri": os.path.join(db_save_path, 'nia_poc_sample_milvus.db')},
+                drop_old=True,  # Drop the old Milvus collection if it exists
+                )
+        await vectorstore.aadd_documents(documents=total_docs[total_docs_batch_size:])
+    else:
+        vectorstore = await Milvus.afrom_documents(
+                documents=total_docs,
+                embedding=embeddings,
+                connection_args={"uri": os.path.join(db_save_path, 'nia_poc_sample_milvus.db')},
+                drop_old=True,  # Drop the old Milvus collection if it exists
+                )
+
     return vectorstore
 #######################################################################################################
