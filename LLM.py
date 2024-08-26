@@ -4,7 +4,7 @@ import time
 from datetime import datetime
 import httpx
 import requests
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Iterator
 from pydantic import Field
 from langchain.llms.base import LLM
 from langchain.callbacks.manager import CallbackManagerForLLMRun
@@ -13,6 +13,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.llms import LlamaCpp
 from langchain.callbacks.manager import CallbackManager
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
+from langchain_core.outputs import GenerationChunk
 from langchain_aws import ChatBedrock
 
 from prompt import sllm_inj_rag_prompt, llama_prompt
@@ -21,7 +22,7 @@ from streamlit_custom_func import hcx_stream_process
 from token_usage import record_token_usage
 
  
-class HCX(LLM): 
+class HCX(LLM):
     question_time: str = ''
     dur_latency: float = 0.0
     init_system_prompt: str
@@ -32,57 +33,97 @@ class HCX(LLM):
     @property
     def _llm_type(self) -> str:
         return "hcx-003"
-   
+    
     def _call(
-        self,
+        self,        
         prompt: str,
         stop: Optional[List[str]] = None,
         run_manager: Optional[CallbackManagerForLLMRun] = None,
         **kwargs: Any,
-    ) -> str:
+    ) -> str:   
         if stop is not None:
             raise ValueError("stop kwargs are not permitted.")
-         
+        
         preset_text = [{"role": "system", "content": self.init_system_prompt}, {"role": "user", "content": prompt}]
         request_data = {
         'messages': preset_text
         }
-        total_request_data = request_data | hcx_llm_params
+        total_request_data = request_data | hcx_params
         
         # 질문 요청 시간
         now_time = datetime.now()
         self.question_time = now_time.strftime('%Y%m%d%H%M%S')
         # LLM 요청 시간 
         start_latency = time.time()
-        if self.streaming == True:
-            with httpx.stream(method="POST",
-                            url=HCX_LLM_URL,
-                            json=total_request_data,
-                            headers=hcx_stream_headers,
-                            timeout=10) as res:
-                end_latency, self.token_count, full_response = hcx_stream_process(res)
-                # 첫 토큰 지연시간
-                self.dur_latency = end_latency - start_latency
-                self.dur_latency = round(self.dur_latency, 2)
-                print('토큰 총 사용량: ', self.token_count)
-                self.token_price = self.token_count * hcx_003_token_per_price
-                record_token_usage(self.token_count)
-                return full_response
-            
-        else:       
-            response = requests.post(HCX_LLM_URL, json=total_request_data, headers=hcx_general_headers, verify=False)
-            # 첫 토큰 지연시간
-            end_latency = time.time()
-            self.dur_latency = end_latency - start_latency
-            self.dur_latency = round(self.dur_latency, 2)
+        
+        response = requests.post(HCX_LLM_URL, json=total_request_data, headers=hcx_general_headers, verify=False)  
+        # 첫 토큰 지연시간
+        end_latency = time.time()
+        self.dur_latency = end_latency - start_latency
+        self.dur_latency = round(self.dur_latency, 2)
 
-            response = response.json()       
-            llm_result = response['result']['message']['content']            
-            self.token_count = response["result"]["inputLength"] + response["result"]["outputLength"]
-            print('토큰 총 사용량: ', self.token_count)
-            self.token_price = self.token_count * hcx_003_token_per_price
-            record_token_usage(self.token_count)
-            return llm_result
+        response = response.json()       
+        llm_result = response['result']['message']['content']            
+        self.token_count = response["result"]["inputLength"] + response["result"]["outputLength"]
+        print('토큰 총 사용량: ', self.token_count)
+        self.token_price = self.token_count * hcx_003_token_per_price
+        record_token_usage(self.token_count)
+        return llm_result
+
+    def _stream(
+        self,
+        prompt: str,
+        stop: Optional[List[str]] = None,
+        run_manager: Optional[CallbackManagerForLLMRun] = None,
+        **kwargs: Any,
+    ) -> Iterator[GenerationChunk]:
+
+        if stop is not None:
+            raise ValueError("stop kwargs are not permitted.")
+        preset_text = [{"role": "system", "content": self.init_system_prompt}, {"role": "user", "content": prompt}]
+        request_data = {
+        'messages': preset_text
+        }
+        total_request_data = request_data | hcx_params
+    
+        # 질문 요청 시간
+        now_time = datetime.now()
+        self.question_time = now_time.strftime('%Y%m%d%H%M%S')
+        # LLM 요청 시간 
+        start_latency = time.time()
+        
+        with httpx.stream(method="POST",
+                        url=HCX_LLM_URL,
+                        json=total_request_data,
+                        headers=hcx_stream_headers,
+                        timeout=10) as res:  
+            first_token_count = 0
+            for line in res.iter_lines():
+                if line.startswith("data:"):
+                    split_line = line.split("data:")
+                    line_json = json.loads(split_line[1])
+                    if "stopReason" in line_json and line_json["stopReason"] == None:
+                        chunk = GenerationChunk(text=line_json["message"]["content"].replace("\n", "<br>"))
+                        yield chunk
+                        
+                        first_token_count += 1
+                        if first_token_count == 1:
+                            end_latency = time.time()
+                        
+                    # token length check
+                    elif "stopReason" in line_json and "seed" in line_json and line_json["stopReason"] == "stop_before":
+                        token_count = line_json["inputLength"] + line_json["outputLength"] - 1
+
+                    # 첫 토큰 지연시간
+                    self.dur_latency = end_latency - start_latency
+                    self.dur_latency = round(self.dur_latency, 2)
+                    print('토큰 총 사용량: ', self.token_count)
+                    self.token_price = self.token_count * hcx_003_token_per_price
+                    record_token_usage(self.token_count)
+
+                    # 만약 연결이 닫혔거나 데이터가 더 이상 없을 경우, 루프를 종료
+                    if res.is_closed or not res.content:
+                        return
 
 gpt_model = ChatOpenAI(
     model="gpt-3.5-turbo",
