@@ -51,8 +51,8 @@ def multimodal_prompt_json_parser(img_base64):
     )
     ]
 
-hcx_sec = HCX(init_system_prompt = PROMPT_INJECTION_PROMPT, streaming = False)
-hcx_stream = HCX(init_system_prompt = SYSTEMPROMPT, streaming = True)
+hcx_sec = HCX(init_system_prompt = PROMPT_INJECTION_PROMPT)
+hcx_stream = HCX(init_system_prompt = SYSTEMPROMPT)
 
 @st.cache_resource
 def asa_init_memory():
