@@ -198,10 +198,16 @@ if prompt := st.chat_input(""):
 
                             st.session_state.ahn_messages.append({"role": "assistant", "content": inj_full_response})
                     else:
-                        if st.session_state.selected_db == 'user_vectordb':
-                            full_response = user_retrieval_qa_chain.invoke({"question":prompt})    
+                        message_placeholder = st.empty()
+                        full_response = ""  
+                        if st.session_state.selected_db == 'user_vectordb':          
+                            for chunk in user_retrieval_qa_chain.stream({"question":prompt}):
+                                full_response += chunk
+                                message_placeholder.markdown(full_response, unsafe_allow_html=True)
                         else:
-                            full_response = retrieval_qa_chain.invoke({"question":prompt})        
+                           for chunk in retrieval_qa_chain.stream({"question":prompt}):
+                                full_response += chunk
+                                message_placeholder.markdown(full_response, unsafe_allow_html=True)  
 
                         record_token_debug(hcx_stream.question_time, hcx_stream.dur_latency, prompt, '\n'.join(src_doc.formatted_metadata), full_response, hcx_stream.token_count, hcx_stream.token_price)
                                             
