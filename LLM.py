@@ -48,7 +48,7 @@ class HCX(LLM):
         request_data = {
         'messages': preset_text
         }
-        total_request_data = request_data | hcx_params
+        total_request_data = request_data | hcx_llm_params
         
         # 질문 요청 시간
         now_time = datetime.now()
@@ -84,7 +84,7 @@ class HCX(LLM):
         request_data = {
         'messages': preset_text
         }
-        total_request_data = request_data | hcx_params
+        total_request_data = request_data | hcx_llm_params
     
         # 질문 요청 시간
         now_time = datetime.now()
