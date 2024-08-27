@@ -1,5 +1,5 @@
 
-
+import json
 import time
 from datetime import datetime
 import httpx
@@ -112,7 +112,7 @@ class HCX(LLM):
                         
                     # token length check
                     elif "stopReason" in line_json and "seed" in line_json and line_json["stopReason"] == "stop_before":
-                        token_count = line_json["inputLength"] + line_json["outputLength"] - 1
+                        self.token_count = line_json["inputLength"] + line_json["outputLength"] - 1
 
                     # 첫 토큰 지연시간
                     self.dur_latency = end_latency - start_latency
