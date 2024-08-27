@@ -117,13 +117,15 @@ class HCX(LLM):
                     # 첫 토큰 지연시간
                     self.dur_latency = end_latency - start_latency
                     self.dur_latency = round(self.dur_latency, 2)
-                    print('토큰 총 사용량: ', self.token_count)
-                    self.token_price = self.token_count * hcx_003_token_per_price
-                    record_token_usage(self.token_count)
+                    
+        print('토큰 총 사용량: ', self.token_count)
+        self.token_price = self.token_count * hcx_003_token_per_price
+        record_token_usage(self.token_count)
 
-                    # 만약 연결이 닫혔거나 데이터가 더 이상 없을 경우, 루프를 종료
-                    if res.is_closed or not res.content:
-                        return
+        # 만약 연결이 닫혔거나 데이터가 더 이상 없을 경우, 루프를 종료
+        if res.is_closed or not res.content:
+            return
+
 
 gpt_model = ChatOpenAI(
     model="gpt-3.5-turbo",
