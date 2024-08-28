@@ -26,7 +26,6 @@ class HCX(LLM):
     question_time: str = ''
     dur_latency: float = 0.0
     init_system_prompt: str
-    streaming: bool = Field(default = False)
     token_count: int = 0
     token_price: float = 0.0
 
