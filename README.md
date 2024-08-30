@@ -6,6 +6,7 @@ HCX (Hyper Clova X) & GPT & Anthropic Claude & Gemini Pro Vision Generative AI A
 - Secure Gateway: Nginx based Security Headers add & LLM based Prompt Injection module
 - LLM: HCX, GPT, Anthropic Claude, sLLM (Llama 3.1 8B Instruct), Gemini Pro Vision
 - Process: RAG, Multimodal RAG
+- Advanced RAG: Rerank
 - Embedding: OpenAI, Amazon Titan, NCP, HuggingFace (nomic embed text)
 - Vector DB: Chroma, FAISS, PGVector, Milvus
 - Backend: LangChain
