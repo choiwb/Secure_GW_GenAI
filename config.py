@@ -84,6 +84,9 @@ bedrock_runtime = boto3.client(
 aws_embed_model_id = "amazon.titan-embed-text-v2:0"
 aws_llm_id = "anthropic.claude-3-5-sonnet-20240620-v1:0"
 
+# 참조 문서 정렬 위한 rerank 모델 명
+rerank_model_name = "cross-encoder/ms-marco-MiniLM-L-6-v2"
+
 # sLLM 모델 경로
 sllm_model_path = os.path.join(os.getcwd(), "sllm_models/Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf")
 sllm_embed_model_path = os.path.join(os.getcwd(), "sllm_models/nomic-embed-text-v1.5.f32.gguf")
