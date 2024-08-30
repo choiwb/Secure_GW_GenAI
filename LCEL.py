@@ -7,11 +7,13 @@ import streamlit as st
 from langchain_core.runnables import RunnablePassthrough, RunnableLambda
 from langchain_core.pydantic_v1 import BaseModel, Field
 from langchain_core.output_parsers import StrOutputParser, JsonOutputParser
+from langchain_core.documents import Document
 from operator import itemgetter
 from langchain_core.messages import get_buffer_string
 from langchain.schema import format_document
+from pymilvus.model.reranker import CrossEncoderRerankFunction
 
-from config import compression_retriever, user_compression_retriever
+from config import compression_retriever, user_compression_retriever, db_doc_k, rerank_model_name
 from prompt import not_rag_template, rag_template, llama_template, img_rag_template, PROMPT_INJECTION_PROMPT, SYSTEMPROMPT
 from LLM import HCX, gpt_model, sonnet_llm, sllm, gemini_vis_model, gemini_txt_model
 
@@ -140,44 +142,84 @@ gemini_loaded_memory = RunnablePassthrough.assign(
 
 retrieved_documents = {
     "question": lambda x: x["question"],
-    "source_documents": itemgetter("question") | compression_retriever,
+    "pre_context": itemgetter("question") | compression_retriever,
     "chat_history": lambda x: get_buffer_string(x["chat_history"])
     }
     
 user_retrieved_documents = {
     "question": lambda x: x["question"],
-    "source_documents": itemgetter("question") | user_compression_retriever,
+    "pre_context": itemgetter("question") | user_compression_retriever,
     "chat_history": lambda x: get_buffer_string(x["chat_history"])
     }
-    
+
+@st.cache_resource
+def init_rerank_model():
+    return  CrossEncoderRerankFunction(
+        model_name=rerank_model_name,
+        device="cpu"
+    )
+rerank_model = init_rerank_model()
+
 class SrcDoc:    
+    post_src_doc: list
     formatted_metadata: list
-          
+    
     def src_doc(self, init_src_doc):
-        if len(init_src_doc['source_documents']) > 0:
-            source_documents_total = init_src_doc['source_documents']
-            
+        if len(init_src_doc['pre_context']) > 0:
+            source_documents_total = init_src_doc['pre_context']
             src_doc_context = [doc.page_content for doc in source_documents_total]
             src_doc_score = [doc.state['query_similarity_score'] for doc in source_documents_total]
-            src_doc_metadata = [doc.metadata for doc in source_documents_total]
+            src_doc_metadata = [doc.metadata['source'] for doc in source_documents_total]
+            src_doc_page = [doc.metadata['page'] for doc in source_documents_total]
 
+            src_doc_ori_index = [i for i in range(len(source_documents_total))]
+            src_doc_ori_index_doc_page = [src_doc_ori_index, src_doc_metadata, src_doc_page]      
+            src_doc_ori_index_doc_page = list(zip(*src_doc_ori_index_doc_page))
+
+            # 통합된문서 기반 rerank 진행
+            ce_rerank_docs = rerank_model(init_src_doc["question"], src_doc_context, top_k = db_doc_k)
+            ce_rerank_text = [i.text for i in ce_rerank_docs]
+            ce_rerank_index = [i.index for i in ce_rerank_docs]
+            
+            ce_rerank_metadata = [src_doc_ori_index_doc_page[i][1] for i in ce_rerank_index]
+            ce_rerank_page = [src_doc_ori_index_doc_page[i][2] for i in ce_rerank_index]
+            
             self.formatted_metadata = [
-                f'문서 명: {metadata["source"].split("/")[-1]}, 문서 위치: {metadata["page"]} 쪽'
-                for metadata in src_doc_metadata
+                f'문서 명: {metadata.split("/")[-1]}, 문서 위치: {page} 쪽'
+                for metadata, page in zip(ce_rerank_metadata, ce_rerank_page)
             ]  
-                                
-            src_doc_df = pd.DataFrame({'참조 문서': src_doc_context, '유사도': src_doc_score, '문서 출처': self.formatted_metadata})
+            src_doc_df = pd.DataFrame({'내용': ce_rerank_text, '문서 출처': self.formatted_metadata}) 
             src_doc_df['No'] = [i+1 for i in range(src_doc_df.shape[0])]
             src_doc_df = src_doc_df.set_index('No')
-            src_doc_df['참조 문서'] = src_doc_df['참조 문서'].str.slice(0, 100) + '.....(이하 생략)'
-            src_doc_df['유사도'] = src_doc_df['유사도'].round(3).astype(str)
-            
+            src_doc_df['내용'] = src_doc_df['내용'].str.slice(0, 100) + '.....(이하 생략)'
+       
             with st.expander('참조 문서'):
                 st.table(src_doc_df)
-                st.markdown("AhnLab에서 제공하는 위협정보 입니다.<br>자세한 정보는 https://www.ahnlab.com/ko/contents/asec/info 에서 참조해주세요.", unsafe_allow_html=True)
-
-        return init_src_doc
-
+           
+            # ce_rerank_docs의 langchain document 화
+            self.post_src_doc= [
+                            Document(
+                                page_content=text,
+                                metadata={"source": metadata}
+                            )
+                            for text, metadata in zip(ce_rerank_text, ce_rerank_metadata)
+                        ]
+           
+            post_src_doc_output = {"question": init_src_doc["question"], "post_context": self.post_src_doc, "chat_history": init_src_doc["chat_history"]}
+ 
+        else:
+            src_doc_context = []
+            src_doc_metadata = []
+            self.post_src_doc= [
+                            Document(
+                                page_content=text,
+                                metadata={"source": metadata}
+                            )
+                            for text, metadata in zip(src_doc_context, src_doc_metadata)
+                        ]
+            post_src_doc_output = {"question": init_src_doc["question"], "post_context": self.post_src_doc, "chat_history": init_src_doc["chat_history"]}
+        return post_src_doc_output
+     
 src_doc = SrcDoc()
 
 not_retrieved_documents = {
@@ -191,13 +233,13 @@ img_retrieved_documents = {
     "valid_img_context": lambda x: x["valid_img_context"],
     "chat_history": lambda x: get_buffer_string(x["chat_history"])
 }
- 
+
 final_inputs = {
-    "context": lambda x: _combine_documents(x["source_documents"]),
+    "context": lambda x: _combine_documents(x["post_context"]),
     "question": itemgetter("question"),
     "chat_history": itemgetter("chat_history")
     }
- 
+
 img_final_inputs = {
     "img_context": itemgetter("img_context"),
     "valid_img_context": itemgetter("valid_img_context"),
