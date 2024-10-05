@@ -174,7 +174,7 @@ new_docsearch = Milvus(
 user_new_docsearch = Chroma(persist_directory=os.path.join(db_save_path, user_db_name),
                             embedding_function=embeddings)
 
-def retriever_alog(new_docsearch):
+def retriever_algo(new_docsearch):
     retriever = new_docsearch.as_retriever(
                                         search_type=db_search_type,         
                                         search_kwargs={'k': db_doc_k, 'fetch_k': db_doc_fetch_k}
@@ -185,8 +185,8 @@ def retriever_alog(new_docsearch):
     )
     return compression_retriever
 
-compression_retriever = retriever_alog(new_docsearch)
-user_compression_retriever = retriever_alog(user_new_docsearch)
+compression_retriever = retriever_algo(new_docsearch)
+user_compression_retriever = retriever_algo(user_new_docsearch)
 
 gemini_llm_params = {
         'temperature': llm_temperature,
